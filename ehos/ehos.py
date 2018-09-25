@@ -1,0 +1,353 @@
+#!/usr/bin/python
+# 
+# 
+# 
+# 
+# Kim Brugger (14 Sep 2018), contact: kim@brugger.dk
+
+import sys
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+import traceback
+import time
+import re
+
+
+import openstack
+
+connection = None
+
+_server_cache = {}
+
+
+def check_connection():
+    """ Checks that there is a connection to the openstack, otherwise will raise an exception
+
+    Args:
+      None
+    
+    Returns:
+      None
+
+    Raises:
+      ConnectionError if not connected
+    """
+
+    if connection is None:
+        raise ConnectionError
+
+def connect_yaml( cloud_name:str ):
+    """
+      Args: 
+       cloud_name: name of cloud to connect to
+
+
+      Returns:
+        None
+
+      Raises:
+        reraise any openstack exception
+    """
+
+    try:
+        global connection
+        connection = openstack.connect( cloud=cloud_name )
+    except Exception as e:
+        print( "Unexpected error:", sys.exc_info()[0])
+        print( e )
+        raise e
+
+
+def connect(auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, no_cache:str,   ):
+    """ Connects to a openstack cloud
+
+    Args:
+      auth_url: authentication url
+      project_name: name of project to connect to
+      username: name of the user
+      password: password for the user
+      region_name:
+    
+    global connection
+
+    Returns:
+      None
+    
+    Raises:
+      None
+    """
+
+    global connection
+    connection = openstack.connect(
+        auth_url=auth_url,
+        project_name=project_name,
+        username=username,
+        password=password,
+        region_name=region_name,
+    )
+
+
+
+
+
+def server_create(name:str, image:str, flavor:str, network:str, key:str, security_groups:str, userdata_file:str=None): 
+    """ creates and spins up a server
+    
+    Args:
+      name: the name of the server
+      image: what image to use
+      flavor: the type of vm to use
+      network: type of network to use
+      security_groups: External access, ensure the group can connect to other server in the same group
+      userdata_file
+
+    Returns:
+      id (str) of the server
+
+    Raises:
+      pass any openstack exceptions along.
+    """
+
+    
+    check_connection()
+
+    
+    try:
+        user_data_fh = open( userdata_file, 'r')
+        server = connection.create_server(name,
+                                          image=image,
+                                          flavor=flavor,
+                                          network=network,
+                                          key_name=key,
+                                          security_groups=security_groups,
+                                          # Kind of breaks with the documentation, plus needs a filehandle, not commands or a filename.
+                                          # though the code looks like it should work with just a string of command(s).
+                                          # Cannot be bothered to get to the bottom of this right now.
+                                          userdata=user_data_fh,
+                                          wait=True,
+                                          auto_ip=True)
+        
+        for nic in server.addresses.dualStack:
+            if ( nic.version == 4):
+                print( "Server IP: {}".format( nic.addr))
+                
+        print("Server ({}) is up and running ...".format( server.id ))
+
+        global _server_cache
+        _server_cache[ server.id ] = server
+
+        return server.id
+
+    except Exception as e:
+        print( "Unexpected error:", sys.exc_info()[0] )
+        print( e )
+        raise e
+
+
+
+def server_delete(id:str):
+    """ Deletes a server instance
+
+    Args:
+      id: name/id of a server
+
+    Returns:
+      None
+
+    Raises:
+      None
+    """
+
+    connection.delete_server(id )
+    
+def servers():
+    print("List Servers:")
+
+    for server in connection.compute.servers():
+        print("\t".join(map(str, [server.id, server.name, server.status])))
+
+
+def server_log(id:str):
+    """ streams the dmesg? log from a server
+    
+    Args:
+      id: id/name of server
+    
+    Returns:
+      ?
+
+    Raises:
+      None
+    """
+
+    return( connection.compute.get_server_console_output( id )['output'])
+
+def server_log_search( id:str, match:str):
+    """ get a server log and searches for a match 
+
+    Args:
+      id: id/name of the server 
+      match: regex? of str to look for
+    
+    Returns:
+      matches found in log, if none found returns an empty list
+
+    Raises:
+      None    
+    """
+
+    log = server_log( id )
+
+    
+    results = []
+    
+    for line in log.split("\n"):
+        if ( re.search( match, line)):
+            results.append( line )
+
+    return results
+
+def wait_for_log_entry(id:str, match:str, timeout:int=200):
+    """ continually checks a server log until a string match is found
+
+    Args:
+      id: id/name of the server 
+      match: regex? of str to look for
+      timeout: max time to check logs for in seconds
+    
+    Returns:
+      matches found in log, if none found returns an empty list
+
+    Raises:
+      TimeoutError if entry not found before timeout is 
+    """
+
+    while( True ):
+        matches = server_log_search( id, match)
+
+        if matches is not None and matches != []:
+            return matches
+
+        timeout -= 1
+        if ( not timeout):
+            raise TimeoutError
+
+        print(". {}".format( timeout))
+        time.sleep( 1 )
+        
+    
+    
+    
+        
+def server_ip(id:str, ipv:int=4):
+    """ returns the ip address of a server
+    
+    Args:
+      id: name/id of server
+      ipv: return IP4 or IP6 address. IPV4 is default
+
+    Returns:
+      IP address (str), if not found (wrong IPV) returns None
+
+    Raises:
+      Passes openstack exceptions through
+    """
+
+    server = connection.compute.get_server( id )
+
+    for nic in server.addresses['dualStack']:
+        if ( nic['version'] == ipv):
+            return nic['addr']
+    return None
+
+
+
+def server_stop(id:str): 
+    """ stops a server
+    
+    Args:
+      id: the name of the server
+
+    Returns:
+      None
+
+    Raises:
+      pass any openstack exceptions along.
+    """
+
+    
+    check_connection()
+
+    server = connection.compute.get_server( id )
+    connection.compute.stop_server( server )
+    
+
+    
+def make_image_from_server( id:str, image_name:str, timeout:int=20):
+    """ creates an image from a server. Due to some bug in the openstack we spin it down before doing the backup
+
+    The function has a timeout variable to ensure we dont end up in an infinite loop
+
+    Args:
+      id: server name/id
+      image_name: the name of the backup to create
+      timeout: how long to wait for the image to be created.
+
+    Returns:
+      None
+    
+    Raises:
+      TimeoutError: if the image is not created within the timeout time
+      pass the openstack exceptions along
+
+    """
+
+    server_stop( id )
+    # rotation == 1 will only keep one version of this name, not sure about backup type
+    connection.compute.backup_server( id, image_name, backup_type='', rotation=1 )
+
+    def _wait_for_image_creation( image_name:str, timeout:int=timeout):
+        """ Wait for a single image with the given name exists and them return the id of it
+
+        This loop
+
+        Args:
+          image_name: name of the image
+          timeout: how long to wait for the image to be created.
+
+        Returns:
+          image id (str)
+        
+        Raises:
+          passes any openstack exception through
+        """
+
+        timeout = timeout
+        
+        while ( True ):
+        
+            nr_images = 0
+            image_id = None
+            for image in connection.image.images():
+                if image.name == image_name:
+                    print( image.name )
+                    nr_images += 1
+                    image_id = image.id
+
+            # Only one image with our name exist, so return its id
+            if nr_images == 1:
+                return image_id
+
+            # decrease the timeout counter, if hits 0 raise an exception, otherwise sleep a bit
+            timeout -= 1
+            if ( not timeout ):
+                raise TimeoutError
+            print( "Sleep" )
+            time.sleep(1)
+
+        image = connection.get_image( image_name )
+
+    return _wait_for_image_creation( image_name )
+    
+    
+    
