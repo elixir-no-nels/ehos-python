@@ -6,6 +6,7 @@
 # Kim Brugger (20 Sep 2018), contact: kim@brugger.dk
 
 import sys
+import os
 import argparse
 import re
 import tempfile
@@ -35,15 +36,16 @@ def wrap_yaml( template:str, config:str ):
     fh = open(template, 'r')
     lines = "".join(fh.readlines())
 
-    stream = open('ehos.yaml', 'r')
-    config = Munch.fromYAML(stream)
     # pad the config with 8 whitespaces to ensure yaml integrity
     config = re.sub("\n", "\n        ", "        "+config)
 
     # replace our keywork with the config content
     lines = re.sub('{configuration}', config, lines)
     
+
     return lines
+
+
 
 
 def main():
@@ -65,6 +67,8 @@ def main():
 
     parser.add_argument('-b', '--base-image-id',  help="use this image as the base image")
     parser.add_argument('-B', '--base-yaml',   help="yaml config file to create base image from")
+    parser.add_argument('-m', '--master-yaml', required=True, default='configs/master-config.yaml', help="yaml config file to create master image from")
+    parser.add_argument('-v', '--verbose', default=False, action='store_true',  help="Verbose output")
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
     args = parser.parse_args()
@@ -72,7 +76,10 @@ def main():
     # as this is an array, and we will ever only get one file set it
     args.config_file = args.config_file[ 0 ]
     
-
+    if ( args.verbose):
+        print("Parsed arguments")
+    
+    
     # readin the config file in as a Munch object
     with open(args.config_file, 'r') as stream:
         config = Munch.fromYAML(stream)
@@ -89,51 +96,72 @@ def main():
                   no_cache=1,
     )
 
+    if ( args.verbose):
+        print("Connected to openStack")
+
+    
     # we are building a base server and image from a build file
     if args.base_yaml:
             
         base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
-                                      image=config.ehos.image_id,
+                                      image=config.ehos.base_image,
                                       flavor=config.ehos.flavor,
                                       network=config.ehos.network,
                                       key=config.ehos.key,
                                       security_groups=config.ehos.security_groups,
                                       userdata_file=args.base_yaml)
 
+        if ( args.verbose):
+            print("Created base server, waiting for it to come online")
 
-        image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
-        # cheating a bit here but it makes the downstream bit easier 
-        args.base_image = image_id
+
+        # Wait for the server to come online and everything have been configured.    
+        ehos.wait_for_log_entry("The EHOS base system is up")
+        if ( args.verbose):
+            print("Base server is now online")
+            
+            
+        base_image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
+
+        if ( args.verbose):
+            print("Created base image")
         # delete the vanilla server.
         ehos.server_delete( base_id )
+        if ( args.verbose):
+            print("Deleted base server")
+        # cheating a bit here but it makes the downstream bit easier
+        args.base_base_id = base_image_id
+        config.ehos.base_image_id = args.base_base_id
 
-    config.ehos.image_id = args.base_id
-
-    configuration =  Munch.toYAML(config)
+        
+    # make the munch back to yaml format (string)
+    config_text =  Munch.toYAML(config)
+        
+    # create a tmpfile/handle
+    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
+        
+    # write new config file to it and close it. As this is an on level
+    # file handle the string needs to be encoded into a byte array
+    os.write( tmp_fh, str.encode(wrap_yaml( args.master_yaml, config_text )))
+    os.close( tmp_fh )
+    if ( args.verbose):
+        print("Written tmp file to: {}".format( tmpfile))
     
-    print( wrap_yaml( configuration ))
-    
-    sys.exit(1)
-
-
-
-
-    stream = open('ehos_run.yaml', 'w')
-    stream.write(Munch.toYAML(config))    # Write a YAML representation of data to 'document.yaml'.
-    stream.close()
-
-    
-    
+    # create the master node, That is it nothing more to do here.
     master_id = ehos.server_create( "{}-master".format(config.ehos.project_prefix),
                                     image='GOLD CentOS 7',
                                     flavor='m1.medium',
                                     network='dualStack',
                                     key='mykey',
                                     security_groups='kbr',
-                                    userdata_file='vm-configs/vanilla-condor.sh')
+                                    userdata_file=tmpfile)
 
 
+    if ( args.verbose):
+        print("Created master node")
 
+
+        
 if __name__ == '__main__':
     main()
 else:
