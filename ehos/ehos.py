@@ -105,7 +105,7 @@ def server_create(name:str, image:str, flavor:str, network:str, key:str, securit
       id (str) of the server
 
     Raises:
-      pass any openstack exceptions along.
+      None
     """
 
     
@@ -187,7 +187,7 @@ def server_log_search( id:str, match:str):
 
     Args:
       id: id/name of the server 
-      match: regex? of str to look for
+      match: regex/str of log entry to look for
     
     Returns:
       matches found in log, if none found returns an empty list
@@ -212,7 +212,7 @@ def wait_for_log_entry(id:str, match:str, timeout:int=200):
 
     Args:
       id: id/name of the server 
-      match: regex? of str to look for
+      match: regex/str of log entry to look for
       timeout: max time to check logs for in seconds
     
     Returns:
@@ -232,9 +232,8 @@ def wait_for_log_entry(id:str, match:str, timeout:int=200):
         if ( not timeout):
             raise TimeoutError
 
-        print(". {}".format( timeout))
-        time.sleep( 1 )
-        
+#        print(". {}".format( timeout))
+        time.sleep( 1 )        
     
     
     
@@ -250,7 +249,7 @@ def server_ip(id:str, ipv:int=4):
       IP address (str), if not found (wrong IPV) returns None
 
     Raises:
-      Passes openstack exceptions through
+      None
     """
 
     server = connection.compute.get_server( id )
@@ -319,7 +318,7 @@ def make_image_from_server( id:str, image_name:str, timeout:int=20):
           image id (str)
         
         Raises:
-          passes any openstack exception through
+          None
         """
 
         timeout = timeout
@@ -351,3 +350,19 @@ def make_image_from_server( id:str, image_name:str, timeout:int=20):
     
     
     
+
+def _get_datetimestamp():
+    """ Creates a timestamp so we can make unique server names
+
+    Args:
+      none
+    
+    Returns:
+      timestamp (string)
+
+    Raises:
+      none
+    """
+    ts = time.time()
+    ts = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%dT%H%M%S')
+
