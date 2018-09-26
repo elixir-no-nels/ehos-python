@@ -12,14 +12,15 @@ setup(name='ehos',
       license='MIT',
       packages=['ehos'],
       install_requires=[
-        'pysam',
+        'htcondor',
+        'openstacksdk',
         ],
       classifiers=[
         'Development Status :: 1.0.0',
         'License :: MIT License',
         'Programming Language :: Python :: 3.4'
         ],      
-      scripts=['bin/deploy_system.py',
+      scripts=['bin/deploy_ehos.py',
                'bin/ehosd.py',
            ],
 #      package_data={'': ['modules/Vcf.pm']},

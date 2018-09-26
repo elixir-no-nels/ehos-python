@@ -152,7 +152,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
 
         # get the current number of nodes
-        nodes  = htcondor_nodes(htcondor_schedd)
+        nodes  = nodes_status(htcondor_schedd)
         queue  = queue_status(htcondor_schedd)
 
 
