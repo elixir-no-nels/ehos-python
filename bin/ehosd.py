@@ -65,13 +65,13 @@ def queue_status(schedd):
     return Munch(status_counts)
         
 
-def nodes_status(schedd):
+def nodes_status(collector):
     """get the nodes connected to the master and groups them by status
     
     Available states are: idle, busy, suspended, vacating, killing, benchmarking, retiring
 
     Args:
-      schedd: htcondor schedd connector
+      collector: htcondor schedd connector
 
     Returns:
       counts of nodes in states ( dict )
@@ -152,7 +152,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
 
         # get the current number of nodes
-        nodes  = nodes_status(htcondor_schedd)
+        nodes  = nodes_status(htcondor_collector)
         queue  = queue_status(htcondor_schedd)
 
 
