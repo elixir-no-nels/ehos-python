@@ -33,8 +33,10 @@ def wrap_yaml( template:str, config:str ):
 
     """
 
+    # read in the file
     fh = open(template, 'r')
     lines = "".join(fh.readlines())
+    fh.close()
 
     # pad the config with 8 whitespaces to ensure yaml integrity
     config = re.sub("\n", "\n        ", "        "+config)
@@ -136,14 +138,16 @@ def main():
         
     # make the munch back to yaml format (string)
     config_text =  Munch.toYAML(config)
-        
-    # create a tmpfile/handle
-    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
-        
+    
+
     # write new config file to it and close it. As this is an on level
     # file handle the string needs to be encoded into a byte array
+
+    # create a tmpfile/handle
+    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
     os.write( tmp_fh, str.encode(wrap_yaml( args.master_yaml, config_text )))
     os.close( tmp_fh )
+
     if ( args.verbose):
         print("Written tmp file to: {}".format( tmpfile))
     
