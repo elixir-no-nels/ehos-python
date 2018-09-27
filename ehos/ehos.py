@@ -11,7 +11,10 @@ pp = pprint.PrettyPrinter(indent=4)
 import traceback
 import time
 import re
-
+import shutil
+import shlex
+from typing import List, Tuple
+import subprocess
 
 import openstack
 
@@ -87,6 +90,7 @@ def connect(auth_url:str, project_name:str, username:str, password:str, region_n
         user_domain_name=user_domain_name,
         project_domain_name=project_domain_name,
         no_cache=no_cache
+        
     )
 
 
@@ -356,7 +360,7 @@ def make_image_from_server( id:str, image_name:str, timeout:int=20):
     
     
 
-def _get_datetimestamp():
+def datetimestamp():
     """ Creates a timestamp so we can make unique server names
 
     Args:
@@ -371,3 +375,117 @@ def _get_datetimestamp():
     ts = time.time()
     ts = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%dT%H%M%S')
 
+
+
+
+def get_node_id():
+    """ Cloud init stores the node id on disk so it possible to use this for us to get host information that way
+
+    Ideally this would have been done using the cloud_init library, but that is python2 only, so this is a bit of a hack
+
+    Args:
+      None
+
+    Returns:
+      node id (string)
+    
+    Raises:
+      None
+    """
+
+
+    fh = open('/var/lib/cloud/data/instance-id', 'r')
+    id  = fh.readline().rstrip("\n")
+    fh.close()
+
+    return id
+
+    
+    
+
+
+def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[ str, str]]=None):
+    """ Alter a file by searching for a pattern (str or regex) and replace it
+
+    The function further more make a backup copy of the original file
+
+    Args:
+      filename: The file to change
+      pattern: the pattern (str/regex) to search for in the file
+      replace: what to replace the pattern with
+      patterns: a list of replacements to be done
+    Returns:
+      None
+
+    Raises:
+      RuntimeError if no patter
+
+    """
+
+    # this is foobared but I cannot find the strength to do this right now
+    if ( pattern is None and
+         replace is None and
+         patterns is None):
+
+
+        #  or
+
+        #  ( patterns is not None and
+        #    (pattern is not None or
+        #     replace is not None))
+
+        # or
+        
+        #  ( pattern is None or
+        #    replace is None )):
+        
+
+        raise RuntimeError('Wrong use of alter_file function parameters, provide either a pattern and a replace or a list of patterns')
+
+
+
+    
+    
+    
+    # first make a copy of the file
+
+    shutil.copy( filename, "{}.orginal".format( filename ))
+    
+    # open and read in the while file as a single string
+    with open( filename, 'r') as fh:
+        lines = "".join(fh.readlines())
+        fh.close()
+
+    if patterns is None:
+        patterns = [ (pattern, replace) ]
+
+    for pattern, replace in patterns:
+        print( pattern, " ---> ", replace )
+        # replace the pattern with the replacement string
+        lines = re.sub(pattern, replace, lines)
+
+    with  open(filename, 'w') as fh:
+        fh.write( lines )
+        fh.close()
+
+    
+
+    
+
+def system_call(command:str):
+    """ runs a system command
+
+    Args:
+      command to run
+
+    Returns:
+      None
+
+    Raises:
+      None
+    
+    """
+
+    subprocess.run(shlex.split( command ), shell=False, check=True)
+        
+        
