@@ -23,6 +23,10 @@ setup(name='ehos',
       scripts=['bin/deploy_ehos.py',
                'bin/ehosd.py',
            ],
+      data_files=[('/etc/ehos/', ['configs/base.yaml',
+                                  'configs/master.yaml',
+                                  'configs/submit.yaml',
+                                  'configs/execute.yaml'])]
 #      package_data={'': ['modules/Vcf.pm']},
       include_package_data=True,
       zip_safe=False)
