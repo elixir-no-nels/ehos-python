@@ -113,7 +113,9 @@ def server_create(name:str, image:str, flavor:str, network:str, key:str, securit
 
     
     try:
-        user_data_fh = open( userdata_file, 'r')
+        user_data_fh = None
+        if ( userdata_file is not None):
+            user_data_fh = open( userdata_file, 'r')
         server = connection.create_server(name,
                                           image=image,
                                           flavor=flavor,

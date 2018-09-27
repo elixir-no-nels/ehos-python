@@ -93,8 +93,8 @@ def nodes_status(collector):
 
     
     for node in collector.query(htcondor.AdTypes.Startd, projection=['Name', 'Status', 'Activity', 'JobId', 'RemoteOwner']):
-        node_counts[ node.get('Status').lower() ] += 1
-        node_count['total'] += 1
+        node_counts[ node.get('Activity').lower() ] += 1
+        node_counts['total'] += 1
 
     return Munch(node_counts)
 
@@ -168,6 +168,15 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
                                     security_groups=config.ehos.security_groups,
                                     userdata_file='configs/executer.yaml')
 
+        base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
+                                      image=config.ehos.base_image,
+                                      flavor=config.ehos.flavor,
+                                      network=config.ehos.network,
+                                      key=config.ehos.key,
+                                      security_groups=config.ehos.security_groups,
+                                      userdata_file=args.base_yaml)
+
+                
         # there are nothing in the queue, and we have idle nodes, so lets get rid of some of them
         elif ( queue.idle == 0 and nodes.idle >= config.ehos.redundantnodes):
             delete_idle_nodes(htcondor_schedd,  nodes.idle - config.ehos.redundantnodes)
@@ -212,7 +221,7 @@ def main():
         config = Munch.fromYAML(stream)
     stream.close()
     
-
+    
     ehos.connect( auth_url=config.cloud.auth_url ,
                   user_domain_name=config.cloud.user_domain_name,
                   project_domain_name=config.cloud.project_domain_name,
@@ -222,7 +231,6 @@ def main():
                   region_name=config.cloud.region_name,
                   no_cache=1,
     )
-    
 
     
     if ( args.verbose):
