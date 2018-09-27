@@ -151,30 +151,29 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         stream.close()
 
 
+        
+
         # get the current number of nodes
         nodes  = nodes_status(htcondor_collector)
         queue  = queue_status(htcondor_schedd)
 
 
+        pp.pprint( nodes )
+        pp.pprint( queue )
+        
+
+        
         # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
         if ( queue.idle and nodes.total < config.ehos.maxnodes):
             for i in range(0, config.ehos.maxnodes - nodes.total):
-                ehos.server_create()
                 master_id = ehos.server_create( "{}-node".format(config.ehos.project_prefix),
-                                    image=config.ehos.image_id,
+                                    image=config.ehos.base_image_id,
                                     flavor=config.ehos.flavor,
                                     network=config.ehos.network,
                                     key=config.ehos.key,
-                                    security_groups=config.ehos.security_groups,
-                                    userdata_file='configs/executer.yaml')
+                                    security_groups=config.ehos.security_groups)
+#                                    userdata_file='configs/executer.yaml')
 
-        base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
-                                      image=config.ehos.base_image,
-                                      flavor=config.ehos.flavor,
-                                      network=config.ehos.network,
-                                      key=config.ehos.key,
-                                      security_groups=config.ehos.security_groups,
-                                      userdata_file=args.base_yaml)
 
                 
         # there are nothing in the queue, and we have idle nodes, so lets get rid of some of them
@@ -184,6 +183,20 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         elif ( nodes.total == config.ehos.maxnodes):
             print( "All nodes we are allowed have been created, nothing to do")
 
+        elif ( nodes.total < config.ehos.minnodes):
+            print( "we are below the min number of nodes, create some")
+
+            for i in range(0, config.ehos.minnodes - nodes.total):
+                master_id = ehos.server_create( "{}-node".format(config.ehos.project_prefix),
+                                    image=config.ehos.base_image_id,
+                                    flavor=config.ehos.flavor,
+                                    network=config.ehos.network,
+                                    key=config.ehos.key,
+                                    security_groups=config.ehos.security_groups)
+#                                    userdata_file='configs/executer.yaml')
+
+
+            
         else:
             print("The minimum number of execute nodes are running, do nothing.")
 
