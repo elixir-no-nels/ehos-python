@@ -93,7 +93,7 @@ def main():
                   password=config.cloud.password,
                   project_name=config.cloud.project_name,
                   region_name=config.cloud.region_name,
-                  no_cache=1,
+                  no_cache=config.cloud.no_cache,
     )
 
     if ( args.verbose):

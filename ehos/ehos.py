@@ -84,6 +84,9 @@ def connect(auth_url:str, project_name:str, username:str, password:str, region_n
         username=username,
         password=password,
         region_name=region_name,
+        user_domain_name=user_domain_name,
+        project_domain_name=project_domain_name,
+        no_cache=no_cache
     )
 
 
