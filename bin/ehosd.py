@@ -21,8 +21,6 @@ import ehos
 
 
 
-
-
 def queue_status(schedd):
     """get the number of jobs in the queue and group them by status
 
@@ -141,17 +139,33 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
       None
     """
 
-    htcondor_collector = htcondor.Collector()
-    htcondor_schedd = htcondor.Schedd()
+
+    server_id = get_node_id()
     
+    server_IP = ehos.server_ip( server_id, 4)
+
+    print( server_id )
+    print( server_IP )
+
+    ehos.alter_file(filename='/etc/condor/condor_config', patterns=[ (r'CONDOR_HOST = .*\n',"CONDOR_HOST = {IP}\n".format( host_ip)),
+                                                                     (r'DAEMON_LIST = .*\n',"DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD\n")])
+
+    # re-read the configuration
+    ehos.system_call('condor_reconfig')
+    
+
+    # get some handles into condor, should perhaps wrap them in a module later on
+    htcondor_collector = htcondor.Collector()
+    htcondor_schedd    = htcondor.Schedd()
+    
+
+
     while ( True ):
 
+        # Continuously read in the config file making it possible to tweak the server as it runs. 
         with open(config_file, 'r') as stream:
             config = Munch.fromYAML(stream)
         stream.close()
-
-
-        
 
         # get the current number of nodes
         nodes  = nodes_status(htcondor_collector)
@@ -166,13 +180,13 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
         if ( queue.idle and nodes.total < config.ehos.maxnodes):
             for i in range(0, config.ehos.maxnodes - nodes.total):
-                master_id = ehos.server_create( "{}-node".format(config.ehos.project_prefix),
-                                    image=config.ehos.base_image_id,
-                                    flavor=config.ehos.flavor,
-                                    network=config.ehos.network,
-                                    key=config.ehos.key,
-                                    security_groups=config.ehos.security_groups)
-#                                    userdata_file='configs/executer.yaml')
+                node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
+                                              image=config.ehos.base_image_id,
+                                              flavor=config.ehos.flavor,
+                                              network=config.ehos.network,
+                                              key=config.ehos.key,
+                                              security_groups=config.ehos.security_groups)
+                #                                    userdata_file='configs/executer.yaml')
 
 
                 
@@ -187,13 +201,13 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
             print( "we are below the min number of nodes, create some")
 
             for i in range(0, config.ehos.minnodes - nodes.total):
-                master_id = ehos.server_create( "{}-node".format(config.ehos.project_prefix),
-                                    image=config.ehos.base_image_id,
-                                    flavor=config.ehos.flavor,
-                                    network=config.ehos.network,
-                                    key=config.ehos.key,
-                                    security_groups=config.ehos.security_groups)
-#                                    userdata_file='configs/executer.yaml')
+                node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
+                                              image=config.ehos.base_image_id,
+                                              flavor=config.ehos.flavor,
+                                              network=config.ehos.network,
+                                              key=config.ehos.key,
+                                              security_groups=config.ehos.security_groups)
+                #                                    userdata_file='configs/executer.yaml')
 
 
             
