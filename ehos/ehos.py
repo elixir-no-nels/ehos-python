@@ -5,6 +5,7 @@
 # 
 # Kim Brugger (14 Sep 2018), contact: kim@brugger.dk
 
+import os
 import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -400,8 +401,68 @@ def get_node_id():
 
     return id
 
+
+def readin_whole_file(filename:str):
+    """ reads in a whole file as a single string
+
+    Args:
+      filename: name of file to read
+
+    Returns
+      file contents (str)
+
+    Raises:
+      None
+    """
+
+    with open( filename, 'r') as fh:
+        lines = "".join(fh.readlines())
+        fh.close()
     
+    return lines
+
     
+def find_config_file( filename:str, dirs:List[str]=None):
+    """ Depending on the setup the location of config files might change. This helps with this, first hit wins!
+
+    The following location are used by default: /etc/ehos/, /usr/local/etc/ehos, /usr/share/ehos/, configs/
+
+    Args:
+      filename: file to find
+      dirs: additional list of directories to search through
+
+    Return:
+      Full path to the file (str)
+
+    Raises:
+      RuntimeError if file not found
+    """
+
+    script_dir = os.path.dirname(os.path.abspath( filename))
+
+    default_dirs = ['/etc/ehos/',
+                    '/usr/local/etc/ehos',
+                    '/usr/share/ehos/',
+                    "{}/../configs".format( script_dir ),
+                    'configs']
+
+
+    
+
+    
+    if dirs is not None:
+        dirs += default_dirs
+    else:
+        dirs = default_dirs
+        
+    for dir in dirs:
+        full_path = "{}/{}".format( dir, filename)
+        if os.path.isfile(full_path):
+            return full_path
+
+    raise RuntimeError("File {} not found".format( filename ))
+
+        
 
 
 def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[ str, str]]=None):
@@ -470,7 +531,24 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
 
     
 
-    
+
+def verbose_print( message:str, flag:int=0):
+    """ If flag is set, print message
+
+    Args:
+      message: what to print
+
+    Returns:
+      None
+
+    Raises:
+      None
+
+    """
+
+    if ( flag ):
+        print( "LOG: {}".format( message ))
+        
 
 def system_call(command:str):
     """ runs a system command

@@ -15,16 +15,12 @@ users:
 
 # Create custom condor configuration file to create an execute node
 write_files:
--   content: |
-{configuration}
-    owner: root:root
-    path: /usr/local/etc/ehos_master.yaml
-    permissions: '0644'
+{write_files}
 
 runcmd:
 - pip install htcondor
 - pip install python-openstackclient
 - pip install git+https://github.com/elixir-no-nels/ehos-python.git
-- ehos_setup.sh /usr/local/etc/ehos_master.yaml
+  #- ehos_setup.sh /usr/local/etc/ehos_master.yaml
 
 

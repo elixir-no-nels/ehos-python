@@ -18,6 +18,7 @@ from munch import Munch
 
 import ehos
 
+
 def wrap_yaml( template:str, config:str ):
     """ inserts config (str) into the the template (file) at the {configuration} tag
 
@@ -49,6 +50,118 @@ def wrap_yaml( template:str, config:str ):
 
 
 
+def make_write_file_block_from_file(filename:str, outname:str, directory:str='/usr/local/etc/ehos/'):
+    """ makes a yaml write_file content block 
+    
+    Simple wrapper function so the block can come from a file rather than as a string
+
+    Args:
+      filename: file to enter as content
+      outname: the filename the yaml points to
+      directory: the directory the yaml points to
+
+    Returns
+      write_file block for a yaml file (str)
+
+    Raises:
+      None    
+
+    """
+
+    
+    content = ehos.readin_whole_file(filename)
+
+    return make_write_file_block(content, outname, directory)
+
+
+def make_write_file_block(content:str, outname:str, directory:str='/usr/local/etc/ehos/'):
+    """ makes a yaml write_file content block 
+    
+    Args:
+      content: what to enter as content into the block
+      outname: the filename the yaml points to
+      directory: the directory the yaml points to
+
+    Returns
+      write_file block for a yaml file (str)
+
+    Raises:
+      None    
+
+    """
+
+    block = """-   content: |
+{content}
+    path: {filepath}
+    owner: ehos:ehos
+    permissions: '0644'
+"""
+
+    # pad the write_file_block with 8 whitespaces to ensure yaml integrity
+    content = re.sub("\n", "\n        ", "        "+content)
+
+    
+    block = re.sub('{filepath}', "{}/{}".format(directory, outname), block)
+    block = re.sub('{content}', "{}".format(content), block)
+
+    return block
+
+
+
+def write_master_yaml( config:Munch, master_filename:str, submit_filename:str=None, execute_filename:str=None, directory:str='/usr/local/etc/ehos/'):
+    """ Makes the yaml file that will be passed on to the master 
+
+    Args: 
+      config: the ehos config file (as read in )
+      master_filename: filename of the master config
+      submit_filename: bespoke ehos.yaml file
+      execute_filename: bespoke ehos.yaml file
+      directory: where to store the config files on the master server
+
+    Returns
+      filename (will full path) of merged config file
+
+    Raises:
+      None
+    """
+
+
+    # make the munch back to yaml format (string)
+    config_text =  Munch.toYAML( config )
+    
+    write_file_block = make_write_file_block(config_text, "ehos.yaml", directory)
+                                        
+    if ( submit_filename is not None):
+        write_file_block += make_write_file_block_from_file( submit_filename, 'submit.yaml', directory)
+
+    if ( execute_filename is not None):
+        write_file_block += make_write_file_block_from_file( execute_filename, 'execute.yaml',directory)
+
+    print( write_file_block )
+    sys.exit()
+    
+
+
+    # readin the maste file and insert out write_file_block(s)
+    master_content = ehos.readin_whole_file(master_filename)
+    master_content = re.sub('{write_files}', write_file_block, master_content)
+
+    
+    # write new config file to it and close it. As this is an on level
+    # file handle the string needs to be encoded into a byte array
+
+    # create a tmpfile/handle
+    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
+    os.write( tmp_fh, str.encode( master_content ))
+    os.close( tmp_fh )
+
+
+    return tmpfile
+
+
+#def create_base_image(args:dict):
+
+
 
 def main():
     """ main loop
@@ -67,9 +180,14 @@ def main():
 
     parser = argparse.ArgumentParser(description='deploy_ehos: Deploy ehos onto a openstack server ')
 
-    parser.add_argument('-b', '--base-image-id',  help="use this image as the base image")
-    parser.add_argument('-B', '--base-yaml',   help="yaml config file to create base image from")
-    parser.add_argument('-m', '--master-yaml', required=True, default='configs/master-config.yaml', help="yaml config file to create master image from")
+    # magically sets default config files
+    parser.add_argument('-b', '--base-image-id', help="use this image as the base image")
+    parser.add_argument('-m', '--master-yaml',   help="yaml config file to create master image from", default=ehos.find_config_file('master.yaml'))
+    parser.add_argument('-B', '--base-yaml',     help="yaml config file to create base image from",   required=False)
+    parser.add_argument('-e', '--execute-yaml',  help="yaml config file for execute node from",       required=False)
+    parser.add_argument('-s', '--submit-yaml',   help="yaml config file for submit node from",        required=False)
+    parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/')
+
     parser.add_argument('-v', '--verbose', default=False, action='store_true',  help="Verbose output")
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
@@ -78,15 +196,19 @@ def main():
     # as this is an array, and we will ever only get one file set it
     args.config_file = args.config_file[ 0 ]
     
-    if ( args.verbose):
-        print("Parsed arguments")
-    
-    
+    ehos.verbose_print("Parsed arguments", args.verbose)
+
+
     # readin the config file in as a Munch object
     with open(args.config_file, 'r') as stream:
         config = Munch.fromYAML(stream)
 
+    print( write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, directory='/usr/local/etc/ehos/'))
 
+    sys.exit()
+           
+
+        
     # connect to the openstack
     ehos.connect( auth_url=config.cloud.auth_url ,
                   user_domain_name=config.cloud.user_domain_name,
@@ -98,13 +220,12 @@ def main():
                   no_cache=config.cloud.no_cache,
     )
 
-    if ( args.verbose):
-        print("Connected to openStack")
+    ehos.verbose_print("Connected to openStack", args.verbose)
 
-    
-    # we are building a base server and image from a build file
-    if args.base_yaml:
-            
+
+    # No base id have been provided, so we will build one
+    if not args.base_image_id:
+
         base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
                                       image=config.ehos.base_image,
                                       flavor=config.ehos.flavor,
@@ -113,56 +234,40 @@ def main():
                                       security_groups=config.ehos.security_groups,
                                       userdata_file=args.base_yaml)
 
-        if ( args.verbose):
-            print("Created base server, waiting for it to come online")
+        ehos.verbose_print("Created base server, waiting for it to come online", args.verbose)
 
 
         # Wait for the server to come online and everything have been configured.    
         ehos.wait_for_log_entry("The EHOS base system is up")
-        if ( args.verbose):
-            print("Base server is now online")
+        ehos.verbose_print("Base server is now online", args.verbose)
             
             
         base_image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
-
-        if ( args.verbose):
-            print("Created base image")
+        ehos.verbose_print("Created base image", args.verbose)
+        
         # delete the vanilla server.
         ehos.server_delete( base_id )
-        if ( args.verbose):
-            print("Deleted base server")
+        ehos.verbose_print("Deleted base server", args.verbose)
         # cheating a bit here but it makes the downstream bit easier
         args.base_base_id = base_image_id
         config.ehos.base_image_id = args.base_base_id
 
-        
-    # make the munch back to yaml format (string)
-    config_text =  Munch.toYAML(config)
+    tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, args.config_dir)
     
 
-    # write new config file to it and close it. As this is an on level
-    # file handle the string needs to be encoded into a byte array
-
-    # create a tmpfile/handle
-    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
-    os.write( tmp_fh, str.encode(wrap_yaml( args.master_yaml, config_text )))
-    os.close( tmp_fh )
-
-    if ( args.verbose):
-        print("Written tmp file to: {}".format( tmpfile))
+    ehos.verbose_print("Written tmp file to: {}".format( tmpfile), args.verbose)
     
     # create the master node, That is it nothing more to do here.
-    master_id = ehos.server_create( "{}-master".format(config.ehos.project_prefix),
-                                    image='GOLD CentOS 7',
-                                    flavor='m1.medium',
-                                    network='dualStack',
-                                    key='mykey',
-                                    security_groups='kbr',
-                                    userdata_file=tmpfile)
+    base_id = ehos.server_create( "{}-master".format(config.ehos.project_prefix),
+                                  image=config.ehos.base_image_id,
+                                  flavor=config.ehos.flavor,
+                                  network=config.ehos.network,
+                                  key=config.ehos.key,
+                                  security_groups=config.ehos.security_groups,
+                                  userdata_file=tmp_master_config_file)
+    
 
-
-    if ( args.verbose):
-        print("Created master node")
+    ehos.verbose_print("Created master node", args.verbose)
 
 
         
