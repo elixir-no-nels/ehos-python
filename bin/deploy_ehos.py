@@ -159,7 +159,48 @@ def write_master_yaml( config:Munch, master_filename:str, submit_filename:str=No
     return tmpfile
 
 
-#def create_base_image(args:dict):
+def create_base_image(args:dict):
+    """ Creates a base image
+
+    Args:
+      args: the argparse dict 
+
+    Returns:
+      base_image_id (str)
+
+    Raises:
+      None
+    """
+
+    base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
+                                  image=config.ehos.base_image,
+                                  flavor=config.ehos.flavor,
+                                  network=config.ehos.network,
+                                  key=config.ehos.key,
+                                  security_groups=config.ehos.security_groups,
+                                  userdata_file=args.base_yaml)
+    
+    ehos.verbose_print("Created base server, waiting for it to come online", args.verbose)
+
+
+    # Wait for the server to come online and everything have been configured.    
+    ehos.wait_for_log_entry("The EHOS base system is up")
+    ehos.verbose_print("Base server is now online", args.verbose)
+            
+            
+    base_image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
+    ehos.verbose_print("Created base image", args.verbose)
+        
+    # delete the vanilla server.
+    ehos.server_delete( base_id )
+    ehos.verbose_print("Deleted base server", args.verbose)
+    # cheating a bit here but it makes the downstream bit easier
+    return base_image_id
+
+
+
+
+
 
 
 
@@ -203,11 +244,6 @@ def main():
     with open(args.config_file, 'r') as stream:
         config = Munch.fromYAML(stream)
 
-    print( write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, directory='/usr/local/etc/ehos/'))
-
-    sys.exit()
-           
-
         
     # connect to the openstack
     ehos.connect( auth_url=config.cloud.auth_url ,
@@ -219,39 +255,21 @@ def main():
                   region_name=config.cloud.region_name,
                   no_cache=config.cloud.no_cache,
     )
-
     ehos.verbose_print("Connected to openStack", args.verbose)
 
-
+    
     # No base id have been provided, so we will build one
-    if not args.base_image_id:
+    if (not args.base_image_id and config.ehos.base_image_id != 'None'):
+        config.ehos.base_image_id = create_base_image( args )
 
-        base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
-                                      image=config.ehos.base_image,
-                                      flavor=config.ehos.flavor,
-                                      network=config.ehos.network,
-                                      key=config.ehos.key,
-                                      security_groups=config.ehos.security_groups,
-                                      userdata_file=args.base_yaml)
+    elif (args.base_image_id is not None ):
+        verbose_print( "using the base-image-id given on the command line")
+        config.ehos.base_image_id = args.base_image_id
 
-        ehos.verbose_print("Created base server, waiting for it to come online", args.verbose)
-
-
-        # Wait for the server to come online and everything have been configured.    
-        ehos.wait_for_log_entry("The EHOS base system is up")
-        ehos.verbose_print("Base server is now online", args.verbose)
-            
-            
-        base_image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
-        ehos.verbose_print("Created base image", args.verbose)
+    elif(config.ehos.base_image_id != 'None'):
+        verbose_print( "using the base-image-id from the config file")
         
-        # delete the vanilla server.
-        ehos.server_delete( base_id )
-        ehos.verbose_print("Deleted base server", args.verbose)
-        # cheating a bit here but it makes the downstream bit easier
-        args.base_base_id = base_image_id
-        config.ehos.base_image_id = args.base_base_id
-
+        
     tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, args.config_dir)
     
 
