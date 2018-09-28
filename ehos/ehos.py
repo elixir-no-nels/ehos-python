@@ -20,6 +20,15 @@ import subprocess
 import openstack
 
 connection = None
+level = 1
+
+
+FATAL = 1
+ERROR = 2
+WARN  = 3
+INFO  = 4
+DEBUG = 5
+
 
 _server_cache = {}
 
@@ -38,10 +47,12 @@ def check_connection():
     """
 
     if connection is None:
+        verbose_print("No connection to openstack server", FATAL)
         raise ConnectionError
 
 def connect_yaml( cloud_name:str ):
-    """
+    """ connect to openstack server using the cloud.yaml config file, openstack default.
+
       Args: 
        cloud_name: name of cloud to connect to
 
@@ -50,7 +61,7 @@ def connect_yaml( cloud_name:str ):
         None
 
       Raises:
-        reraise any openstack exception
+        None
     """
 
     try:
@@ -93,6 +104,7 @@ def connect(auth_url:str, project_name:str, username:str, password:str, region_n
         no_cache=no_cache
         
     )
+    verbose_print("Connected to openstack server", INFO)
 
 
 
@@ -137,20 +149,15 @@ def server_create(name:str, image:str, flavor:str, network:str, key:str, securit
                                           wait=True,
                                           auto_ip=True)
         
-        for nic in server.addresses.dualStack:
-            if ( nic.version == 4):
-                print( "Server IP: {}".format( nic.addr))
-                
-        print("Server ({}) is up and running ...".format( server.id ))
 
+        verbose_print("Created server id:{} ip:{}".format( server.id, server_ip(server.id)), INFO)
+        
         global _server_cache
         _server_cache[ server.id ] = server
 
         return server.id
 
     except Exception as e:
-        print( "Unexpected error:", sys.exc_info()[0] )
-        print( e )
         raise e
 
 
@@ -169,6 +176,7 @@ def server_delete(id:str):
     """
 
     connection.delete_server(id )
+    verbose_print("Deleted server id:{}".format( id ), INFO)
     
 def servers():
     print("List Servers:")
@@ -207,6 +215,7 @@ def server_log_search( id:str, match:str):
     """
 
     log = server_log( id )
+    verbose_print("Spooling server log id:{}".format( id ), DEBUG)
 
     
     results = []
@@ -232,6 +241,8 @@ def wait_for_log_entry(id:str, match:str, timeout:int=200):
       TimeoutError if entry not found before timeout is 
     """
 
+    verbose_print("Waiting for log entry  id:{} --> entry{}".format( id, match ), INFO)
+
     while( True ):
         matches = server_log_search( id, match)
 
@@ -244,7 +255,8 @@ def wait_for_log_entry(id:str, match:str, timeout:int=200):
 
 #        print(". {}".format( timeout))
         time.sleep( 1 )        
-    
+        verbose_print("sleeping in wait_for_log_entry TO:{}".format( timeout ), DEBUG)
+
     
     
         
@@ -271,28 +283,42 @@ def server_ip(id:str, ipv:int=4):
 
 
 
-def server_stop(id:str): 
+def server_stop(id:str, timeout:int=200): 
     """ stops a server
     
     Args:
       id: the name of the server
+      timeout: max time (s) to wait for the server to shotdown
 
     Returns:
       None
 
     Raises:
-      pass any openstack exceptions along.
+      TimeoutError: if the server is not in shutdown status within the timeout time
     """
 
     
     check_connection()
+    verbose_print("Stopping server id{} ".format( id ), INFO)
 
     server = connection.compute.get_server( id )
     connection.compute.stop_server( server )
+    while ( True ):
+        server = connection.compute.get_server( id )
+        if ( server.status.lower() == 'shutoff'):
+            return
+
+        timeout -= 1
+        if ( not timeout ):
+            raise TimeoutError
+
+        verbose_print("sleeping in server stop TO:{} status:{}".format( timeout, server.status ), DEBUG)
+        time.sleep(1)
     
+    verbose_print("Server stopped id:{} ".format( id ), INFO)
 
     
-def make_image_from_server( id:str, image_name:str, timeout:int=20):
+def make_image_from_server( id:str, image_name:str, timeout:int=200):
     """ creates an image from a server. Due to some bug in the openstack we spin it down before doing the backup
 
     The function has a timeout variable to ensure we dont end up in an infinite loop
@@ -307,18 +333,11 @@ def make_image_from_server( id:str, image_name:str, timeout:int=20):
     
     Raises:
       TimeoutError: if the image is not created within the timeout time
-      pass the openstack exceptions along
 
     """
 
-    server_stop( id )
-    # rotation == 1 will only keep one version of this name, not sure about backup type
-    connection.compute.backup_server( id, image_name, backup_type='', rotation=1 )
-
-    def _wait_for_image_creation( image_name:str, timeout:int=timeout):
+    def _wait_for_image_creation( image_name:str, timeout:int=200):
         """ Wait for a single image with the given name exists and them return the id of it
-
-        This loop
 
         Args:
           image_name: name of the image
@@ -331,30 +350,36 @@ def make_image_from_server( id:str, image_name:str, timeout:int=20):
           None
         """
 
-        timeout = timeout
-        
+        verbose_print("Waiting for image creationimage_name:{} ".format( image_name ), INFO)
         while ( True ):
         
             nr_images = 0
             image_id = None
+            image_status = None
             for image in connection.image.images():
                 if image.name == image_name:
-                    print( image.name )
                     nr_images += 1
                     image_id = image.id
+                    image_status = image.status.lower()
 
             # Only one image with our name exist, so return its id
-            if nr_images == 1:
+            if nr_images == 1 and image_status == 'active':
+                verbose_print("Created image from server id{}, image_id:{} ".format( id, image_id ), INFO)
                 return image_id
 
             # decrease the timeout counter, if hits 0 raise an exception, otherwise sleep a bit
             timeout -= 1
             if ( not timeout ):
                 raise TimeoutError
-            print( "Sleep" )
             time.sleep(1)
 
-        image = connection.get_image( image_name )
+            verbose_print("sleeping in wait_for_image_creation TO:{} NR:{} status:{}".format( timeout, nr_images, image_status ), DEBUG)
+
+
+    verbose_print("Creating an image from server id{}, image_name:{} ".format( id, image_name ), INFO)
+    server_stop( id )
+    # rotation == 1 will only keep one version of this name, not sure about backup type
+    connection.compute.backup_server( id, image_name, backup_type='', rotation=1 )
 
     return _wait_for_image_creation( image_name )
     
@@ -479,7 +504,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
       None
 
     Raises:
-      RuntimeError if no patter
+      RuntimeError if no pattern
 
     """
 
@@ -502,11 +527,6 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
         
 
         raise RuntimeError('Wrong use of alter_file function parameters, provide either a pattern and a replace or a list of patterns')
-
-
-
-    
-    
     
     # first make a copy of the file
 
@@ -531,12 +551,40 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
 
     
 
+        
 
-def verbose_print( message:str, flag:int=0):
-    """ If flag is set, print message
+
+def verbose_level(new_level:int):
+    """ Set the verbosity level, value is forced with in the [1-5] range
+
+    levels correspond to: DEBUG=5,  INFO=4 WARN=3, ERROR=2 and FATAL=1
+
+    Args:
+      level: when to report
+
+    Returns:
+      None
+
+    Raises:
+      None
+
+    """
+    if new_level < 1:
+        new_level = 1
+    elif new_level > 5:
+        new_level = 5
+        
+    global level
+    level = new_level
+    
+
+        
+def verbose_print( message:str, report_level:int=1):
+    """ If level is equal or above limit print message
 
     Args:
       message: what to print
+      level: when to report
 
     Returns:
       None
@@ -546,8 +594,15 @@ def verbose_print( message:str, flag:int=0):
 
     """
 
-    if ( flag ):
-        print( "LOG: {}".format( message ))
+    levels = {FATAL: 'FATAL',
+              ERROR: 'ERROR',
+              WARN:  'WARN',
+              INFO:  'INFO',
+              DEBUG: 'DEBUG' }
+
+    
+    if ( report_level <= level):
+        print( "{}: {}".format(levels[report_level], message ))
         
 
 def system_call(command:str):
