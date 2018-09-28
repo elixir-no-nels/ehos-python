@@ -140,7 +140,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     """
 
 
-    server_id = get_node_id()
+    server_id = ehos.get_node_id()
     
     server_IP = ehos.server_ip( server_id, 4)
 
@@ -170,7 +170,6 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         # get the current number of nodes
         nodes  = nodes_status(htcondor_collector)
         queue  = queue_status(htcondor_schedd)
-
 
         pp.pprint( nodes )
         pp.pprint( queue )
@@ -258,10 +257,9 @@ def main():
                   region_name=config.cloud.region_name,
                   no_cache=1,
     )
+    ehos.verbose_print("Connected to openStack", args.verbose)
 
     
-    if ( args.verbose):
-        print("Parsed arguments")
     
     if ( args.config_file):
         run_daemon( args.config_file )

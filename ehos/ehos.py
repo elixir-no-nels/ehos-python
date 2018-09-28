@@ -215,8 +215,7 @@ def server_log_search( id:str, match:str):
     """
 
     log = server_log( id )
-    verbose_print("Spooling server log id:{}".format( id ), DEBUG)
-
+    verbose_print("Spooling server log for id:{}".format( id ), DEBUG)
     
     results = []
     
@@ -241,7 +240,7 @@ def wait_for_log_entry(id:str, match:str, timeout:int=200):
       TimeoutError if entry not found before timeout is 
     """
 
-    verbose_print("Waiting for log entry  id:{} --> entry{}".format( id, match ), INFO)
+    verbose_print("Waiting for log entry  id:{} --> entry:{}".format( id, match ), INFO)
 
     while( True ):
         matches = server_log_search( id, match)

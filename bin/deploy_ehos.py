@@ -19,35 +19,6 @@ from munch import Munch
 import ehos
 
 
-def wrap_yaml( template:str, config:str ):
-    """ inserts config (str) into the the template (file) at the {configuration} tag
-
-    Args:
-      template: path to the yaml template file to use
-      config: contents of the yaml config file to embed into the template
-    
-    Returns:
-      the template with the config file embedded into it (str)
-
-    Raises:
-      None
-
-    """
-
-    # read in the file
-    fh = open(template, 'r')
-    lines = "".join(fh.readlines())
-    fh.close()
-
-    # pad the config with 8 whitespaces to ensure yaml integrity
-    config = re.sub("\n", "\n        ", "        "+config)
-
-    # replace our keywork with the config content
-    lines = re.sub('{configuration}', config, lines)
-    
-    return lines
-
-
 
 def make_write_file_block_from_file(filename:str, outname:str, directory:str='/usr/local/etc/ehos/'):
     """ makes a yaml write_file content block 
@@ -91,7 +62,7 @@ def make_write_file_block(content:str, outname:str, directory:str='/usr/local/et
     block = """-   content: |
 {content}
     path: {filepath}
-    owner: ehos:ehos
+    owner: root:root
     permissions: '0644'
 """
 
@@ -185,7 +156,6 @@ def create_base_image(args:dict, config:Munch):
     ehos.wait_for_log_entry(base_id, "The EHOS base system is up")
     ehos.verbose_print("Base server is now online",  ehos.INFO)
             
-            
     base_image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
     ehos.verbose_print("Created base image",  ehos.INFO)
         
@@ -222,7 +192,7 @@ def main():
     parser.add_argument('-B', '--base-yaml',     help="yaml config file to create base image from",   default=ehos.find_config_file('base.yaml'))
     parser.add_argument('-e', '--execute-yaml',  help="yaml config file for execute node from",       required=False)
     parser.add_argument('-s', '--submit-yaml',   help="yaml config file for submit node from",        required=False)
-    parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/')
+    parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
 
     parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
@@ -251,18 +221,17 @@ def main():
                   region_name=config.cloud.region_name,
                   no_cache=config.cloud.no_cache,
     )
-
-
+    
     # No base id have been provided, so we will build one
     if (not args.base_image_id and config.ehos.base_image_id == 'None'):
         config.ehos.base_image_id = create_base_image( args, config )
 
     elif (args.base_image_id is not None ):
-        verbose_print( "using the base-image-id given on the command line", ehos.INFO)
+        ehos.verbose_print( "using the base-image-id given on the command line", ehos.INFO)
         config.ehos.base_image_id = args.base_image_id
 
     elif(config.ehos.base_image_id != 'None'):
-        verbose_print( "using the base-image-id from the config file", ehos.INFO)
+        ehos.verbose_print( "using the base-image-id from the config file", ehos.INFO)
         
         
     tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, args.config_dir)

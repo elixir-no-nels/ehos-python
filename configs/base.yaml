@@ -3,50 +3,24 @@
 # Run yum upgrade
 package_upgrade: true
 
-yum_repos:
-    # The name of the repository
-    docker:
-        # Any repository configuration options
-        # See: man yum.conf
-        #
-        # This one is required!
-        baseurl: https://download.docker.com/linux/centos/docker-ce.repo
-        enabled: true
-        gpgcheck: false
-    htcondor:
-        baseurl: https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
-        enabled: true
-        gpgcheck: true
-        gpgkey: http://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
-
-
 groups:
   - docker
 
 
-packages:  
-  ## some editors
-  - vim
-  - nano
-  ## dependencies
-  - python-pip
-  - squashfs-tools
-  - wget 
-  - python-devel
-  - libarchive-devel
-  - yum-utils
-  - device-mapper-persistent-data
-  - lvm2
-  - docker-ce
-  - autofs
-  # ideally this should be python 3.6 not 3.4!
-  - python34
-  - python34-pip
-  - condor.x86_64
-
-
 runcmd:
+  ## for Extra Packages for Enterprise Linux packages (stupid centos)
+  - yum install -y epel-release 
+
   - yum -y groupinstall "development tools"
+
+  ## some editors and tools we need
+  - yum install -y vim  nano wget lvm2 squashfs-tools python34 python34-pip python-pip autofs
+  - yum install -y  python-devel libarchive-devel yum-utils device-mapper-persistent-data 
+
+# docker install 
+
+  - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  - yum install -y docker-ce
 
   ## Enable condor to run docker
   - usermod -aG docker condor
@@ -54,7 +28,20 @@ runcmd:
   ## Enable rootless use of docker
   - usermod -aG docker centos
 
-  ## Start autofs and enable automatic start at boot
+# htcondor install
+
+  - wget -P /etc/yum.repos.d https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
+
+  - wget -P /tmp/ http://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
+  - rpm --import /tmp/RPM-GPG-KEY-HTCondor
+  - yum -y install condor.x86_64
+
+  ## Enable condor to run docker
+  - usermod -aG docker condor
+
+# startup services
+
+## Start autofs and enable automatic start at boot
   - service autofs start
   - systemctl enable autofs
 

@@ -12,9 +12,10 @@ setup(name='ehos',
       license='MIT',
       packages=['ehos'],
       install_requires=[
-        'htcondor',
-        'openstacksdk',
-        ],
+          'htcondor',
+          'typing',
+          'openstacksdk',
+      ],
       classifiers=[
         'Development Status :: 1.0.0',
         'License :: MIT License',
