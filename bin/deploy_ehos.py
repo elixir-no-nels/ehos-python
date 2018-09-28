@@ -45,7 +45,6 @@ def wrap_yaml( template:str, config:str ):
     # replace our keywork with the config content
     lines = re.sub('{configuration}', config, lines)
     
-
     return lines
 
 
@@ -68,7 +67,6 @@ def make_write_file_block_from_file(filename:str, outname:str, directory:str='/u
 
     """
 
-    
     content = ehos.readin_whole_file(filename)
 
     return make_write_file_block(content, outname, directory)
@@ -137,9 +135,6 @@ def write_master_yaml( config:Munch, master_filename:str, submit_filename:str=No
     if ( execute_filename is not None):
         write_file_block += make_write_file_block_from_file( execute_filename, 'execute.yaml',directory)
 
-    print( write_file_block )
-    sys.exit()
-    
 
 
     # readin the maste file and insert out write_file_block(s)
@@ -159,11 +154,12 @@ def write_master_yaml( config:Munch, master_filename:str, submit_filename:str=No
     return tmpfile
 
 
-def create_base_image(args:dict):
+def create_base_image(args:dict, config:Munch):
     """ Creates a base image
 
     Args:
       args: the argparse dict 
+      config: the configuration 
 
     Returns:
       base_image_id (str)
@@ -171,6 +167,8 @@ def create_base_image(args:dict):
     Raises:
       None
     """
+
+    ehos.verbose_print("Creating base server",  ehos.INFO)
 
     base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
                                   image=config.ehos.base_image,
@@ -180,28 +178,22 @@ def create_base_image(args:dict):
                                   security_groups=config.ehos.security_groups,
                                   userdata_file=args.base_yaml)
     
-    ehos.verbose_print("Created base server, waiting for it to come online", args.verbose)
+    ehos.verbose_print("Created base server, waiting for it to come online",  ehos.INFO)
 
 
     # Wait for the server to come online and everything have been configured.    
-    ehos.wait_for_log_entry("The EHOS base system is up")
-    ehos.verbose_print("Base server is now online", args.verbose)
+    ehos.wait_for_log_entry(base_id, "The EHOS base system is up")
+    ehos.verbose_print("Base server is now online",  ehos.INFO)
             
             
     base_image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
-    ehos.verbose_print("Created base image", args.verbose)
+    ehos.verbose_print("Created base image",  ehos.INFO)
         
     # delete the vanilla server.
     ehos.server_delete( base_id )
-    ehos.verbose_print("Deleted base server", args.verbose)
+    ehos.verbose_print("Deleted base server",  ehos.INFO)
     # cheating a bit here but it makes the downstream bit easier
     return base_image_id
-
-
-
-
-
-
 
 
 def main():
@@ -219,31 +211,35 @@ def main():
     """
 
 
+
+
+    
     parser = argparse.ArgumentParser(description='deploy_ehos: Deploy ehos onto a openstack server ')
 
     # magically sets default config files
     parser.add_argument('-b', '--base-image-id', help="use this image as the base image")
     parser.add_argument('-m', '--master-yaml',   help="yaml config file to create master image from", default=ehos.find_config_file('master.yaml'))
-    parser.add_argument('-B', '--base-yaml',     help="yaml config file to create base image from",   required=False)
+    parser.add_argument('-B', '--base-yaml',     help="yaml config file to create base image from",   default=ehos.find_config_file('base.yaml'))
     parser.add_argument('-e', '--execute-yaml',  help="yaml config file for execute node from",       required=False)
     parser.add_argument('-s', '--submit-yaml',   help="yaml config file for submit node from",        required=False)
     parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/')
 
-    parser.add_argument('-v', '--verbose', default=False, action='store_true',  help="Verbose output")
+    parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
     args = parser.parse_args()
 
     # as this is an array, and we will ever only get one file set it
     args.config_file = args.config_file[ 0 ]
-    
-    ehos.verbose_print("Parsed arguments", args.verbose)
 
+    # set the leve of what to print.
+    ehos.verbose_level( args.verbose )
+
+    ehos.verbose_print("Parsed arguments", ehos.DEBUG)
 
     # readin the config file in as a Munch object
     with open(args.config_file, 'r') as stream:
         config = Munch.fromYAML(stream)
-
         
     # connect to the openstack
     ehos.connect( auth_url=config.cloud.auth_url ,
@@ -255,25 +251,24 @@ def main():
                   region_name=config.cloud.region_name,
                   no_cache=config.cloud.no_cache,
     )
-    ehos.verbose_print("Connected to openStack", args.verbose)
 
-    
+
     # No base id have been provided, so we will build one
-    if (not args.base_image_id and config.ehos.base_image_id != 'None'):
-        config.ehos.base_image_id = create_base_image( args )
+    if (not args.base_image_id and config.ehos.base_image_id == 'None'):
+        config.ehos.base_image_id = create_base_image( args, config )
 
     elif (args.base_image_id is not None ):
-        verbose_print( "using the base-image-id given on the command line")
+        verbose_print( "using the base-image-id given on the command line", ehos.INFO)
         config.ehos.base_image_id = args.base_image_id
 
     elif(config.ehos.base_image_id != 'None'):
-        verbose_print( "using the base-image-id from the config file")
+        verbose_print( "using the base-image-id from the config file", ehos.INFO)
         
         
     tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, args.config_dir)
     
 
-    ehos.verbose_print("Written tmp file to: {}".format( tmpfile), args.verbose)
+    ehos.verbose_print("Written tmp file to: {}".format( tmp_master_config_file), ehos.DEBUG)
     
     # create the master node, That is it nothing more to do here.
     base_id = ehos.server_create( "{}-master".format(config.ehos.project_prefix),
@@ -285,9 +280,13 @@ def main():
                                   userdata_file=tmp_master_config_file)
     
 
-    ehos.verbose_print("Created master node", args.verbose)
+    ehos.verbose_print("Created master node", ehos.INFO)
+    # Wait for the server to come online and everything have been configured.    
+    ehos.wait_for_log_entry(base_id, "The EHOS master is")
+    ehos.verbose_print("Master server is now online",  ehos.INFO)
 
-
+ 
+    
         
 if __name__ == '__main__':
     main()
