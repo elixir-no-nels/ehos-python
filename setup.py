@@ -23,10 +23,10 @@ setup(name='ehos',
       scripts=['bin/deploy_ehos.py',
                'bin/ehosd.py',
            ],
-      # install our config files into etc ehos.
-      data_files=[('etc/ehos/', ['configs/base.yaml',
-                                 'configs/master.yaml',
-                                 'configs/submit.yaml',
-                                 'configs/execute.yaml'])],
+      # install our config files into an ehos share.
+      data_files=[('share/ehos/', ['configs/base.yaml',
+                                   'configs/master.yaml',
+                                   'configs/submit.yaml',
+                                   'configs/execute.yaml'])],
       include_package_data=True,
       zip_safe=False)
