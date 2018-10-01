@@ -10,6 +10,9 @@
 # Run yum upgrade
 package_upgrade: true
 
+final_message: "The EHOS execute node is up after $UPTIME seconds"
+
+
 # Create custom condor configuration file to create an execute node
 write_files:
 -   content: |
@@ -49,8 +52,8 @@ write_files:
         DAEMON_LIST = MASTER, STARTD
         DISCARD_SESSION_KEYRING_ON_STARTUP = False
         
-        UID_DOMAIN = uib.no
-        DEFAULT_DOMAIN_NAME = uib.no
+        UID_DOMAIN = {uid_domain}
+        DEFAULT_DOMAIN_NAME = ${UID_DOMAIN}
         TRUST_UID_DOMAIN = TRUE
         SOFT_UID_DOMAIN=true
         
@@ -61,5 +64,6 @@ write_files:
     owner: root:root
     path: /etc/condor/config.d/00personal_condor.config
     permissions: '0644'
+
 runcmd:
 - condor_reconfig

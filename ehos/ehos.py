@@ -10,7 +10,10 @@ import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 import traceback
+import random
 import time
+import time
+import datetime
 import re
 import shutil
 import shlex
@@ -385,6 +388,48 @@ def make_image_from_server( id:str, image_name:str, timeout:int=200):
     
     
 
+def make_uid_domain_name(length:int=3):
+    """ Makes a uid domain name
+
+    Args:
+      length: domain length
+    
+    Returns:
+      uid domain name (str)
+
+    Raises:
+      RuntimeError if length is longer than our word list
+
+    """
+
+
+    quote = "Piglet was so excited at the idea of being Useful that he forgot to be frightened any more, and when Rabbit went on to say that Kangas were only Fierce during the winter months, being at other times of an Affectionate Disposition, he could hardly sit still, he was so eager to begin being useful at once"
+
+#    quote = "The more he looked inside the more Piglet wasnt there"
+    quote = re.sub(",", "", quote);
+
+    words = list(set( quote.lower().split(" ")))
+
+    if (len(words) < length):
+        raise RuntimeError( 'length required is longer than dictonary used')
+        
+
+    
+    choices = []
+    while( True ):
+        word = random.choice(words)
+
+        if word in choices:
+            continue
+            
+        choices.append( word )
+
+        if (len( choices ) == length):
+            break
+        
+    return('.'.join(choices))
+    
+
 def datetimestamp():
     """ Creates a timestamp so we can make unique server names
 
@@ -400,7 +445,7 @@ def datetimestamp():
     ts = time.time()
     ts = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%dT%H%M%S')
 
-
+    return ts
 
 
 def get_node_id():
@@ -618,6 +663,6 @@ def system_call(command:str):
     
     """
 
-    subprocess.run(shlex.split( command ), shell=False, check=True)
+    subprocess.call(shlex.split( command ), shell=False)
         
         

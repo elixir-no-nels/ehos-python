@@ -5,6 +5,7 @@
 # 
 # Kim Brugger (20 Sep 2018), contact: kim@brugger.dk
 
+import os
 import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -13,6 +14,7 @@ import datetime
 import argparse
 from munch import Munch
 import re
+import tempfile
 
 import htcondor
 import openstack
@@ -62,6 +64,44 @@ def queue_status(schedd):
 
     return Munch(status_counts)
         
+
+def tmp_execute_config_file(master_ip:str, uid_domain:str, execute_config:str=None):
+    """ Create a execute node config file with the master ip inserted into it
+
+    Args:
+      master_ip: ip of the master to connect to
+      uid_domain: domain name we are using for this
+      execute_config: define config template, otherwise find it in the system
+
+    Returns:
+      file name with path (str)
+
+    Raises:
+      None
+
+    """
+
+    if ( execute_config is None):
+        execute_config = ehos.find_config_file('execute.yaml')
+    
+    # readin the maste file and insert out write_file_block(s)
+    execute_content = ehos.readin_whole_file(execute_config)
+    
+    execute_content = re.sub('{master_ip}', master_ip, execute_content)
+    execute_content = re.sub('{uid_domain}', uid_domain, execute_content)
+
+    
+    # write new config file to it and close it. As this is an on level
+    # file handle the string needs to be encoded into a byte array
+
+    # create a tmpfile/handle
+    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
+    os.write( tmp_fh, str.encode( execute_content ))
+    os.close( tmp_fh )
+
+
+    return tmpfile
+
 
 def nodes_status(collector):
     """get the nodes connected to the master and groups them by status
@@ -140,18 +180,21 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     """
 
 
-    server_id = ehos.get_node_id()
-    
-    server_IP = ehos.server_ip( server_id, 4)
+    host_id    = ehos.get_node_id()
+    host_ip    = ehos.server_ip( host_id, 4)
+    uid_domain = ehos.make_uid_domain_name(5)
 
-    print( server_id )
-    print( server_IP )
 
-    ehos.alter_file(filename='/etc/condor/condor_config', patterns=[ (r'CONDOR_HOST = .*\n',"CONDOR_HOST = {IP}\n".format( host_ip)),
-                                                                     (r'DAEMON_LIST = .*\n',"DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD\n")])
 
-    # re-read the configuration
-    ehos.system_call('condor_reconfig')
+#        ehos.alter_file(filename='/etc/condor/condor_config', patterns=[ (r'CONDOR_HOST = .*\n',"CONDOR_HOST = {IP}\n".format( IP=host_ip)),
+#                                                                         (r'DAEMON_LIST = .*\n',"DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD\n")])
+
+
+        ehos.alter_file(filename='/etc/condor.d/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
+                                                                                      (r'{uid_domain}',uid_domain)])
+
+        # re-read the configuration
+        ehos.system_call('condor_reconfig')
     
 
     # get some handles into condor, should perhaps wrap them in a module later on
@@ -160,6 +203,9 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     
 
 
+    execute_config_file = tmp_execute_config_file( host_ip, uid_domain )
+
+    
     while ( True ):
 
         # Continuously read in the config file making it possible to tweak the server as it runs. 
@@ -174,30 +220,13 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         pp.pprint( nodes )
         pp.pprint( queue )
         
+        
 
         
-        # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
-        if ( queue.idle and nodes.total < config.ehos.maxnodes):
-            for i in range(0, config.ehos.maxnodes - nodes.total):
-                node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
-                                              image=config.ehos.base_image_id,
-                                              flavor=config.ehos.flavor,
-                                              network=config.ehos.network,
-                                              key=config.ehos.key,
-                                              security_groups=config.ehos.security_groups)
-                #                                    userdata_file='configs/executer.yaml')
+        #
+        if ( nodes.total < config.ehos.minnodes):
+            ehos.verbose_print("We are below the min number of nodes, create some", ehos.INFO)
 
-
-                
-        # there are nothing in the queue, and we have idle nodes, so lets get rid of some of them
-        elif ( queue.idle == 0 and nodes.idle >= config.ehos.redundantnodes):
-            delete_idle_nodes(htcondor_schedd,  nodes.idle - config.ehos.redundantnodes)
-
-        elif ( nodes.total == config.ehos.maxnodes):
-            print( "All nodes we are allowed have been created, nothing to do")
-
-        elif ( nodes.total < config.ehos.minnodes):
-            print( "we are below the min number of nodes, create some")
 
             for i in range(0, config.ehos.minnodes - nodes.total):
                 node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
@@ -205,15 +234,43 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
                                               flavor=config.ehos.flavor,
                                               network=config.ehos.network,
                                               key=config.ehos.key,
-                                              security_groups=config.ehos.security_groups)
-                #                                    userdata_file='configs/executer.yaml')
+                                              security_groups=config.ehos.security_groups,
+                                              userdata_file=execute_config_file)
 
+                ehos.wait_for_log_entry(node_id, "The EHOS execute node is")
+                ehos.verbose_print("Execute server is now online",  ehos.INFO)
+        
+        # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
+        elif ( queue.idle and nodes.total < config.ehos.maxnodes):
+            ehos.verbose_print("We got stuff to do, making some nodes...", ehos.INFO)
 
+            for i in range(0, config.ehos.maxnodes - nodes.total):
+                node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
+                                              image=config.ehos.base_image_id,
+                                              flavor=config.ehos.flavor,
+                                              network=config.ehos.network,
+                                              key=config.ehos.key,
+                                              security_groups=config.ehos.security_groups,
+                                              userdata_file=execute_config_file)
+
+                ehos.wait_for_log_entry(node_id, "The EHOS execute node is")
+                ehos.verbose_print("Execute server is now online",  ehos.INFO)
+                
+        # there are nothing in the queue, and we have idle nodes, so lets get rid of some of them
+        elif ( queue.idle == 0 and nodes.idle >= config.ehos.redundantnodes):
+            delete_idle_nodes(htcondor_schedd,  nodes.idle - config.ehos.redundantnodes)
             
+            ehos.verbose_print("Deleting idle nodes...", ehos.INFO)
+
+        elif ( nodes.total == config.ehos.maxnodes):
+            ehos.verbose_print("All nodes we are allowed have been created, nothing to do", ehos.INFO)
+
         else:
-            print("The minimum number of execute nodes are running, do nothing.")
+            print()
+            ehos.verbose_print("The minimum number of execute nodes are running, do nothing.", ehos.INFO)
 
 
+        ehos.verbose_print("Napping for a second.", ehos.INFO)
         time.sleep( config.ehos.sleep_max)
 
 
@@ -232,7 +289,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='ehosd: the ehos daemon to be run on the HTcondor master node ')
 
-    parser.add_argument('-v', '--verbose', default=False, action='store_true',  help="Verbose output")
+    parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
 
@@ -257,7 +314,8 @@ def main():
                   region_name=config.cloud.region_name,
                   no_cache=1,
     )
-    ehos.verbose_print("Connected to openStack", args.verbose)
+    ehos.verbose_level( args.verbose )
+    ehos.verbose_print("Connected to openStack", ehos.INFO)
 
     
     

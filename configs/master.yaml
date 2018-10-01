@@ -15,6 +15,30 @@ users:
 
 # Create custom condor configuration file to create an execute node
 write_files:
+# Create custom condor configuration file to create an execute node
+-   content: |
+        ##  What machine is your central manager?
+        
+        CONDOR_HOST = {master_ip}
+        
+        ##  This macro determines what daemons the condor_master will start and keep its watchful eyes on.
+        ##  The list is a comma or space separated list of subsystem names
+        
+        DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR
+        
+        FLOCK_TO = $(CONDOR_HOST)
+        ALLOW_NEGOTIATOR = $(FLOCK_TO)
+        ALLOW_WRITE = execute.node.ip.*
+        ALLOW_READ = $(ALLOW_WRITE)
+        UID_DOMAIN = {uid_domain}
+        STARTER_ALLOW_RUNAS_OWNER = TRUE
+        TRUST_UID_DOMAIN=TRUE
+        SOFT_UID_DOMAIN = TRUE
+        
+        NEGOTIATOR_INTERVAL = 5
+    owner: root:root
+    path: /etc/condor/config.d/00personal_condor.config
+    permissions: '0644'
 {write_files}
 
 runcmd:
