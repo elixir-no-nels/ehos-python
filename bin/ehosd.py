@@ -105,13 +105,14 @@ def tmp_execute_config_file(master_ip:str, uid_domain:str, execute_config:str=No
     return tmpfile
 
 
-def nodes_status(collector):
+def nodes_status(collector,max_heard_from_time:int=300 ):
     """get the nodes connected to the master and groups them by status
     
     Available states are: idle, busy, suspended, vacating, killing, benchmarking, retiring
 
     Args:
       collector: htcondor collector object
+      max_heard_from_time: if we have not heard from a node this long, we expect it is dead
 
     Returns:
       counts of nodes in states ( dict )
@@ -131,8 +132,16 @@ def nodes_status(collector):
                    "retiring": 0,
                    "total": 0}
 
+    timestamp = ehos.timestamp()
     
-    for node in collector.query(htcondor.AdTypes.Startd, projection=['Name', 'Activity']):
+    for node in collector.query(htcondor.AdTypes.Startd):
+
+        print("{}  -- {} -- {}".format( node.get('Name'), node.get('Activity'), timestamp - node.get('LastHeardFrom')))
+        
+        if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
+            ehos.verbose_print( "Seems to have lost the connection to {} ({} secs ago)".format( node.get('Name'), timestamp - node.get('LastHeardFrom')), ehos.INFO)
+            continue
+        
         node_counts[ node.get('Activity').lower() ] += 1
         node_counts['total'] += 1
 
@@ -158,11 +167,16 @@ def delete_idle_nodes(collector, nodes:int=1):
         if not nodes:
             return
 
-        pp.pprint( node )
+#        pp.pprint( node )
         
         if ( node.get('Activity').lower() == 'idle'):
             node_name = node.get('Name')
-            node_name = re.sub(r'.*\@(.*?)\..*', r'\1', node_name)
+            node_name = re.sub(r'.*\@', r'\1', node_name)
+
+            # Tell condor to drop a node before killing it, otherwise it will stick around in the condor node list
+            ehos.system_call("condor_off -fast -name {}".format( node_name ))
+            node_name = re.sub(r'(.*?)\..*', r'\1', node_name)
+            
             try:
                 ehos.server_delete( node_name )
             except:
@@ -210,18 +224,13 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
          os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
-         # restart condor
-         #    ehos.system_call('systemctl restart condor')
          # re-read configuration file
          ehos.system_call('condor_reconfig')
-    
 
     # get some handles into condor, should perhaps wrap them in a module later on
     htcondor_collector = htcondor.Collector()
     htcondor_schedd    = htcondor.Schedd()
     
-
-
     execute_config_file = tmp_execute_config_file( host_ip, uid_domain )
 
     
@@ -338,7 +347,6 @@ def main():
     )
     ehos.verbose_level( args.verbose )
     ehos.verbose_print("Connected to openStack", ehos.INFO)
-
     
     
     if ( args.config_file):

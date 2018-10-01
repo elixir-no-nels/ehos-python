@@ -60,7 +60,7 @@ write_files:
         NUM_SLOTS = 1
         NUM_SLOTS_TYPE_1 = 1
         SLOT_TYPE_1 = cpus=100%
-        SLOT_TYPE_1_PARTITIONABLE = true
+        SLOT_TYPE_1_PARTITIONABLE = false
     owner: root:root
     path: /etc/condor/config.d/00personal_condor.config
     permissions: '0644'

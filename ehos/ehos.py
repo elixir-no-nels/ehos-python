@@ -466,6 +466,22 @@ def make_uid_domain_name(length:int=3):
     return('.'.join(choices))
     
 
+def timestamp():
+    """ gets a sec since 1.1.1970
+
+    "Args:
+      None
+
+    Returns:
+      Secs since the epoc
+    
+    Raises:
+      None
+    """
+
+    return int(time.time())
+
+
 def datetimestamp():
     """ Creates a timestamp so we can make unique server names
 
