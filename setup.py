@@ -14,6 +14,7 @@ setup(name='ehos',
       install_requires=[
           'htcondor',
           'typing',
+          'munch',
           'openstacksdk',
       ],
       classifiers=[

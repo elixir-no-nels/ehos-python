@@ -56,11 +56,13 @@ def queue_status(schedd):
                      'completed': 0,
                      'held': 0,
                      'transferring_output': 0,
-                     'suspended': 0}
+                     'suspended': 0,
+                     'total': 0}
 
 
     for job in schedd.xquery(projection=['ClusterId', 'ProcId', 'JobStatus']):
         status_counts[ status_codes[  job.get('JobStatus') ]] += 1
+        status_counts[ 'total' ] += 1
 
     return Munch(status_counts)
         
@@ -109,7 +111,7 @@ def nodes_status(collector):
     Available states are: idle, busy, suspended, vacating, killing, benchmarking, retiring
 
     Args:
-      collector: htcondor schedd connector
+      collector: htcondor collector object
 
     Returns:
       counts of nodes in states ( dict )
@@ -130,7 +132,7 @@ def nodes_status(collector):
                    "total": 0}
 
     
-    for node in collector.query(htcondor.AdTypes.Startd, projection=['Name', 'Status', 'Activity', 'JobId', 'RemoteOwner']):
+    for node in collector.query(htcondor.AdTypes.Startd, projection=['Name', 'Activity']):
         node_counts[ node.get('Activity').lower() ] += 1
         node_counts['total'] += 1
 
@@ -138,11 +140,11 @@ def nodes_status(collector):
 
 
 
-def delete_idle_nodes(schedd, nodes:int=1):
+def delete_idle_nodes(collector, nodes:int=1):
     """ Delete idle nodes, by default one node is delete
 
     Args:
-      schedd: htcondor schedd connector
+      collector: htcondor collector object
 
     Returns:
       None
@@ -151,14 +153,22 @@ def delete_idle_nodes(schedd, nodes:int=1):
       None
     """
 
-    for node in collector.query(htcondor.AdTypes.Startd, projection=['Name', 'Status', 'Activity', 'JobId', 'RemoteOwner']):
+    for node in collector.query(htcondor.AdTypes.Startd, projection=['Name', 'Activity']):
         # we have counted down to 0, such a hack should prob check up front.
         if not nodes:
             return
 
-        if ( node.get('Status').lower() == 'idle'):
-            ehos.server_delete( node.get('Name') )
-        nodes -= 1
+        pp.pprint( node )
+        
+        if ( node.get('Activity').lower() == 'idle'):
+            node_name = node.get('Name')
+            node_name = re.sub(r'.*\@(.*?)\..*', r'\1', node_name)
+            try:
+                ehos.server_delete( node_name )
+            except:
+                ehos.verbose_print( "{} is no longer available for deletion".format(node_name ), ehos.INFO)
+
+            nodes -= 1
 
 
     return
@@ -184,17 +194,26 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     host_ip    = ehos.server_ip( host_id, 4)
     uid_domain = ehos.make_uid_domain_name(5)
 
+    ip_range = re.sub(r'(\d+\.\d+\.\d+\.)\d+', r'\1*', host_ip)
+
+    #    ehos.alter_file(filename='/etc/condor/condor_config', patterns=[ (r'CONDOR_HOST = .*\n',"CONDOR_HOST = {IP}\n".format( IP=host_ip)),
+    #                                                                     (r'DAEMON_LIST = .*\n',"DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD\n")])
 
 
-#        ehos.alter_file(filename='/etc/condor/condor_config', patterns=[ (r'CONDOR_HOST = .*\n',"CONDOR_HOST = {IP}\n".format( IP=host_ip)),
-#                                                                         (r'DAEMON_LIST = .*\n',"DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD\n")])
+    # first time running this master, so tweak the personal configureation file
+    if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
 
 
-        ehos.alter_file(filename='/etc/condor.d/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
-                                                                                      (r'{uid_domain}',uid_domain)])
+         ehos.alter_file(filename='/etc/condor/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
+                                                                                     (r'{uid_domain}',uid_domain),
+                                                                                     (r'{ip_range}', ip_range)])
 
-        # re-read the configuration
-        ehos.system_call('condor_reconfig')
+         os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
+
+         # restart condor
+         #    ehos.system_call('systemctl restart condor')
+         # re-read configuration file
+         ehos.system_call('condor_reconfig')
     
 
     # get some handles into condor, should perhaps wrap them in a module later on
@@ -217,9 +236,12 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         nodes  = nodes_status(htcondor_collector)
         queue  = queue_status(htcondor_schedd)
 
-        pp.pprint( nodes )
-        pp.pprint( queue )
+        ehos.verbose_print( "Node data\n" + pp.pformat( nodes ), ehos.DEBUG)
+        ehos.verbose_print( "Queue data\n" + pp.pformat( queue ), ehos.DEBUG)
         
+
+        ehos.verbose_print("Nr of nodes {} ({} are idle)".format( nodes.total, nodes.idle), ehos.INFO)
+        ehos.verbose_print("Nr of jobs {} ({} are queueing)".format( queue.total, queue.idle), ehos.INFO)
         
 
         
@@ -258,7 +280,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
                 
         # there are nothing in the queue, and we have idle nodes, so lets get rid of some of them
         elif ( queue.idle == 0 and nodes.idle >= config.ehos.redundantnodes):
-            delete_idle_nodes(htcondor_schedd,  nodes.idle - config.ehos.redundantnodes)
+            delete_idle_nodes(htcondor_collector,  nodes.idle - config.ehos.redundantnodes)
             
             ehos.verbose_print("Deleting idle nodes...", ehos.INFO)
 
@@ -271,7 +293,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
 
         ehos.verbose_print("Napping for a second.", ehos.INFO)
-        time.sleep( config.ehos.sleep_max)
+        time.sleep( config.ehos.sleep_min)
 
 
 def main():
@@ -290,7 +312,7 @@ def main():
     parser = argparse.ArgumentParser(description='ehosd: the ehos daemon to be run on the HTcondor master node ')
 
     parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
+    parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file", default=ehos.find_config_file('ehos.yaml'))
 
 
     args = parser.parse_args()
@@ -299,11 +321,11 @@ def main():
     args.config_file = args.config_file[ 0 ]
 
 
+    ehos.verbose_print("Running with config file: {}".format( args.config_file), ehos.INFO)
     # readin the config file in as a Munch object
     with open(args.config_file, 'r') as stream:
         config = Munch.fromYAML(stream)
     stream.close()
-    
     
     ehos.connect( auth_url=config.cloud.auth_url ,
                   user_domain_name=config.cloud.user_domain_name,

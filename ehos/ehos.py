@@ -164,7 +164,33 @@ def server_create(name:str, image:str, flavor:str, network:str, key:str, securit
         raise e
 
 
+def server_list():
+    """ gets a list of servers on the openstack cluster
 
+    Args:
+      None
+
+    Returns:
+      server dict ( name -> id )
+
+    Raises:
+      None
+    """
+
+    servers = {}
+    
+    for server in connection.compute.servers():
+        servers[ server.name ] = {'id':server.id, 'status':server.status}
+        servers[ server.id ]  = {'name':server.id, 'status':server.status}
+    
+        # htcondor changes the name slightly, so make sure we can find them gtain
+        server.name = server.name.lower()
+        server.name = re.sub('_','-', server.name)
+        servers[ server.name ] = {'id':server.id, 'status':server.status}
+        
+    return servers
+
+    
 def server_delete(id:str):
     """ Deletes a server instance
 
@@ -178,7 +204,17 @@ def server_delete(id:str):
       None
     """
 
-    connection.delete_server(id )
+    servers = server_list()
+#    pp.pprint( servers )
+    
+    if id not in servers.keys():
+        raise RuntimeError( "Unknown server {}".format( id ))
+    
+    if ( 'id' in servers[ id ]):
+        id = servers[ id ]['id']
+
+    
+    connection.delete_server( id )
     verbose_print("Deleted server id:{}".format( id ), INFO)
     
 def servers():
@@ -512,8 +548,10 @@ def find_config_file( filename:str, dirs:List[str]=None):
     default_dirs = ['/etc/ehos/',
                     '/usr/local/etc/ehos',
                     '/usr/share/ehos/',
+                    '/usr/local/share/ehos/',
                     "{}/../configs".format( script_dir ),
-                    'configs']
+                    'configs',
+                    './']
 
 
     
@@ -574,7 +612,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
     
     # first make a copy of the file
 
-    shutil.copy( filename, "{}.orginal".format( filename ))
+    shutil.copy( filename, "{}.original".format( filename ))
     
     # open and read in the while file as a single string
     with open( filename, 'r') as fh:

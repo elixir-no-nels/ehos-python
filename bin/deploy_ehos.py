@@ -179,10 +179,6 @@ def main():
       None
 
     """
-
-
-
-
     
     parser = argparse.ArgumentParser(description='deploy_ehos: Deploy ehos onto a openstack server ')
 
