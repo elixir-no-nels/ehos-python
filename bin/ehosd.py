@@ -171,11 +171,15 @@ def delete_idle_nodes(collector, nodes:int=1):
         
         if ( node.get('Activity').lower() == 'idle'):
             node_name = node.get('Name')
-            node_name = re.sub(r'.*\@', r'\1', node_name)
+            if ( node_name.search("\@")):
+                node_name = re.sub(r'.*\@', r'\1', node_name)
+            else:
+                verbose_print( "Odd node name {}".format( node_name), ehos.WARN)
 
             # Tell condor to drop a node before killing it, otherwise it will stick around in the condor node list
             ehos.system_call("condor_off -fast -name {}".format( node_name ))
-            node_name = re.sub(r'(.*?)\..*', r'\1', node_name)
+            if ( node_name.search("\."):
+                 node_name = re.sub(r'(.*?)\..*', r'\1', node_name)
             
             try:
                 ehos.server_delete( node_name )
