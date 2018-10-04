@@ -15,11 +15,17 @@ import argparse
 from munch import Munch
 import re
 import tempfile
+import traceback
+
 
 import htcondor
 import openstack
 
 import ehos
+
+
+nodes_deleted = []
+nodes_starting = []
 
 
 def queue_status(schedd):
@@ -103,6 +109,109 @@ def tmp_execute_config_file(master_ip:str, uid_domain:str, execute_config:str=No
 
     return tmpfile
 
+def check_execute_nodes_booted():
+    """ Remove already booted nodes from the execute tracker
+
+    Args:
+      None
+
+    Return:
+      None
+
+    Raises:
+      None
+    """
+ 
+
+    global nodes_starting
+    for node in nodes_starting:
+        node_status = ehos.server_log_search( node, "The EHOS execute node is")
+        
+        if (node_status is None or node_status == []):
+            nodes_starting.remove( node )
+            ehos.verbose_print("node {} is now up and running".format( node ), ehos.INFO)
+    
+
+            
+
+def get_node_states(collector, max_heard_from_time:int=300 ):
+    """get the states of nodes
+    
+    Available states are: idle, busy, suspended, vacating, killing, benchmarking, retiring
+
+    Args:
+      collector: htcondor collector object
+      max_heard_from_time: if we have not heard from a node this long, we expect it is dead
+
+    Returns:
+      node states ( dict )
+
+    Raises:
+      None
+
+    """
+
+    _node_states = {}
+
+    timestamp = ehos.timestamp()
+    global nodes_deleted
+
+
+    server_list = ehos.server_list()
+    
+    
+    # This is a bit messy, a node can have child slots, so the
+    # counting gets wrong if we look at all node entries.
+    #
+    # The way to solve this, for now?, is if a node has a child entry
+    # (eg: slot1_1@hostname) this takes predicent over the main entry.
+    
+    for node in collector.query(htcondor.AdTypes.Startd):
+
+        name = node.get('Name')
+
+        ehos.verbose_print("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')), ehos.DEBUG)
+
+        
+        if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
+            ehos.verbose_print( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')), ehos.INFO)
+            nodes_deleted.append( name )
+            continue
+
+        # trim off anything after the first . in the string
+        if ("." in name):
+            name = re.sub(r'(.*?)\..*', r'\1', name)
+
+        (slot, host) = name.split("@")
+        
+
+        if( host not in server_list ):
+            ehos.verbose_print( "-- >> Node {} not in the server_list, set is as deleted ".format( host ), ehos.INFO)
+            nodes_deleted.append( host )
+            continue
+            
+
+        
+        if ( host in _node_states ):
+            if ( "_" in name):
+                _node_states[ host ] = node.get('Activity').lower()
+        else:
+            _node_states[ host ] = node.get('Activity').lower() 
+            
+
+    global nodes_starting
+    check_execute_nodes_booted()
+    for node in nodes_starting:
+        _node_states[ node ] = 'starting'
+
+            
+
+    pp.pprint( _node_states )
+        
+    ehos.verbose_print("Node states: \n{}".format( pp.pformat(_node_states)), ehos.DEBUG )
+            
+    return _node_states
+            
 
 def nodes_status(collector, max_heard_from_time:int=300 ):
     """get the nodes connected to the master and groups them by status
@@ -121,44 +230,9 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
 
     """
 
-    node_states = {}
 
-    timestamp = ehos.timestamp()
-
-    # This is a bit messy, a node can have child slots, so the
-    # counting gets wrong if we look at all node entries.
-    #
-    # The way to solve this, for now?, is if a node has a child entry
-    # (eg: slot1_1@hostname) this takes predicent over the main entry.
-    
-    for node in collector.query(htcondor.AdTypes.Startd):
-
-        ehos.verbose_print("Node info: node:{} state:{} last seen:{} secs".format( node.get('Name'), node.get('Activity'), timestamp - node.get('LastHeardFrom')), ehos.DEBUG)
-
-        if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
-            ehos.verbose_print( "Seems to have lost the connection to {} (last seen {} secs ago)".format( node.get('Name'), timestamp - node.get('LastHeardFrom')), ehos.INFO)
-            continue
-
-
-        name = node.get('Name')
-        
-        # trim off anything after the first . in the string
-        if ("\." in name):
-            name = re.sub(r'(.*?)\..*', r'\1', name)
-
-        (slot, host) = name.split("@")
-        
-
-        if ( host in node_states ):
-            if ( "_" in name):
-                node_states[ host ] = node.get('Activity').lower()
-        else:
-            node_states[ host ] = node.get('Activity').lower() 
-            
-
-#    pp.pprint( node_states )
-            
     node_counts = {"idle": 0,
+                   "starting": 0,
                    "busy": 0,
                    "suspended": 0,
                    "vacating": 0,
@@ -168,10 +242,9 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
                    "total": 0}
 
 
-    
+    node_states = get_node_states(collector, max_heard_from_time)
     
     for node in node_states.keys():
-
         
         node_counts[ node_states[ node] ] += 1
         node_counts['total'] += 1
@@ -180,11 +253,13 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
 
 
 
-def delete_idle_nodes(collector, nodes:int=1):
+def delete_idle_nodes(collector, nodes:int=1, max_heard_from_time:int=300):
     """ Delete idle nodes, by default one node is delete
 
     Args:
       collector: htcondor collector object
+      nodes: nr of nodes to delete (if possible)
+      max_heard_from_time: if we have not heard from a node this long, we expect it is dead
 
     Returns:
       None
@@ -193,32 +268,123 @@ def delete_idle_nodes(collector, nodes:int=1):
       None
     """
 
-    for node in collector.query(htcondor.AdTypes.Startd, projection=['Name', 'Activity']):
-        # we have counted down to 0, such a hack should prob check up front.
-        if not nodes:
+    node_states = get_node_states(collector, max_heard_from_time)
+
+    global nodes_deleted
+
+    # get all nodes that are deletable
+    idle_nodes = []
+    for node_name in node_states:
+        if ( node_states[ node_name ] == 'idle'):
+
+            idle_nodes.append( node_name )
+
+    # check if any are already shutting down and/or idle
+    nodes_already_shutting_down = 0
+    for idle_node in idle_nodes:
+        if idle_node in nodes_deleted:
+            nodes_already_shutting_down += 1
+
+
+    # adjust the number we are to shutdown
+    nodes -= nodes_already_shutting_down
+
+    
+    for node_name in idle_nodes:
+        # check if enough nodes have bee killed already
+        if not nodes or nodes < 0:
             return
 
-        if ( node.get('Activity').lower() == 'idle'):
-            node_name = node.get('Name')
-            if ( "@" in  node_name):
-                node_name = re.sub(r'.*\@', r'', node_name)
-            else:
-                ehos.verbose_print( "Odd node name {}".format( node_name), ehos.WARN)
+        try:
+            nodes_deleted.append( node_name )
+            ehos.server_delete( node_name )
+        except Exception:
+            ehos.verbose_print( "{} is no longer available for deletion".format(node_name ), ehos.INFO)
+            nodes_deleted.append( node_name )
 
-            # Tell condor to drop a node before killing it, otherwise it will stick around in the condor node list
-            ehos.system_call("condor_off -fast -name {}".format( node_name ))
-            if ( re.search(r"\.", node_name)):
-                 node_name = re.sub(r'(.*?)\..*', r'\1', node_name)
-            
-            try:
-                ehos.server_delete( node_name )
-            except:
-                ehos.verbose_print( "{} is no longer available for deletion".format(node_name ), ehos.INFO)
-
-            nodes -= 1
+        nodes -= 1
 
 
     return
+
+
+def check_config_file(config:Munch):
+    """ Check the integrity of the config file and make sure the values are valid
+
+    The function will set defaults if values are missing and adjust incorrect values, eg spare-nodes > min-nodes
+
+    Args:
+      config: the read in config file
+
+    Returns:
+      config (Munch)
+
+    Raises:
+      Runtime error on faulty or missing settings
+    """
+
+    for value in ['flavor', 'base_image_id', 'network', 'key', 'security_groups']:
+        
+        if value not in config.ehos:
+            ehos.verbose_print("{} not set in configuration file".format(value), ehos.FATAL)
+            sys.exit(1)
+
+
+    
+    defaults = {'submission_nodes': 1,
+                'project_prefix': 'EHOS',
+                'nodes_max': 4,
+                'nodes_min': 2,
+                'nodes_spare': 2,
+                'sleep_min': 10,
+                'sleep_max': 60}
+
+    for value in defaults.keys():
+        
+        if value not in config.ehos:
+            ehos.verbose_print("{} not set in configuration file, setting it to {}".format(value, defaults[ value ]), ehos.WARN)
+            config.ehos[ value ] = defaults[ value ]
+
+
+    if ( config.ehos.nodes_min < config.ehos.nodes_spare):
+            ehos.verbose_print("configuration min-nodes smaller than spare nodes, changing min-nodes to {}".format(config.ehos.nodes_min), ehos.WARN)
+            config.ehos.nodes_min = config.ehos.nodes_spare
+        
+
+
+def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
+    """ Create a number of execute nodes
+
+    Args:
+       config: config settings
+       config_file: config file for node
+       nr: nr of nodes to spin up (default 1)
+
+    Returns:
+      None
+    
+    Raises:
+      None
+    """
+
+    global nodes_starting
+    
+
+    for i in range(0, nr+1):
+        
+        node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
+                                      image=config.ehos.base_image_id,
+                                      flavor=config.ehos.flavor,
+                                      network=config.ehos.network,
+                                      key=config.ehos.key,
+                                      security_groups=config.ehos.security_groups,
+                                      userdata_file=execute_config_file)
+
+        nodes_starting.append( node_id )
+        ehos.verbose_print("Execute server is booting",  ehos.INFO)
+
+    return
+                    
 
 
 def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=None):
@@ -263,6 +429,8 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     execute_config_file = tmp_execute_config_file( host_ip, uid_domain )
 
     
+
+    
     while ( True ):
 
         # Continuously read in the config file making it possible to tweak the server as it runs. 
@@ -270,13 +438,17 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
             config = Munch.fromYAML(stream)
         stream.close()
 
+        check_config_file(config)
+        
+        
         # get the current number of nodes
         nodes  = nodes_status(htcondor_collector)
         queue  = queue_status(htcondor_schedd)
 
+
+        
         ehos.verbose_print( "Node data\n" + pp.pformat( nodes ), ehos.DEBUG)
         ehos.verbose_print( "Queue data\n" + pp.pformat( queue ), ehos.DEBUG)
-        
 
         ehos.verbose_print("Nr of nodes {} ({} are idle)".format( nodes.total, nodes.idle), ehos.INFO)
         ehos.verbose_print("Nr of jobs {} ({} are queueing)".format( queue.total, queue.idle), ehos.INFO)
@@ -284,45 +456,38 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
         
         #
-        if ( nodes.total < config.ehos.minnodes):
+        if ( nodes.total < config.ehos.nodes_min ):
             ehos.verbose_print("We are below the min number of nodes, create some", ehos.INFO)
 
 
-            for i in range(0, config.ehos.minnodes - nodes.total):
-                node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
-                                              image=config.ehos.base_image_id,
-                                              flavor=config.ehos.flavor,
-                                              network=config.ehos.network,
-                                              key=config.ehos.key,
-                                              security_groups=config.ehos.security_groups,
-                                              userdata_file=execute_config_file)
-
-                ehos.wait_for_log_entry(node_id, "The EHOS execute node is")
-                ehos.verbose_print("Execute server is now online",  ehos.INFO)
+            create_execute_nodes(config, execute_config_file, config.ehos.nodes_min - nodes.total)
         
         # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
-        elif ( queue.idle and nodes.total < config.ehos.maxnodes):
+        elif ( queue.idle and nodes.idle):
+            ehos.verbose_print("We got stuff to do, but seems to have spare nodes...", ehos.INFO)
+
+
+            # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
+        elif ( queue.idle and nodes.total < config.ehos.nodes_max):
             ehos.verbose_print("We got stuff to do, making some nodes...", ehos.INFO)
 
-            for i in range(0, config.ehos.maxnodes - nodes.total):
-                node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
-                                              image=config.ehos.base_image_id,
-                                              flavor=config.ehos.flavor,
-                                              network=config.ehos.network,
-                                              key=config.ehos.key,
-                                              security_groups=config.ehos.security_groups,
-                                              userdata_file=execute_config_file)
+            create_execute_nodes(config, execute_config_file, config.ehos.nodes_max - nodes.total)
 
-                ehos.wait_for_log_entry(node_id, "The EHOS execute node is")
-                ehos.verbose_print("Execute server is now online",  ehos.INFO)
-                
-        # there are nothing in the queue, and we have idle nodes, so lets get rid of some of them
-        elif ( queue.idle == 0 and nodes.idle >= config.ehos.redundantnodes):
-            delete_idle_nodes(htcondor_collector,  nodes.idle - config.ehos.redundantnodes)
+        # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
+        elif ( nodes.total - (nodes.total - nodes.busy - config.ehos.nodes_spare) > config.ehos.nodes_min):
             
-            ehos.verbose_print("Deleting idle nodes...", ehos.INFO)
+            ehos.verbose_print("Deleting {} idle nodes...(1)".format( nodes.total - (nodes.total - nodes.busy - config.ehos.nodes_spare)), ehos.INFO)
+            delete_idle_nodes(htcondor_collector,  nodes.total - (nodes.total - nodes.busy - config.ehos.nodes_spare))
+            
 
-        elif ( nodes.total == config.ehos.maxnodes):
+        # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
+        elif ( nodes.total > config.ehos.nodes_min and nodes.total - nodes.busy > config.ehos.nodes_spare ):
+            ehos.verbose_print("Deleting {} idle nodes...(2)".format( nodes.total - nodes.busy - config.ehos.nodes_spare), ehos.INFO)
+            delete_idle_nodes(htcondor_collector,  nodes.total - nodes.busy - config.ehos.nodes_spare)
+            
+
+
+        elif ( nodes.total == config.ehos.nodes_max):
             ehos.verbose_print("All nodes we are allowed have been created, nothing to do", ehos.INFO)
 
         else:

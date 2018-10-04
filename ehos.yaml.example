@@ -24,10 +24,9 @@ ehos:
 
   # for tweaking the ehos demon
   submission_nodes: 1 # masternode countes as one of these.
-  idle_nodes: 1
-  maxnodes: 6
-  minnodes: 2
-  redundantnodes: 2
+  nodes_max: 6
+  nodes_min: 2
+  nodes_spare: 2
   sleep_min: 10
   sleep_max: 60
 

@@ -204,10 +204,15 @@ def server_delete(id:str):
       None
     """
 
+
+    if ("." in id):
+        id = re.sub(r'\..*', '', id)
+
     servers = server_list()
 #    pp.pprint( servers )
     
     if id not in servers.keys():
+        verbose_print("Unknown server to delete id:{}".format( id ), ehos.DEBUG)
         raise RuntimeError( "Unknown server {}".format( id ))
     
     if ( 'id' in servers[ id ]):
