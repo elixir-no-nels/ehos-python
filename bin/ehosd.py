@@ -22,7 +22,6 @@ import openstack
 import ehos
 
 
-
 def queue_status(schedd):
     """get the number of jobs in the queue and group them by status
 
@@ -105,7 +104,7 @@ def tmp_execute_config_file(master_ip:str, uid_domain:str, execute_config:str=No
     return tmpfile
 
 
-def nodes_status(collector,max_heard_from_time:int=300 ):
+def nodes_status(collector, max_heard_from_time:int=300 ):
     """get the nodes connected to the master and groups them by status
     
     Available states are: idle, busy, suspended, vacating, killing, benchmarking, retiring
@@ -124,11 +123,11 @@ def nodes_status(collector,max_heard_from_time:int=300 ):
 
 
     node_counts = {"idle": 0,
-                  "busy": 0,
-                  "suspended": 0,
-                  "vacating": 0,
-                  "killing": 0,
-                  "benchmarking": 0,
+                   "busy": 0,
+                   "suspended": 0,
+                   "vacating": 0,
+                   "killing": 0,
+                   "benchmarking": 0,
                    "retiring": 0,
                    "total": 0}
 
@@ -171,14 +170,14 @@ def delete_idle_nodes(collector, nodes:int=1):
         
         if ( node.get('Activity').lower() == 'idle'):
             node_name = node.get('Name')
-            if ( node_name.search("\@")):
-                node_name = re.sub(r'.*\@', r'\1', node_name)
+            if ( "@" in  node_name):
+                node_name = re.sub(r'.*\@', r'', node_name)
             else:
-                verbose_print( "Odd node name {}".format( node_name), ehos.WARN)
+                ehos.verbose_print( "Odd node name {}".format( node_name), ehos.WARN)
 
             # Tell condor to drop a node before killing it, otherwise it will stick around in the condor node list
             ehos.system_call("condor_off -fast -name {}".format( node_name ))
-            if ( node_name.search("\."):
+            if ( re.search(r"\.", node_name)):
                  node_name = re.sub(r'(.*?)\..*', r'\1', node_name)
             
             try:
@@ -213,10 +212,6 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     uid_domain = ehos.make_uid_domain_name(5)
 
     ip_range = re.sub(r'(\d+\.\d+\.\d+\.)\d+', r'\1*', host_ip)
-
-    #    ehos.alter_file(filename='/etc/condor/condor_config', patterns=[ (r'CONDOR_HOST = .*\n',"CONDOR_HOST = {IP}\n".format( IP=host_ip)),
-    #                                                                     (r'DAEMON_LIST = .*\n',"DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD\n")])
-
 
     # first time running this master, so tweak the personal configureation file
     if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
@@ -304,8 +299,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
             print()
             ehos.verbose_print("The minimum number of execute nodes are running, do nothing.", ehos.INFO)
 
-
-        ehos.verbose_print("Napping for a second.", ehos.INFO)
+        ehos.verbose_print("Napping for {} second(s).".format(config.ehos.sleep_min), ehos.INFO)
         time.sleep( config.ehos.sleep_min)
 
 
