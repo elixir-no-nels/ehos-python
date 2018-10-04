@@ -121,7 +121,42 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
 
     """
 
+    node_states = {}
 
+    timestamp = ehos.timestamp()
+
+    # This is a bit messy, a node can have child slots, so the
+    # counting gets wrong if we look at all node entries.
+    #
+    # The way to solve this, for now?, is if a node has a child entry
+    # (eg: slot1_1@hostname) this takes predicent over the main entry.
+    
+    for node in collector.query(htcondor.AdTypes.Startd):
+
+        print("{}  -- {} -- {}".format( node.get('Name'), node.get('Activity'), timestamp - node.get('LastHeardFrom')))
+
+        if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
+            ehos.verbose_print( "Seems to have lost the connection to {} (last seen {} secs ago)".format( node.get('Name'), timestamp - node.get('LastHeardFrom')), ehos.INFO)
+            continue
+
+
+        name = node.get('Name')
+        
+        # trim off anything after the first . in the string
+        if ("\." in name):
+            name = re.sub(r'(.*?)\..*', r'\1', name)
+
+        (slot, host) = name.split("@")
+        
+
+        if ( host in node_states and name.search("_")):
+            node_states[ host ] = node.get('Activity').lower()
+        else:
+            node_states[ host ] = node.get('Activity').lower() 
+            
+
+    pp.pprint( node_states )
+            
     node_counts = {"idle": 0,
                    "busy": 0,
                    "suspended": 0,
@@ -131,17 +166,13 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
                    "retiring": 0,
                    "total": 0}
 
-    timestamp = ehos.timestamp()
-    
-    for node in collector.query(htcondor.AdTypes.Startd):
 
-        print("{}  -- {} -- {}".format( node.get('Name'), node.get('Activity'), timestamp - node.get('LastHeardFrom')))
+    
+    
+    for node in node_states.keys():
+
         
-        if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
-            ehos.verbose_print( "Seems to have lost the connection to {} ({} secs ago)".format( node.get('Name'), timestamp - node.get('LastHeardFrom')), ehos.INFO)
-            continue
-        
-        node_counts[ node.get('Activity').lower() ] += 1
+        node_counts[ node_states[ node] ] += 1
         node_counts['total'] += 1
 
     return Munch(node_counts)
