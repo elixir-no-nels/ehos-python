@@ -133,7 +133,7 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
     
     for node in collector.query(htcondor.AdTypes.Startd):
 
-        print("{}  -- {} -- {}".format( node.get('Name'), node.get('Activity'), timestamp - node.get('LastHeardFrom')))
+        ehos.verbose_print("Node info: node:{} state:{} last seen:{} secs".format( node.get('Name'), node.get('Activity'), timestamp - node.get('LastHeardFrom')), ehos.DEBUG)
 
         if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
             ehos.verbose_print( "Seems to have lost the connection to {} (last seen {} secs ago)".format( node.get('Name'), timestamp - node.get('LastHeardFrom')), ehos.INFO)
@@ -149,13 +149,14 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
         (slot, host) = name.split("@")
         
 
-        if ( host in node_states and name.search("_")):
-            node_states[ host ] = node.get('Activity').lower()
+        if ( host in node_states ):
+            if ( "_" in name):
+                node_states[ host ] = node.get('Activity').lower()
         else:
             node_states[ host ] = node.get('Activity').lower() 
             
 
-    pp.pprint( node_states )
+#    pp.pprint( node_states )
             
     node_counts = {"idle": 0,
                    "busy": 0,
@@ -197,8 +198,6 @@ def delete_idle_nodes(collector, nodes:int=1):
         if not nodes:
             return
 
-#        pp.pprint( node )
-        
         if ( node.get('Activity').lower() == 'idle'):
             node_name = node.get('Name')
             if ( "@" in  node_name):
