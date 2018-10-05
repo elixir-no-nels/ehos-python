@@ -26,7 +26,7 @@ import ehos
 
 nodes_deleted = []
 nodes_starting = []
-
+node_names = {}
 
 def queue_status(schedd):
     """get the number of jobs in the queue and group them by status
@@ -122,12 +122,12 @@ def check_execute_nodes_booted():
       None
     """
  
-
+    ehos.verbose_print("Check the state of nodes booting", ehos.DEBUG)
+    
     global nodes_starting
     for node in nodes_starting:
         node_status = ehos.server_log_search( node, "The EHOS execute node is")
-        
-        if (node_status is None or node_status == []):
+        if (node_status is not None and node_status != []):
             nodes_starting.remove( node )
             ehos.verbose_print("node {} is now up and running".format( node ), ehos.INFO)
     
@@ -153,6 +153,13 @@ def get_node_states(collector, max_heard_from_time:int=300 ):
 
     _node_states = {}
 
+    global nodes_starting
+    pp.pprint( nodes_starting )
+    check_execute_nodes_booted()
+    pp.pprint( nodes_starting )
+    for node in nodes_starting:
+        _node_states[ node_names[ node ] ] = 'starting'
+
     timestamp = ehos.timestamp()
     global nodes_deleted
 
@@ -160,37 +167,40 @@ def get_node_states(collector, max_heard_from_time:int=300 ):
     server_list = ehos.server_list()
     
     
-    # This is a bit messy, a node can have child slots, so the
-    # counting gets wrong if we look at all node entries.
-    #
-    # The way to solve this, for now?, is if a node has a child entry
-    # (eg: slot1_1@hostname) this takes predicent over the main entry.
-    
     for node in collector.query(htcondor.AdTypes.Startd):
 
         name = node.get('Name')
-
-        ehos.verbose_print("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')), ehos.DEBUG)
-
-        
-        if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
-            ehos.verbose_print( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')), ehos.INFO)
-            nodes_deleted.append( name )
-            continue
 
         # trim off anything after the first . in the string
         if ("." in name):
             name = re.sub(r'(.*?)\..*', r'\1', name)
 
         (slot, host) = name.split("@")
-        
 
+        
+        ehos.verbose_print("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')), ehos.DEBUG+2)
+
+        if host in nodes_deleted:
+            continue
+
+        # See if the server exists in the openstack list
         if( host not in server_list ):
             ehos.verbose_print( "-- >> Node {} not in the server_list, set is as deleted ".format( host ), ehos.INFO)
             nodes_deleted.append( host )
             continue
-            
 
+        # When was the last time we heard from this node? Assume dead?
+        if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
+            ehos.verbose_print( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')), ehos.INFO)
+            nodes_deleted.append( name )
+            continue
+
+        
+        # This is a bit messy, a node can have child slots, so the
+        # counting gets wrong if we look at all node entries.
+        #
+        # The way to solve this, for now?, is if a node has a child entry
+        # (eg: slot1_1@hostname) this takes predicent over the main entry.
         
         if ( host in _node_states ):
             if ( "_" in name):
@@ -199,15 +209,7 @@ def get_node_states(collector, max_heard_from_time:int=300 ):
             _node_states[ host ] = node.get('Activity').lower() 
             
 
-    global nodes_starting
-    check_execute_nodes_booted()
-    for node in nodes_starting:
-        _node_states[ node ] = 'starting'
-
             
-
-    pp.pprint( _node_states )
-        
     ehos.verbose_print("Node states: \n{}".format( pp.pformat(_node_states)), ehos.DEBUG )
             
     return _node_states
@@ -370,9 +372,11 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     global nodes_starting
     
 
-    for i in range(0, nr+1):
+    for i in range(0, nr ):
+
+        node_name = "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp())
         
-        node_id = ehos.server_create( "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp()),
+        node_id = ehos.server_create( node_name,
                                       image=config.ehos.base_image_id,
                                       flavor=config.ehos.flavor,
                                       network=config.ehos.network,
@@ -380,6 +384,9 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                                       security_groups=config.ehos.security_groups,
                                       userdata_file=execute_config_file)
 
+
+        node_name = re.sub("_","-",node_name).lower()
+        node_names[ node_id ] = node_name
         nodes_starting.append( node_id )
         ehos.verbose_print("Execute server is booting",  ehos.INFO)
 
@@ -457,7 +464,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         
         #
         if ( nodes.total < config.ehos.nodes_min ):
-            ehos.verbose_print("We are below the min number of nodes, create some", ehos.INFO)
+            ehos.verbose_print("We are below the min number of nodes, create {} nodes".format( config.ehos.nodes_min - nodes.total) , ehos.INFO)
 
 
             create_execute_nodes(config, execute_config_file, config.ehos.nodes_min - nodes.total)
@@ -465,7 +472,6 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
         elif ( queue.idle and nodes.idle):
             ehos.verbose_print("We got stuff to do, but seems to have spare nodes...", ehos.INFO)
-
 
             # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
         elif ( queue.idle and nodes.total < config.ehos.nodes_max):
@@ -481,9 +487,13 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
             
 
         # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
-        elif ( nodes.total > config.ehos.nodes_min and nodes.total - nodes.busy > config.ehos.nodes_spare ):
-            ehos.verbose_print("Deleting {} idle nodes...(2)".format( nodes.total - nodes.busy - config.ehos.nodes_spare), ehos.INFO)
-            delete_idle_nodes(htcondor_collector,  nodes.total - nodes.busy - config.ehos.nodes_spare)
+        elif ( nodes.total > config.ehos.nodes_min and
+               nodes.total - nodes.busy > config.ehos.nodes_spare ):
+
+            nr_of_nodes_to_delete = min( nodes.total - nodes.busy - config.ehos.nodes_spare, nodes.total - config.ehos.nodes_min)
+            
+            ehos.verbose_print("Deleting {} idle nodes...(2)".format( nr_of_nodes_to_delete), ehos.INFO)
+            delete_idle_nodes(htcondor_collector,  nr_of_nodes_to_delete)
             
 
 

@@ -153,7 +153,7 @@ def server_create(name:str, image:str, flavor:str, network:str, key:str, securit
                                           auto_ip=True)
         
 
-        verbose_print("Created server id:{} ip:{}".format( server.id, server_ip(server.id)), INFO)
+        verbose_print("Created server id:{} ip:{}".format( server.id, server_ip(server.id)), DEBUG)
         
         global _server_cache
         _server_cache[ server.id ] = server
