@@ -153,19 +153,16 @@ def get_node_states(collector, max_heard_from_time:int=300 ):
 
     _node_states = {}
 
+    global nodes_deleted
     global nodes_starting
-    pp.pprint( nodes_starting )
+
     check_execute_nodes_booted()
-    pp.pprint( nodes_starting )
     for node in nodes_starting:
         _node_states[ node_names[ node ] ] = 'starting'
 
     timestamp = ehos.timestamp()
-    global nodes_deleted
-
 
     server_list = ehos.server_list()
-    
     
     for node in collector.query(htcondor.AdTypes.Startd):
 
