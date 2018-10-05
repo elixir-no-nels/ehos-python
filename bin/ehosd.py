@@ -376,19 +376,23 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
 
         node_name = "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp())
         
-        node_id = ehos.server_create( node_name,
-                                      image=config.ehos.base_image_id,
-                                      flavor=config.ehos.flavor,
-                                      network=config.ehos.network,
-                                      key=config.ehos.key,
-                                      security_groups=config.ehos.security_groups,
-                                      userdata_file=execute_config_file)
+        try:
+            node_id = ehos.server_create( node_name,
+                                          image=config.ehos.base_image_id,
+                                          flavor=config.ehos.flavor,
+                                          network=config.ehos.network,
+                                          key=config.ehos.key,
+                                          security_groups=config.ehos.security_groups,
+                                          userdata_file=execute_config_file)
 
 
-        node_name = re.sub("_","-",node_name).lower()
-        node_names[ node_id ] = node_name
-        nodes_starting.append( node_id )
-        ehos.verbose_print("Execute server is booting",  ehos.INFO)
+            node_name = re.sub("_","-",node_name).lower()
+            node_names[ node_id ] = node_name
+            nodes_starting.append( node_id )
+            ehos.verbose_print("Execute server is booting",  ehos.INFO)
+        except:
+            ehos.verbose_print("Could not create execute server, might not be enough resources left",  ehos.WARN)
+            
 
     return
                     
@@ -434,9 +438,6 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     htcondor_schedd    = htcondor.Schedd()
     
     execute_config_file = tmp_execute_config_file( host_ip, uid_domain )
-
-    
-
     
     while ( True ):
 
@@ -447,11 +448,9 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
         check_config_file(config)
         
-        
         # get the current number of nodes
         nodes  = nodes_status(htcondor_collector)
         queue  = queue_status(htcondor_schedd)
-
 
         
         ehos.verbose_print( "Node data\n" + pp.pformat( nodes ), ehos.DEBUG)
@@ -459,50 +458,45 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
         ehos.verbose_print("Nr of nodes {} ({} are idle)".format( nodes.total, nodes.idle), ehos.INFO)
         ehos.verbose_print("Nr of jobs {} ({} are queueing)".format( queue.total, queue.idle), ehos.INFO)
-        
 
         
-        #
+        # Below the min number of nodes needed for our setup
         if ( nodes.total < config.ehos.nodes_min ):
-            ehos.verbose_print("We are below the min number of nodes, create {} nodes".format( config.ehos.nodes_min - nodes.total) , ehos.INFO)
-
+            ehos.verbose_print("We are below the min number of nodes, creating {} nodes".format( config.ehos.nodes_min - nodes.total) , ehos.INFO)
 
             create_execute_nodes(config, execute_config_file, config.ehos.nodes_min - nodes.total)
-        
-        # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
-        elif ( queue.idle and nodes.idle):
-            ehos.verbose_print("We got stuff to do, but seems to have spare nodes...", ehos.INFO)
 
-            # got jobs in the queue, and we can create some node(s) as we have not reached the max number yet
-        elif ( queue.idle and nodes.total < config.ehos.nodes_max):
-            ehos.verbose_print("We got stuff to do, making some nodes...", ehos.INFO)
+        ### there are jobs queuing, let see what we should do
 
-            create_execute_nodes(config, execute_config_file, config.ehos.nodes_max - nodes.total)
+        # got jobs in the queue but less than or equal to our idle + spare nodes, do nothing
+        elif (  queue.idle and queue.idle <= nodes.idle ):
+            ehos.verbose_print("We got stuff to do, but seems to have enough nodes to cope...", ehos.INFO)
 
-        # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
-        elif ( nodes.total - (nodes.total - nodes.busy - config.ehos.nodes_spare) > config.ehos.nodes_min):
+        # Got room to make some additional nodes
+        elif (  queue.idle and nodes.total + config.ehos.nodes_spare <= config.ehos.nodes_max ):
             
-            ehos.verbose_print("Deleting {} idle nodes...(1)".format( nodes.total - (nodes.total - nodes.busy - config.ehos.nodes_spare)), ehos.INFO)
-            delete_idle_nodes(htcondor_collector,  nodes.total - (nodes.total - nodes.busy - config.ehos.nodes_spare))
-            
+            ehos.verbose_print("We got stuff to do, creating some additional nodes...", ehos.INFO)
+
+            create_execute_nodes(config, execute_config_file, config.ehos.nodes_max - nodes.total )
+
+        # this one is just a sanity one
+        elif ( queue.idle and nodes.total == config.ehos.nodes_max):
+            ehos.verbose_print("We are busy. bu all nodes we are allowed have been created, nothing to do", ehos.INFO)
+
+
+        ### Looks like we have an excess of nodes, lets cull some
 
         # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
         elif ( nodes.total > config.ehos.nodes_min and
-               nodes.total - nodes.busy > config.ehos.nodes_spare ):
+               nodes.idle  > config.ehos.nodes_spare ):
 
-            nr_of_nodes_to_delete = min( nodes.total - nodes.busy - config.ehos.nodes_spare, nodes.total - config.ehos.nodes_min)
+            nr_of_nodes_to_delete = min( nodes.total - config.ehos.nodes_min, nodes.idle - config.ehos.nodes_spare)
             
-            ehos.verbose_print("Deleting {} idle nodes...(2)".format( nr_of_nodes_to_delete), ehos.INFO)
+            ehos.verbose_print("Deleting {} idle nodes...".format( nr_of_nodes_to_delete), ehos.INFO)
             delete_idle_nodes(htcondor_collector,  nr_of_nodes_to_delete)
             
-
-
-        elif ( nodes.total == config.ehos.nodes_max):
-            ehos.verbose_print("All nodes we are allowed have been created, nothing to do", ehos.INFO)
-
         else:
-            print()
-            ehos.verbose_print("The minimum number of execute nodes are running, do nothing.", ehos.INFO)
+            ehos.verbose_print("The number of execute nodes are running seem appropriate, nothing to change.", ehos.INFO)
 
         ehos.verbose_print("Napping for {} second(s).".format(config.ehos.sleep_min), ehos.INFO)
         time.sleep( config.ehos.sleep_min)
