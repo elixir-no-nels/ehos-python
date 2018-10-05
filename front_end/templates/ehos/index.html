@@ -8,8 +8,9 @@
 <h2>Queue status:</h2>
 
 <div class=" progress" style="height: 40px;">
-  <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" >{{info.queue.idle}}</div>
-  <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" >{{info.queue.running}}</div>
+
+    <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" >{{info.queue.idle}}</div>
+    <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" >{{info.queue.running}}</div>
 </div>
 
 
@@ -19,12 +20,20 @@
   {% for node in info.nodes %}
 <div class="progress" style="height: 40px;">
   {% if info.nodes[ node ] == 'idle' %}
-  <div class="progress-bar  bg-success " role="progressbar" style="width: 100%">{{node}}</div>
+  <div class="progress-bar  bg-success " role="progressbar" style="width: 100%"><h4>{{node}}</h4></div>
   {% else %}
-  <div class="progress-bar  bg-danger " role="progressbar" style="width: 100%" >{{node}}</div>
+  <div class="progress-bar  bg-danger " role="progressbar" style="width: 100%" ><h4>{{node}}</h4></div>
   {% endif %} 
 </div>
 <br>
 {% endfor %}
 </div>
+
+
+$( document ).ready(function() {
+  setInterval(function time(){
+  var d = new Date();
+  jQuery('#countdown #sec').html(sec);
+}, 1000); });
+
 {% endblock %}

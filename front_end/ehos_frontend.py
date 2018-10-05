@@ -1,10 +1,17 @@
+import re
+
+
 from flask import Flask
 from flask import render_template
+
+from munch import Munch
 
 import htcondor
 import openstack
 
 import ehos
+
+nodes_deleted = []
 
 def queue_status(schedd):
     """get the number of jobs in the queue and group them by status
@@ -34,7 +41,9 @@ def queue_status(schedd):
 
     
     status_counts = {'idle': 0,
+                     'idle_p': 0,
                      'running': 0,
+                     'running_p': 0,
                      'removed': 0,
                      'completed': 0,
                      'held': 0,
@@ -47,8 +56,13 @@ def queue_status(schedd):
         status_counts[ status_codes[  job.get('JobStatus') ]] += 1
         status_counts[ 'total' ] += 1
 
-    status_counts['idle_p'] = status_counts['idle']/status_counts['total']*100.0
-    status_counts['running_p'] = status_counts['running']/status_counts['total']*100.0
+
+
+    if status_counts['idle']:
+        status_counts['idle_p'] =  status_counts['idle']/status_counts['total']*100.0
+
+    if status_counts['running']:
+        status_counts['running_p'] = status_counts['running']/status_counts['total']*100.0
         
     return status_counts
 
@@ -126,6 +140,24 @@ app = Flask(__name__)
 def index():
 
 
+    config_file = ehos.find_config_file('ehos.yaml')
+    with open(config_file, 'r') as stream:
+        config = Munch.fromYAML(stream)
+
+    
+    ehos.connect( auth_url=config.cloud.auth_url ,
+                  user_domain_name=config.cloud.user_domain_name,
+                  project_domain_name=config.cloud.project_domain_name,
+                  username=config.cloud.username,
+                  password=config.cloud.password,
+                  project_name=config.cloud.project_name,
+                  region_name=config.cloud.region_name,
+                  no_cache=1,
+    )
+    ehos.verbose_level( 5 )
+    ehos.verbose_print("Connected to openStack", ehos.INFO)
+
+    
 
     host_id    = ehos.get_node_id()
     host_ip    = ehos.server_ip( host_id, 4)
