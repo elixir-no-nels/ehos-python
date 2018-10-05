@@ -9,8 +9,8 @@
 
 <div class=" progress" style="height: 40px;">
 
-    <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" >{{info.queue.idle}}</div>
-    <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" >{{info.queue.running}}</div>
+    <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" ><h5>{{info.queue.idle}}</h5></div>
+    <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" ><h5>{{info.queue.running}}</h5></div>
 </div>
 
 
@@ -18,22 +18,38 @@
 <h2>Nodes:</h2>
 
   {% for node in info.nodes %}
-<div class="progress" style="height: 40px;">
+<div class="progress" style="height: 50px;">
   {% if info.nodes[ node ] == 'idle' %}
-  <div class="progress-bar  bg-success " role="progressbar" style="width: 100%"><h4>{{node}}</h4></div>
+  <div class="progress-bar  bg-success " role="progressbar" style="width: 100%"><h5>{{node}}</h5></div>
   {% else %}
-  <div class="progress-bar  bg-danger " role="progressbar" style="width: 100%" ><h4>{{node}}</h4></div>
+  <div class="progress-bar  bg-danger " role="progressbar" style="width: 100%" ><h5>{{node}}</h5></div>
   {% endif %} 
 </div>
 <br>
 {% endfor %}
+
+<br>
+
+<div id="reload">0 s</div>
 </div>
 
 
-$( document ).ready(function() {
-  setInterval(function time(){
-  var d = new Date();
-  jQuery('#countdown #sec').html(sec);
-}, 1000); });
+
+
+
+{% endblock %}
+
+{% block javascript %}
+$(function() {
+   $( document ).ready(function() {
+   var Interval = 1
+
+   setInterval(function time(){
+
+      document.getElementById("reload").innerHTML = Interval +" s"
+      Interval++;
+
+   }, 1000); });
+});
 
 {% endblock %}
