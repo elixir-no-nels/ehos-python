@@ -74,5 +74,5 @@ write_files:
     permissions: '0644'
 
 runcmd:
-- condor_store_cred -p {{password}} /var/lock/condor/pool_password
+- condor_store_cred -p {password} /var/lock/condor/pool_password
 - condor_reconfig
