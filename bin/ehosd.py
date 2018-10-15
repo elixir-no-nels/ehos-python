@@ -167,12 +167,16 @@ def get_node_states(collector, max_heard_from_time:int=300 ):
     for node in collector.query(htcondor.AdTypes.Startd):
 
         name = node.get('Name')
+        print("name: '{}'".format( name ))
 
         # trim off anything after the first . in the string
         if ("." in name):
             name = re.sub(r'(.*?)\..*', r'\1', name)
 
-        (slot, host) = name.split("@")
+        slot = None
+        host = name
+        if "@" in name:
+            (slot, host) = name.split("@")
 
         
         ehos.verbose_print("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')), ehos.DEBUG+2)
@@ -324,8 +328,8 @@ def check_config_file(config:Munch):
 
     for value in ['flavor', 'base_image_id', 'network', 'key', 'security_groups']:
         
-        if value not in config.ehos:
-            ehos.verbose_print("{} not set in configuration file".format(value), ehos.FATAL)
+        if value not in config.ehos or config.ehos[ value ] == 'None':
+            ehos.verbose_print("{} not set or set to 'None' in the configuration file".format(value), ehos.FATAL)
             sys.exit(1)
 
 
@@ -395,6 +399,17 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     for i in range(0, nr ):
 
         node_name = "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp())
+
+
+        print( " - ".join( map( str, [node_name,
+                                      config.ehos.base_image_id,
+                                      config.ehos.flavor,
+                                      config.ehos.network,
+                                      config.ehos.key,
+                                      config.ehos.security_groups,
+                                      execute_config_file])))
+
+
         
         try:
             node_id = ehos.server_create( node_name,
@@ -410,8 +425,9 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
             node_names[ node_id ] = node_name
             nodes_starting.append( node_id )
             ehos.verbose_print("Execute server is booting",  ehos.INFO)
-        except:
-            ehos.verbose_print("Could not create execute server, might not be enough resources left",  ehos.WARN)
+        except Exception as e:
+            ehos.verbose_print("Could not create execute server",  ehos.WARN)
+            ehos.verbose_print("Error: {}".format(e),  ehos.INFO)
             
 
     return
