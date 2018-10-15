@@ -441,7 +441,6 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     ip_range = re.sub(r'(\d+\.\d+\.\d+\.)\d+', r'\1*', host_ip)
 
     config = readin_config_file( config_file )
-    htcondor_security.setPoolPassword( config.condor.password )
 
 
     
@@ -465,6 +464,8 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     htcondor_security  = htcondor.SecMan()
 
     
+    htcondor_security.setPoolPassword( config.condor.password )
+
     execute_config_file = tmp_execute_config_file( host_ip, uid_domain )
     
     while ( True ):
