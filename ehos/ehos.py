@@ -11,6 +11,7 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 import traceback
 import random
+import string
 import time
 import time
 import datetime
@@ -111,6 +112,7 @@ def connect(auth_url:str, project_name:str, username:str, password:str, region_n
 
 
 
+    
 
 
 def server_create(name:str, image:str, flavor:str, network:str, key:str, security_groups:str, userdata_file:str=None): 
@@ -504,6 +506,29 @@ def datetimestamp():
 
     return ts
 
+
+def random_string(N:int=10) -> str:
+    """ Makes a random string the length of N
+
+    Args:
+      length: length of random string, default is 10 chars
+
+    Returns:
+      random string (str)
+
+    Raises:
+      None
+    """
+
+    chars=string.ascii_lowercase + string.ascii_uppercase + string.digits
+
+    res = ""
+    
+    for _ in range( N ):
+        res += random.SystemRandom().choice(chars)
+
+    return res
+        
 
 def get_node_id():
     """ Cloud init stores the node id on disk so it possible to use this for us to get host information that way
