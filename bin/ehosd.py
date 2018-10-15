@@ -350,6 +350,29 @@ def check_config_file(config:Munch):
             config.ehos.nodes_min = config.ehos.nodes_spare
         
 
+def readin_config_file(config_file:str) -> Munch:
+    """ reads in and checks the config file 
+
+    Args:
+      config_file: yaml formatted config files
+    
+    Returns:
+      config (munch )
+    
+    Raises:
+      None
+    """
+
+    # Continuously read in the config file making it possible to tweak the server as it runs. 
+    with open(config_file, 'r') as stream:
+        config = Munch.fromYAML(stream)
+        stream.close()
+
+        check_config_file(config)
+
+
+    return config
+        
 
 def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     """ Create a number of execute nodes
@@ -417,6 +440,11 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
     ip_range = re.sub(r'(\d+\.\d+\.\d+\.)\d+', r'\1*', host_ip)
 
+    config = readin_config_file( config_file )
+    htcondor_security.setPoolPassword( config.condor.password )
+
+
+    
     # first time running this master, so tweak the personal configureation file
     if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
 
@@ -433,17 +461,15 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     # get some handles into condor, should perhaps wrap them in a module later on
     htcondor_collector = htcondor.Collector()
     htcondor_schedd    = htcondor.Schedd()
+
+    htcondor_security  = htcondor.SecMan()
     
     execute_config_file = tmp_execute_config_file( host_ip, uid_domain )
     
     while ( True ):
 
-        # Continuously read in the config file making it possible to tweak the server as it runs. 
-        with open(config_file, 'r') as stream:
-            config = Munch.fromYAML(stream)
-        stream.close()
+        config = readin_config_file( config_file )
 
-        check_config_file(config)
         
         # get the current number of nodes
         nodes  = nodes_status(htcondor_collector)
