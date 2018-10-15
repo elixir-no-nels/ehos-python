@@ -107,7 +107,6 @@ def write_master_yaml( config:Munch, master_filename:str, submit_filename:str=No
         write_file_block += make_write_file_block_from_file( execute_filename, 'execute.yaml',directory)
 
 
-
     # readin the maste file and insert out write_file_block(s)
     master_content = ehos.readin_whole_file(master_filename)
     master_content = re.sub('{write_files}', write_file_block, master_content)
@@ -229,6 +228,11 @@ def main():
     elif(config.ehos.base_image_id != 'None'):
         ehos.verbose_print( "using the base-image-id from the config file", ehos.INFO)
         
+        
+
+
+    if 'password' not in config.condor or config.condor.password == 'None':
+        config.condor.password = ehos.random_string(25)
         
     tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, args.config_dir)
     

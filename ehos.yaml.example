@@ -30,3 +30,7 @@ ehos:
   sleep_min: 10
   sleep_max: 60
 
+
+# Condor settings
+condor:
+  password: None
