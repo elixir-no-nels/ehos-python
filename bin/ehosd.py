@@ -475,7 +475,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     htcondor_security.setPoolPassword( config.condor.password )
 
     execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
-    sys.exit( 1 )
+#    sys.exit( 1 )
     
     while ( True ):
 
