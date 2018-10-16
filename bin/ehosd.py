@@ -12,10 +12,17 @@ pp = pprint.PrettyPrinter(indent=4)
 import time
 import datetime
 import argparse
-from munch import Munch
 import re
 import tempfile
 import traceback
+
+# python3+ is broken on centos 7, so add the /usr/local/paths by hand
+sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+sys.path.append("/usr/local/lib64/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+
+
+
+from munch import Munch
 
 
 import htcondor
@@ -552,7 +559,7 @@ def main():
     parser = argparse.ArgumentParser(description='ehosd: the ehos daemon to be run on the HTcondor master node ')
 
     parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file", default=ehos.find_config_file('ehos.yaml'))
+    parser.add_argument('config_file', metavar='config-file', nargs='?',    help="yaml formatted config file", default=[ehos.find_config_file('ehos.yaml')])
 
 
     args = parser.parse_args()
