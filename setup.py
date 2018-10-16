@@ -22,13 +22,15 @@ setup(name='ehos',
         'License :: MIT License',
         'Programming Language :: Python :: 3.4'
         ],      
-      scripts=['bin/deploy_ehos.py',
-               'bin/ehosd.py',
+      scripts=['/usr/local/bin/deploy_ehos.py',
+               '/usr/local/bin/ehosd.py',
            ],
       # install our config files into an ehos share.
-      data_files=[('share/ehos/', ['configs/base.yaml',
+      data_files=[('share/ehos/', ['ehos.yaml.example',
+                                   'configs/base.yaml',
                                    'configs/master.yaml',
                                    'configs/submit.yaml',
-                                   'configs/execute.yaml'])],
+                                   'configs/execute.yaml'])
+                  ('/etc/systemd/system/',['ehos.service'])],
       include_package_data=True,
       zip_safe=False)
