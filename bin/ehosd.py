@@ -401,13 +401,13 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
         node_name = "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp())
 
 
-        print( " - ".join( map( str, [node_name,
-                                      config.ehos.base_image_id,
-                                      config.ehos.flavor,
-                                      config.ehos.network,
-                                      config.ehos.key,
-                                      config.ehos.security_groups,
-                                      execute_config_file])))
+        # print( " - ".join( map( str, [node_name,
+        #                               config.ehos.base_image_id,
+        #                               config.ehos.flavor,
+        #                               config.ehos.network,
+        #                               config.ehos.key,
+        #                               config.ehos.security_groups,
+        #                               execute_config_file])))
 
 
         
