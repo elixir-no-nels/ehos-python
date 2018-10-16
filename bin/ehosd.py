@@ -72,13 +72,14 @@ def queue_status(schedd):
     return Munch(status_counts)
         
 
-def tmp_execute_config_file(master_ip:str, uid_domain:str, execute_config:str=None):
+def tmp_execute_config_file(master_ip:str, uid_domain:str, password:str, execute_config:str=None):
     """ Create a execute node config file with the master ip inserted into it
 
     Args:
       master_ip: ip of the master to connect to
       uid_domain: domain name we are using for this
       execute_config: define config template, otherwise find it in the system
+      password: for the cloud
 
     Returns:
       file name with path (str)
@@ -96,7 +97,7 @@ def tmp_execute_config_file(master_ip:str, uid_domain:str, execute_config:str=No
     
     execute_content = re.sub('{master_ip}', master_ip, execute_content)
     execute_content = re.sub('{uid_domain}', uid_domain, execute_content)
-
+    execute_content = re.sub('{password}', password, execute_content)
     
     # write new config file to it and close it. As this is an on level
     # file handle the string needs to be encoded into a byte array
@@ -466,8 +467,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
          ehos.alter_file(filename='/etc/condor/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
                                                                                      (r'{uid_domain}',uid_domain),
-                                                                                     (r'{ip_range}', ip_range),
-                                                                                     (r'{password}', config.condor.password)])
+                                                                                     (r'{ip_range}', ip_range)])
 
          os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
@@ -482,7 +482,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     
     htcondor_security.setPoolPassword( config.condor.password )
 
-    execute_config_file = tmp_execute_config_file( host_ip, uid_domain )
+    execute_config_file = tmp_execute_config_file( host_ip, uid_domain, config.condor.password )
     
     while ( True ):
 
