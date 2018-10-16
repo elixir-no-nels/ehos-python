@@ -72,11 +72,12 @@ def queue_status(schedd):
     return Munch(status_counts)
         
 
-def create_execute_config_file(master_ip:str, password:str, outfile:str='/usr/local/etc/ehos/execute.yaml', execute_config:str=None):
-    """ Create a execute node config file with the master ip inserted into it
+def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outfile:str='/usr/local/etc/ehos/execute.yaml', execute_config:str=None):
+    """ Create a execute node config file with the master ip and pool password inserted into it
 
     Args:
       master_ip: ip of the master to connect to
+      uid_domain: domain name we are using for this
       password: for the cloud
       outfile: file to write the execute file to
       execute_config: define config template, otherwise find it in the system
@@ -92,13 +93,12 @@ def create_execute_config_file(master_ip:str, password:str, outfile:str='/usr/lo
     if ( execute_config is None):
         execute_config = ehos.find_config_file('execute.yaml')
     
-
-    ehos.alter_file(execute_config, patterns=[ (r'{master_ip}',master_ip),
-                                               (r'{password}',password)])
+    print("outfile: '{}".format(outfile))
+        
+    ehos.alter_file(execute_config, outfile=outfile, patterns=[ (r'{master_ip}',master_ip),
+                                                                (r'{uid_domain}', uid_domain),
+                                                                (r'{password}',password)])
                                                 
-
-
-    os.rename(execute_config, outfile )
 
     return outfile
 
@@ -475,6 +475,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     htcondor_security.setPoolPassword( config.condor.password )
 
     execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
+    sys.exit( 1 )
     
     while ( True ):
 

@@ -618,7 +618,7 @@ def find_config_file( filename:str, dirs:List[str]=None):
         
 
 
-def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[ str, str]]=None):
+def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[ str, str]]=None, outfile:str=None):
     """ Alter a file by searching for a pattern (str or regex) and replace it
 
     The function further more make a backup copy of the original file
@@ -628,6 +628,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
       pattern: the pattern (str/regex) to search for in the file
       replace: what to replace the pattern with
       patterns: a list of replacements to be done
+      outfile: alternative file to write to, will not create a backup of the original file
     Returns:
       None
 
@@ -657,7 +658,8 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
     
     # first make a copy of the file
 
-    shutil.copy( filename, "{}.original".format( filename ))
+    if ( outfile is None ):
+        shutil.copy( filename, "{}.original".format( filename ))
     
     # open and read in the while file as a single string
     with open( filename, 'r') as fh:
@@ -672,9 +674,16 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
         # replace the pattern with the replacement string
         lines = re.sub(pattern, replace, lines)
 
-    with  open(filename, 'w') as fh:
-        fh.write( lines )
-        fh.close()
+    if ( outfile is None ):
+
+        with  open(filename, 'w') as fh:
+            fh.write( lines )
+            fh.close()
+    else:
+        with  open(outfile, 'w') as fh:
+            fh.write( lines )
+            fh.close()
+        
 
     
 
