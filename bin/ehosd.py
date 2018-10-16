@@ -72,14 +72,14 @@ def queue_status(schedd):
     return Munch(status_counts)
         
 
-def tmp_execute_config_file(master_ip:str, uid_domain:str, password:str, execute_config:str=None):
+def create_execute_config_file(master_ip:str, password:str, outfile:str='/usr/local/etc/ehos/execute.yaml', execute_config:str=None):
     """ Create a execute node config file with the master ip inserted into it
 
     Args:
       master_ip: ip of the master to connect to
-      uid_domain: domain name we are using for this
-      execute_config: define config template, otherwise find it in the system
       password: for the cloud
+      outfile: file to write the execute file to
+      execute_config: define config template, otherwise find it in the system
 
     Returns:
       file name with path (str)
@@ -92,23 +92,15 @@ def tmp_execute_config_file(master_ip:str, uid_domain:str, password:str, execute
     if ( execute_config is None):
         execute_config = ehos.find_config_file('execute.yaml')
     
-    # readin the maste file and insert out write_file_block(s)
-    execute_content = ehos.readin_whole_file(execute_config)
-    
-    execute_content = re.sub('{master_ip}', master_ip, execute_content)
-    execute_content = re.sub('{uid_domain}', uid_domain, execute_content)
-    execute_content = re.sub('{password}', password, execute_content)
-    
-    # write new config file to it and close it. As this is an on level
-    # file handle the string needs to be encoded into a byte array
 
-    # create a tmpfile/handle
-    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
-    os.write( tmp_fh, str.encode( execute_content ))
-    os.close( tmp_fh )
+    ehos.alter_file(execute_config, patterns=[ (r'{master_ip}',master_ip),
+                                               (r'{password}',password)])
+                                                
 
 
-    return tmpfile
+    os.rename(execute_config, outfile )
+
+    return outfile
 
 def check_execute_nodes_booted():
     """ Remove already booted nodes from the execute tracker
@@ -482,7 +474,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     
     htcondor_security.setPoolPassword( config.condor.password )
 
-    execute_config_file = tmp_execute_config_file( host_ip, uid_domain, config.condor.password )
+    execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
     
     while ( True ):
 

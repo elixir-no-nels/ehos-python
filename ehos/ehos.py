@@ -636,7 +636,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
 
     """
 
-    # this is foobared but I cannot find the strength to do this right now
+    # this is foobared but I cannot find the strength to do this right 
     if ( pattern is None and
          replace is None and
          patterns is None):
@@ -653,7 +653,6 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
         #  ( pattern is None or
         #    replace is None )):
         
-
         raise RuntimeError('Wrong use of alter_file function parameters, provide either a pattern and a replace or a list of patterns')
     
     # first make a copy of the file
