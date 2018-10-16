@@ -467,7 +467,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
          ehos.alter_file(filename='/etc/condor/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
                                                                                      (r'{uid_domain}',uid_domain),
                                                                                      (r'{ip_range}', ip_range),
-                                                                                     (r,'{password}', config.condor.password)])
+                                                                                     (r'{password}', config.condor.password)])
 
          os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
