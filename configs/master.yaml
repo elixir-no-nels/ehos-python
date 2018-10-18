@@ -63,7 +63,9 @@ runcmd:
   - pip install python-openstackclient
   - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git
   #- ehos_setup.sh /usr/local/etc/ehos_master.yaml
-
+  - systemctl enable ehos
+  - systemctl start  ehos
+  
 final_message: "The EHOS master is up after $UPTIME seconds"
 
 

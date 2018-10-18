@@ -256,6 +256,28 @@ def nodes_status(collector, max_heard_from_time:int=300 ):
 
 
 
+def condor_turn_off_fast(name:str):
+    """ Turns off a startd daemon as defined by name
+
+    Ideally this should be done by an API call but this "feature" is undocumented
+
+    Args:
+      name: name of node to turn off
+
+    Returns:
+      None
+
+    Raises:
+      None
+
+    """
+    ehos.system_call("condor_off -fast {}".format(name))
+#    node = collector.locate(htcondor.DaemonTypes.Master, name=name)
+
+#    htcondor.send_command( n, htcondor.DaemonCommands.DaemonOffFast)
+
+
+
 def delete_idle_nodes(collector, nodes:int=1, max_heard_from_time:int=300):
     """ Delete idle nodes, by default one node is delete
 
@@ -297,9 +319,10 @@ def delete_idle_nodes(collector, nodes:int=1, max_heard_from_time:int=300):
         # check if enough nodes have bee killed already
         if not nodes or nodes < 0:
             return
-
         try:
             nodes_deleted.append( node_name )
+            # This makes housekeeping of deleted nodes easier. Otherwise it can take upto 30 min for the node to be recorded as deleted.
+            condor_turn_off_fast( node_name )
             ehos.server_delete( node_name )
         except Exception:
             ehos.verbose_print( "{} is no longer available for deletion".format(node_name ), ehos.INFO)
@@ -458,6 +481,11 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
     config = readin_config_file( config_file )
 
+    # get some handles into condor, should perhaps wrap them in a module later on
+    htcondor_collector = htcondor.Collector()
+    htcondor_schedd    = htcondor.Schedd()
+
+    htcondor_security  = htcondor.SecMan()
 
     
     # first time running this master, so tweak the personal configureation file
@@ -471,14 +499,8 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
          os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
          # re-read configuration file
-         ehos.system_call('condor_reconfig')
+         htcondor.reload_config()
 
-    # get some handles into condor, should perhaps wrap them in a module later on
-    htcondor_collector = htcondor.Collector()
-    htcondor_schedd    = htcondor.Schedd()
-    htcondor_security  = htcondor.SecMan()
-
-    
     htcondor_security.setPoolPassword( config.condor.password )
 
     execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
