@@ -1,3 +1,7 @@
+# To run the static linked program LD_LIBRARY_PATH needs to be set as:
+# export LD_LIBRARY_PATH=`pwd`
+
+
 PROG   = simple_static simple_dynamic simple2
 
 all:	$(PROG)
