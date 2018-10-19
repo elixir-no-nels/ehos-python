@@ -203,9 +203,10 @@ def main():
     ehos.verbose_print("Parsed arguments", ehos.DEBUG)
 
     # readin the config file in as a Munch object
-    with open(args.config_file, 'r') as stream:
-        config = Munch.fromYAML(stream)
-        
+    config = ehos.readin_config_file( config_file )
+
+    ehos.connect( config )
+    
     # connect to the openstack
     ehos.connect( auth_url=config.cloud.auth_url ,
                   user_domain_name=config.cloud.user_domain_name,
