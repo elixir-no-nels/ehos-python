@@ -2,33 +2,40 @@
 # vim: syntax=yaml
 
 # Openstack cloud parameters these should match your keystone file
-cloud:
-   region_name: <REGION>
-   user_domain_name: <DOMAIN_NAME>
-   no_cache: 1
-   project_domain_name: <DOMAIN_NAME>
-   username: <USERNAME>
-   password: <PASSWORD>
-   project_name: <PROJECT_NAME>
-   auth_url: <URL>
 
-# Ehost spefic configuration
-ehos:
-# for creating servers 
-  project_prefix: EHOS_V1
-  flavor: <FLAVOR_NAME>
-  image_id: None  #this will be set by the the deploy script
-  network: <NETWORK_NAME>
-  key: <KEY_NAME>
-  security_groups: <SECURITY_GROUP>
+clouds:
+  <CLOUD_NAME>:
+    region_name: <REGION_NAME>
+    project_domain_name: <DOMAIN_NAME>
+    no_cache: 1
+    auth:
+      user_domain_name: <DOMAIN_NAME>
+      username: <USERNAME>
+      password: <PASSWORD>
+      project_name: <PROJECT_NAME>
+      auth_url: <URL>
+     
 
+    # Ehost spefic configuration
+    ehos:
+    # for creating servers 
+      project_prefix: EHOS_V1
+      flavor: <FLAVOR_NAME>
+      image_id: None  #this will be set by the the deploy script
+      network: <NETWORK_NAME>
+      key: <KEY_NAME>
+      security_groups: <SECURITY_GROUP>
+
+ehos_daemon:  
   # for tweaking the ehos demon
-  submission_nodes: 1 # masternode countes as one of these.
+  submission_nodes: 1 # masternode counts as one of these.
   nodes_max: 6
   nodes_min: 2
   nodes_spare: 2
   sleep_min: 10
   sleep_max: 60
+
+  node_allocation: round-robin # or fill-first
 
 
 # Condor settings

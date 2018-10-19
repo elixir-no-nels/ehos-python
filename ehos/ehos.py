@@ -23,7 +23,7 @@ import subprocess
 
 import openstack
 
-connection = None
+connections = {}
 level = 1
 
 
@@ -77,10 +77,11 @@ def connect_yaml( cloud_name:str ):
         raise e
 
 
-def connect(auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, no_cache:str,   ):
+def connect(cloud_name:str, auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, no_cache:str,   ):
     """ Connects to a openstack cloud
 
     Args:
+      cloud_name: name of the cloud this information relates to
       auth_url: authentication url
       project_name: name of project to connect to
       username: name of the user
@@ -97,7 +98,7 @@ def connect(auth_url:str, project_name:str, username:str, password:str, region_n
     """
 
     global connection
-    connection = openstack.connect(
+    connections[ cloud_name ] = openstack.connect(
         auth_url=auth_url,
         project_name=project_name,
         username=username,
@@ -551,6 +552,30 @@ def get_node_id():
     fh.close()
 
     return id
+
+
+def readin_config_file(config_file:str) -> Munch:
+    """ reads in and checks the config file 
+
+    Args:
+      config_file: yaml formatted config files
+    
+    Returns:
+      config (munch )
+    
+    Raises:
+      None
+    """
+
+    # Continuously read in the config file making it possible to tweak the server as it runs. 
+    with open(config_file, 'r') as stream:
+        config = Munch.fromYAML(stream)
+        stream.close()
+
+        check_config_file(config)
+
+
+    return config
 
 
 def readin_whole_file(filename:str):

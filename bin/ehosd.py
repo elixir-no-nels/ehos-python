@@ -35,6 +35,10 @@ nodes_deleted = []
 nodes_starting = []
 node_names = {}
 
+nodes_created = 0
+clouds = []
+
+
 def queue_status(schedd):
     """get the number of jobs in the queue and group them by status
 
@@ -377,30 +381,6 @@ def check_config_file(config:Munch):
             config.ehos.nodes_min = config.ehos.nodes_spare
         
 
-def readin_config_file(config_file:str) -> Munch:
-    """ reads in and checks the config file 
-
-    Args:
-      config_file: yaml formatted config files
-    
-    Returns:
-      config (munch )
-    
-    Raises:
-      None
-    """
-
-    # Continuously read in the config file making it possible to tweak the server as it runs. 
-    with open(config_file, 'r') as stream:
-        config = Munch.fromYAML(stream)
-        stream.close()
-
-        check_config_file(config)
-
-
-    return config
-        
-
 def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     """ Create a number of execute nodes
 
@@ -417,9 +397,16 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     """
 
     global nodes_starting
+    global nodes_created
     
 
     for i in range(0, nr ):
+
+
+        # for round-robin
+        ### find the next cloud name
+        cloud_name = clouds[ nodes_created%len( clouds )]
+        nodes_created += 1
 
         node_name = "{}-node-{}".format(config.ehos.project_prefix, ehos.datetimestamp())
 
@@ -436,11 +423,11 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
         
         try:
             node_id = ehos.server_create( node_name,
-                                          image=config.ehos.base_image_id,
-                                          flavor=config.ehos.flavor,
-                                          network=config.ehos.network,
-                                          key=config.ehos.key,
-                                          security_groups=config.ehos.security_groups,
+                                          image=config.clouds[ cloud_name].ehos.base_image_id,
+                                          flavor=config.clouds[ cloud_name].ehos.flavor,
+                                          network=config.clouds[ cloud_name].ehos.network,
+                                          key=config.clouds[ cloud_name].ehos.key,
+                                          security_groups=config.clouds[ cloud_name].ehos.security_groups,
                                           userdata_file=execute_config_file)
 
 
@@ -457,7 +444,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                     
 
 
-def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=None):
+def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml"):
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
                
     The confirguration file is continously read so it is possible to tweak the behaviour of the system
@@ -479,7 +466,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
 
     ip_range = re.sub(r'(\d+\.\d+\.\d+\.)\d+', r'\1*', host_ip)
 
-    config = readin_config_file( config_file )
+    config = ehos.readin_config_file( config_file )
 
     # get some handles into condor, should perhaps wrap them in a module later on
     htcondor_collector = htcondor.Collector()
@@ -488,9 +475,11 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     htcondor_security  = htcondor.SecMan()
 
     
+
+    
+    
     # first time running this master, so tweak the personal configureation file
     if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
-
 
          ehos.alter_file(filename='/etc/condor/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
                                                                                      (r'{uid_domain}',uid_domain),
@@ -508,7 +497,7 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
     
     while ( True ):
 
-        config = readin_config_file( config_file )
+        config = ehos.readin_config_file( config_file )
 
         
         # get the current number of nodes
@@ -565,6 +554,43 @@ def run_daemon(config_file:str="/usr/local/etc/ehos_master.yaml", logfile:str=No
         time.sleep( config.ehos.sleep_min)
 
 
+
+def make_connections(config:Munch) -> []:
+    """ Connects to the clouds spefified in the config file
+
+    Args:
+      config: from the yaml  input file
+    
+    Returns:
+      connection names (list)
+
+    Raises:
+      None
+    """
+
+    global clouds
+    global node_names 
+    for cloud in config.clouds:
+
+        clouds.append( cloud )
+        
+        ehos.connect( cloud_name=cloud,
+                      auth_url=config.clouds[cloud].auth.auth_url ,
+                      user_domain_name=config.clouds[cloud].user_domain_name,
+                      project_domain_name=config.clouds[cloud].project_domain_name,
+                      username=config.clouds[cloud].auth.username,
+                      password=config.clouds[cloud].auth.password,
+                      project_name=config.clouds[cloud].auth.project_name,
+                      region_name=config.clouds[cloud].region_name,
+                      no_cache=1,
+        )
+        ehos.verbose_level( args.verbose )
+        node_names[ cloud ] = {}
+        ehos.verbose_print("Connected to the {} openStack".format(cloud), ehos.INFO)
+        
+
+    return clouds
+        
 def main():
     """ main loop
 
@@ -591,23 +617,11 @@ def main():
 
 
     ehos.verbose_print("Running with config file: {}".format( args.config_file), ehos.INFO)
-    # readin the config file in as a Munch object
-    with open(args.config_file, 'r') as stream:
-        config = Munch.fromYAML(stream)
-    stream.close()
+
+    config = ehos.readin_config_file( config_file )
+
     
-    ehos.connect( auth_url=config.cloud.auth_url ,
-                  user_domain_name=config.cloud.user_domain_name,
-                  project_domain_name=config.cloud.project_domain_name,
-                  username=config.cloud.username,
-                  password=config.cloud.password,
-                  project_name=config.cloud.project_name,
-                  region_name=config.cloud.region_name,
-                  no_cache=1,
-    )
-    ehos.verbose_level( args.verbose )
-    ehos.verbose_print("Connected to openStack", ehos.INFO)
-    
+    make_connections( config )
     
     if ( args.config_file):
         run_daemon( args.config_file )
