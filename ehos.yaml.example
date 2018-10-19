@@ -16,18 +16,30 @@ clouds:
       auth_url: <URL>
      
 
-    # Ehost spefic configuration
     ehos:
     # for creating servers 
       project_prefix: EHOS_V1
       flavor: <FLAVOR_NAME>
-      image_id: None  #this will be set by the the deploy script
+      image_id: None  #this can be set by the the deploy script if creating a baseimage
       network: <NETWORK_NAME>
       key: <KEY_NAME>
       security_groups: <SECURITY_GROUP>
 
+
+# global ehos settings, will be overridden by the cloud specif ones, if sat
+ehos:
+# for creating servers 
+  project_prefix: EHOS_V1
+  flavor: <FLAVOR_NAME>
+  image_id: None  #this will be set by the the deploy script
+  network: <NETWORK_NAME>
+  key: <KEY_NAME>
+  security_groups: <SECURITY_GROUP>
+
+
+# for tweaking the ehos demon
 ehos_daemon:  
-  # for tweaking the ehos demon
+  master_cloud: <CLOUD_NAME> #If creating a master node in the cloud 
   submission_nodes: 1 # masternode counts as one of these.
   nodes_max: 6
   nodes_min: 2
