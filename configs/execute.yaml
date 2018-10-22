@@ -10,7 +10,7 @@
 # Run yum upgrade
 #package_upgrade: true
 
-final_message: "The EHOS execute node is up after $UPTIME seconds"
+final_message: "The EHOS vm is up after $UPTIME seconds"
 
 # Create custom condor configuration file to create an execute node
 write_files:

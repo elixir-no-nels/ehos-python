@@ -66,6 +66,6 @@ runcmd:
   - systemctl enable ehos
   - systemctl start  ehos
   
-final_message: "The EHOS master is up after $UPTIME seconds"
+final_message: "The EHOS vm is up after $UPTIME seconds"
 
 

@@ -32,3 +32,4 @@ write_files:
 runcmd:
 - condor_reconfig
 
+final_message: "The EHOS vm is up after $UPTIME seconds"

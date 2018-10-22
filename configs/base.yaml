@@ -53,4 +53,4 @@ runcmd:
   - service condor start
   - systemctl enable condor
   
-final_message: "The EHOS base system is up after $UPTIME seconds"
+final_message: "The EHOS vm is up after $UPTIME seconds"
