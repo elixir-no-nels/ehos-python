@@ -16,9 +16,9 @@ import ehos
 class Vm(object):
 
 
-    connection = None
-    name       = None
-    servers    = {}
+    _connection = None
+    _name       = None
+    _servers    = {}
     
     
     def check_connection() -> bool:

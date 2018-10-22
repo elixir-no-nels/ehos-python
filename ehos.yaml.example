@@ -5,6 +5,7 @@
 
 clouds:
   <CLOUD_NAME>:
+    backend: openstack
     region_name: <REGION_NAME>
     project_domain_name: <DOMAIN_NAME>
     no_cache: 1

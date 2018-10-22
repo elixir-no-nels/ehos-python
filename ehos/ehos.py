@@ -21,6 +21,8 @@ import shlex
 from typing import List, Tuple
 import subprocess
 
+from munch import Munch
+
 
 level = 1
 
@@ -32,7 +34,7 @@ INFO  = 4
 DEBUG = 5
 
 
-def timestamp():
+def timestamp() -> int:
     """ gets a sec since 1.1.1970
 
     "Args:
@@ -48,7 +50,7 @@ def timestamp():
     return int(time.time())
 
 
-def datetimestamp():
+def datetimestamp() -> str:
     """ Creates a timestamp so we can make unique server names
 
     Args:
@@ -89,7 +91,30 @@ def random_string(N:int=10) -> str:
     return res
         
 
-def get_node_id():
+def make_node_name(prefix="ehos", name='node') -> str:
+    """ makes a nodename with a timestamp in it, eg: prefix-name-datetime    
+
+    Furthermore, ensures the name will correspond to a hostname, eg making _ to -, and lowercase letters
+
+    Args:
+      prefix: prefix for name
+      name: type of node, eg executer
+
+    Returns:
+      name generated
+
+    Raises:
+      None
+    """
+
+    node_name = "{}-{}-{}".format(prefix, name, datetimestamp())
+    node_name = re.sub("_","-",node_name)
+    node_name = node_name.lower()
+
+    return node_name
+    
+
+def get_node_id() -> str:
     """ Cloud init stores the node id on disk so it possible to use this for us to get host information that way
 
     Ideally this would have been done using the cloud_init library, but that is python2 only, so this is a bit of a hack
@@ -101,16 +126,63 @@ def get_node_id():
       node id (string)
     
     Raises:
-      None
+      if the instance not found raise a RuntimeError
     """
 
+    instance_file = '/var/lib/cloud/data/instance-id'
+    
+    if ( not os.path.isfile( instance_file )):
+      raise RuntimeError
+    
 
-    fh = open('/var/lib/cloud/data/instance-id', 'r')
+    fh = open(instance_file, 'r')
     id  = fh.readline().rstrip("\n")
     fh.close()
 
     return id
 
+def check_config_file(config:Munch):
+    """ Check the integrity of the config file and make sure the values are valid
+
+    The function will set defaults if values are missing and adjust incorrect values, eg spare-nodes > min-nodes
+
+    Args:
+      config: the read in config file
+
+    Returns:
+      config (Munch)
+
+    Raises:
+      Runtime error on faulty or missing settings
+    """
+    
+    for value in ['flavor', 'base_image_id', 'network', 'key', 'security_groups']:
+        
+        if value not in config.ehos or config.ehos[ value ] == 'None':
+            verbose_print("{} not set or set to 'None' in the configuration file".format(value), FATAL)
+            sys.exit(1)
+
+
+    
+    defaults = {'submission_nodes': 1,
+                'project_prefix': 'EHOS',
+                'nodes_max': 4,
+                'nodes_min': 2,
+                'nodes_spare': 2,
+                'sleep_min': 10,
+                'sleep_max': 60}
+
+    for value in defaults.keys():
+        
+        if value not in config.ehos:
+            verbose_print("{} not set in configuration file, setting it to {}".format(value, defaults[ value ]), WARN)
+            config.ehos[ value ] = defaults[ value ]
+
+
+    if ( config.ehos.nodes_min < config.ehos.nodes_spare):
+            verbose_print("configuration min-nodes smaller than spare nodes, changing min-nodes to {}".format(config.ehos.nodes_min), WARN)
+            config.ehos.nodes_min = config.ehos.nodes_spare
+        
 
 def readin_config_file(config_file:str) -> Munch:
     """ reads in and checks the config file 
@@ -125,18 +197,17 @@ def readin_config_file(config_file:str) -> Munch:
       None
     """
 
-    # Continuously read in the config file making it possible to tweak the server as it runs. 
     with open(config_file, 'r') as stream:
         config = Munch.fromYAML(stream)
         stream.close()
 
-        check_config_file(config)
+#        check_config_file(config)
 
 
     return config
 
 
-def readin_whole_file(filename:str):
+def readin_whole_file(filename:str) -> str:
     """ reads in a whole file as a single string
 
     Args:
@@ -156,7 +227,7 @@ def readin_whole_file(filename:str):
     return lines
 
     
-def find_config_file( filename:str, dirs:List[str]=None):
+def find_config_file( filename:str, dirs:List[str]=None) -> str:
     """ Depending on the setup the location of config files might change. This helps with this, first hit wins!
 
     The following location are used by default: /etc/ehos/, /usr/local/etc/ehos, /usr/share/ehos/, configs/
@@ -212,6 +283,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
       replace: what to replace the pattern with
       patterns: a list of replacements to be done
       outfile: alternative file to write to, will not create a backup of the original file
+
     Returns:
       None
 
@@ -341,3 +413,44 @@ def system_call(command:str):
     subprocess.call(shlex.split( command ), shell=False)
         
         
+
+def make_uid_domain_name(length:int=3):
+    """ Makes a uid domain name
+
+    Args:
+      length: domain length
+    
+    Returns:
+      uid domain name (str)
+
+    Raises:
+      RuntimeError if length is longer than our word list
+
+    """
+
+
+    quote = "Piglet was so excited at the idea of being Useful that he forgot to be frightened any more, and when Rabbit went on to say that Kangas were only Fierce during the winter months, being at other times of an Affectionate Disposition, he could hardly sit still, he was so eager to begin being useful at once"
+
+#    quote = "The more he looked inside the more Piglet wasnt there"
+    quote = re.sub(",", "", quote);
+
+    words = list(set( quote.lower().split(" ")))
+
+    if (len(words) < length):
+        raise RuntimeError( 'length required is longer than dictonary used')
+        
+
+    
+    choices = []
+    while( True ):
+        word = random.choice(words)
+
+        if word in choices:
+            continue
+            
+        choices.append( word )
+
+        if (len( choices ) == length):
+            break
+        
+    return('.'.join(choices))
