@@ -11,11 +11,13 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 
-
 class Nodes(object):
 
 
-    _nodes =
+    _nodes = {}
+    _clouds = {}
+    
+    _name_to_id = {}
 
     def __init__( self ):
         """ Init function for the nodes class
@@ -31,11 +33,9 @@ class Nodes(object):
 
         """
 
-
-
         self._nodes = {}
         self._clouds = {}
-
+        
         self._name_to_id = {}
 
 
@@ -63,19 +63,40 @@ class Nodes(object):
         if ( name in self._name_to_id ):
             raise RuntimeError
         
-        self._nodes{ id } = { 'name'  : name,
+        self._nodes[ id ] = { 'name'  : name,
                               'cloud' : cloud,
                               'status': status}
 
         if cloud not in self._clouds:
             self._clouds[ cloud ] = set()
 
-        self._clouds[ cloud ].append( id )
+        self._clouds[ cloud ].add( id )
 
-        self._name_id_to[ name ] = id
+        self._name_to_id[ name ] = id
         
 
-    def get_nodes(self, status:str=None) -> List :
+    def get_node(self, id:str) -> {} :
+        """ get a list of nodes, can be filtered based on status
+
+        Args:
+          status: (optional) for filtering on status 
+
+        Returns:
+          node dict (name, cloud, status)
+
+        Raises:
+          RuntimeError if unknown node_id
+        """
+
+        if ( id not in self._nodes ):
+            raise RuntimeError
+
+
+        return self._nodes[ id ]
+
+
+        
+    def get_node_ids(self, status:str=None) -> [] :
         """ get a list of nodes, can be filtered based on status
 
         Args:
@@ -92,9 +113,10 @@ class Nodes(object):
         node_ids = []
 
         for node_id in self._nodes:
+            # No filtering, get all nodes
             if status is None:
                 node_ids.append( node_id )
-                
+            # Check if the status fits with what we are filtering on
             elif self._nodes[ node_id ]['status'] == status:
                 node_ids.append( node_id )
 
@@ -118,7 +140,7 @@ class Nodes(object):
         if ( node_id not in self._nodes ):
             raise RuntimeError
 
-        return self._nodes[ node_id ]
+        return self._nodes[ node_id ]['name']
 
 
     def name2id(self, node_name:str) -> str:
@@ -139,7 +161,7 @@ class Nodes(object):
 
         return self._name_to_id[ node_id ]
     
-    def nodes_in_cloud( self, cloud_name:str) -> List:
+    def nodes_in_cloud( self, cloud_name:str) -> []:
         """ returns a list of node ids in a given cloud 
 
         Args:
@@ -159,7 +181,7 @@ class Nodes(object):
             return self._clouds[ cloud_name ]
 
 
-    def find( self, id:str=None, name:str):
+    def find( self, id:str=None, name:str=None):
         """ find a node either by id or name
 
         Args:
