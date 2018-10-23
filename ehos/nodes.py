@@ -95,6 +95,23 @@ class Nodes(object):
         return self._nodes[ id ]
 
 
+
+    def get_clouds(self) -> [] :
+        """ get a list of nodes, can be filtered based on status
+
+        Args:
+          status: (optional) for filtering on status 
+
+        Returns:
+          node dict (name, cloud, status)
+
+        Raises:
+          RuntimeError if unknown node_id
+        """
+
+        return list(self._clouds.keys())
+    
+
         
     def get_node_ids(self, status:str=None) -> [] :
         """ get a list of nodes, can be filtered based on status
@@ -156,10 +173,10 @@ class Nodes(object):
           RuntimeError if unknown node_name
         """
 
-        if ( node_id not in self._name_to_id ):
+        if ( node_name not in self._name_to_id ):
             raise RuntimeError
 
-        return self._name_to_id[ node_id ]
+        return self._name_to_id[ node_name ]
     
     def nodes_in_cloud( self, cloud_name:str) -> []:
         """ returns a list of node ids in a given cloud 
@@ -178,7 +195,7 @@ class Nodes(object):
             return []
 
         else:
-            return self._clouds[ cloud_name ]
+            return list(self._clouds[ cloud_name ])
 
 
     def find( self, id:str=None, name:str=None):
