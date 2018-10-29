@@ -236,6 +236,69 @@ def test_set_status():
     n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
 
     assert n.get_status( '123_23') == 'running'
+
+
+
+def test_find_id(): 
+    n = N.Nodes() 
+
+    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
+    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
+    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    assert n.find( id='123_23') == ('123_23', 'qwerty23', 'tyt3', "running")
+
+def test_find_name(): 
+    n = N.Nodes() 
+
+    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
+    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
+    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    assert n.find( name='qwerty23') == ('123_23', 'qwerty23', 'tyt3', "running")
+
+
+def test_find_id_wrong(): 
+    n = N.Nodes() 
+
+    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
+    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
+    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    with pytest.raises( RuntimeError ):
+        n.find( name='does_not_exist')
     
     
     
+
+
+    
+def test_find_name_wrong(): 
+    n = N.Nodes() 
+
+    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
+    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
+    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    with pytest.raises( RuntimeError ):
+        n.find( name='qwerty231')
+    
+    
+    
+
