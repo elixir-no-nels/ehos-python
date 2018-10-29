@@ -22,6 +22,26 @@ import ehos.vm
 
 class Openstack( ehos.vm.Vm ):
 
+
+
+    def __init__(self):
+        """ The init function, currently just sets the name of the backend 
+
+        Args:
+          None
+
+        Returns:
+          None
+
+        Raises:
+           None
+
+        """
+
+        self._backend = "openstack"
+    
+    
+    
     def check_connection(self):
         """ Checks that there is a connection to the openstack, otherwise will raise an exception
 
@@ -148,6 +168,7 @@ class Openstack( ehos.vm.Vm ):
         return servers
 
 
+    
     def server_delete(self, id:str):
         """ Deletes a server instance
 
@@ -196,7 +217,7 @@ class Openstack( ehos.vm.Vm ):
         # needs a check to ensure that something was returned! Will crash!
         return( self._connection.compute.get_server_console_output( id )['output'])
 
-    def server_log_search(self,  id:str, match:str):
+    def server_log_search(self,  id:str, match:str='The EHOS vm is up after '):
         """ get a server log and searches for a match 
         
         Args:
