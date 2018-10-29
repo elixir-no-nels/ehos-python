@@ -13,6 +13,11 @@ pp = pprint.PrettyPrinter(indent=4)
 
 from enum import Enum
 
+import htcondor
+
+import ehos
+
+
 class Job_status( Enum ):
     idle                 = 1
     running              = 2
@@ -34,10 +39,9 @@ class Node_status( Enum ):
     lost         = 9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
 
 
-import htcondor
 
 
-class Htcondor( object ):
+class Condor( object ):
 
     _collector = None
     _schedd    = None
