@@ -11,7 +11,20 @@ import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+
 import ehos
+
+from enum import Enum
+
+class Status( Enum ):
+    booting    = 1
+    running    = 2
+    suspended  = 3
+    restarting = 4
+    stopping   = 5
+    deleted    = 6
+
+
 
 class Vm(object):
 
@@ -19,7 +32,30 @@ class Vm(object):
     _connection = None
     _name       = None
     _servers    = {}
+    _backend    = "Vm"
     
+
+
+    def __init__(self):
+        """ default init function, set class variables to ensure they are not shared betwewen class objects
+        
+        Args:
+          None
+
+        Returns: 
+          None
+        
+        Raises:
+          None
+        """
+
+        self._connection = None
+        self._name       = None
+        self._servers    = {}
+        self._backend    = "Vm"
+        
+
+
     
     def check_connection() -> bool:
         """ Checks that there is a connection to the vm
