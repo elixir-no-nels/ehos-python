@@ -7,18 +7,20 @@ htcondor specific functions
 """
 
 import sys
+import re
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+from enum import IntEnum
 
-from enum import Enum
 
+from munch import Munch
 import htcondor
 
 import ehos
 
 
-class Job_status( Enum ):
+class Job_status( IntEnum ):
     idle                 = 1
     running              = 2
     removed              = 3
@@ -27,7 +29,7 @@ class Job_status( Enum ):
     transferring_output  = 6
     suspended            = 7
 
-class Node_status( Enum ):
+class Node_status( IntEnum ):
     idle         = 1
     starting     = 2
     busy         = 3
@@ -48,7 +50,7 @@ class Condor( object ):
     _security  = None
 
 
-    def init(self):
+    def __init__(self):
         """ Init the htcondor connections on this node
 
         Args:
@@ -87,24 +89,14 @@ class Condor( object ):
         """
 
 
-        status_codes = {1: 'idle',
-                        2: 'running',
-                        3: 'removed',
-                        4: 'completed',
-                        5: 'held',
-                        6: 'transferring_output',
-                        7: 'suspended'}
-
 
         status_counts = {"total": 0}
 
-
         for job_status in Job_status:
-            status_counts[ job_status ] = 0
-
+            status_counts[ job_status.name ] = 0
 
         for job in self._schedd.xquery(projection=['ClusterId', 'ProcId', 'JobStatus']):
-            status = Job_status( job.get('JobStatus') )
+            status = Job_status( job.get('JobStatus') ).name
 
             status_counts[ status  ] += 1
             status_counts[ 'total' ] += 1
@@ -133,10 +125,12 @@ class Condor( object ):
 
         node_states = {}
         
-        for node in self._collector.query( htcondor.AdTypes.Startd ):
+        for node in self._collector.query( htcondor.AdTypes.Startd, projection=['Name', 'State', 'Activity', 'LastHeardFRom'] ):
+#            print( type( node ))
+#            print(  node)
 
             name = node.get('Name')
-            print("name: '{}'".format( name ))
+#            print("name: '{}'".format( name ))
 
             # trim off anything after the first . in the string
             if ("." in name):
@@ -161,7 +155,7 @@ class Condor( object ):
             # The way to solve this, for now?, is if a node has a child entry
             # (eg: slot1_1@hostname) this takes predicent over the main entry.
 
-            if ( host in _node_states ):
+            if ( host in node_states ):
                 if ( "_" in name):
                     node_states[ host ] = node.get('Activity').lower()
             else:
@@ -174,13 +168,12 @@ class Condor( object ):
         return node_states
     
 
-    def node_counts(collector, max_heard_from_time:int=300 ):
+    def node_counts(self, max_heard_from_time:int=300 ):
         """get the nodes connected to the master and groups them by status
 
         Available states are: idle, busy, suspended, vacating, killing, benchmarking, retiring
 
         Args:
-          collector: htcondor collector object
           max_heard_from_time: if we have not heard from a node this long, we expect it is dead
 
         Returns:
@@ -196,10 +189,10 @@ class Condor( object ):
 
         for node_status in Node_status:
             
-            node_counts[ node_status ] = 0
+            node_counts[ node_status.name ] = 0
 
         
-        node_states = self.nodes(collector, max_heard_from_time)
+        node_states = self.nodes( max_heard_from_time)
 
         for node in node_states.keys():
 
