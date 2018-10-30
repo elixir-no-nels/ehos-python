@@ -14,6 +14,10 @@ import tempfile
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+import logging
+logger = logging.getLogger('deploy_ehos')
+
+
 from munch import Munch
 
 import ehos
@@ -138,7 +142,7 @@ def create_base_image(args:dict, config:Munch):
       None
     """
 
-    ehos.verbose_print("Creating base server",  ehos.INFO)
+    logger.info("Creating base server")
 
     base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
                                   image=config.ehos.base_image,
@@ -148,19 +152,19 @@ def create_base_image(args:dict, config:Munch):
                                   security_groups=config.ehos.security_groups,
                                   userdata_file=args.base_yaml)
     
-    ehos.verbose_print("Created base server, waiting for it to come online",  ehos.INFO)
+    logger.info("Created base server, waiting for it to come online")
 
 
     # Wait for the server to come online and everything have been configured.    
     ehos.wait_for_log_entry(base_id, "The EHOS base system is up")
-    ehos.verbose_print("Base server is now online",  ehos.INFO)
+    logger.info("Base server is now online")
             
     base_image_id = ehos.make_image_from_server( base_id, "{}-image".format(config.ehos.project_prefix) )
-    ehos.verbose_print("Created base image",  ehos.INFO)
+    logger.info("Created base image")
         
     # delete the vanilla server.
     ehos.server_delete( base_id )
-    ehos.verbose_print("Deleted base server",  ehos.INFO)
+    logger.info("Deleted base server")
     # cheating a bit here but it makes the downstream bit easier
     return base_image_id
 
@@ -198,9 +202,9 @@ def main():
     args.config_file = args.config_file[ 0 ]
 
     # set the leve of what to print.
-    ehos.verbose_level( args.verbose )
+    ehos.log_level( args.verbose )
 
-    ehos.verbose_print("Parsed arguments", ehos.DEBUG)
+    logger.debug("Parsed arguments")
 
     # readin the config file in as a Munch object
     config = ehos.readin_config_file( config_file )
@@ -223,11 +227,11 @@ def main():
         config.ehos.base_image_id = create_base_image( args, config )
 
     elif (args.base_image_id is not None ):
-        ehos.verbose_print( "using the base-image-id given on the command line", ehos.INFO)
+        logger.info( "using the base-image-id given on the command line")
         config.ehos.base_image_id = args.base_image_id
 
     elif(config.ehos.base_image_id != 'None'):
-        ehos.verbose_print( "using the base-image-id from the config file", ehos.INFO)
+        logger.info( "using the base-image-id from the config file")
         
         
 
@@ -238,7 +242,7 @@ def main():
     tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.submit_yaml, args.execute_yaml, args.config_dir)
     
 
-    ehos.verbose_print("Written tmp file to: {}".format( tmp_master_config_file), ehos.DEBUG)
+    logger.debug("Written tmp file to: {}".format( tmp_master_config_file))
     
     # create the master node, That is it nothing more to do here.
     base_id = ehos.server_create( "{}-master".format(config.ehos.project_prefix),
@@ -250,10 +254,10 @@ def main():
                                   userdata_file=tmp_master_config_file)
     
 
-    ehos.verbose_print("Created master node", ehos.INFO)
+    logger.info("Created master node")
     # Wait for the server to come online and everything have been configured.    
     ehos.wait_for_log_entry(base_id, "The EHOS master is")
-    ehos.verbose_print("Master server is now online",  ehos.INFO)
+    logger.info("Master server is now online")
 
  
     

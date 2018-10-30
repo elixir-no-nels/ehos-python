@@ -12,8 +12,11 @@ import re
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-import openstack
 
+import logging
+logger = logging.getLogger('ehos.openstack')
+
+import openstack
 
 import ehos.vm 
 
@@ -56,7 +59,7 @@ class Openstack( ehos.vm.Vm ):
         """
 
         if  self._connection is not None:
-            verbose_print("No connection to openstack clouds", FATAL)
+            logger.critical("No connection to openstack clouds")
             raise ConnectionError
 
 
@@ -90,7 +93,7 @@ class Openstack( ehos.vm.Vm ):
             
         )
         self._name = cloud_name
-        ehos.verbose_print("Connected to openstack server", ehos.INFO)
+        logger.info("Connected to openstack server")
         
 
     def server_create(self, name:str, image:str, flavor:str, network:str, key:str, security_groups:str, userdata_file:str=None): 
@@ -133,7 +136,7 @@ class Openstack( ehos.vm.Vm ):
                                               auto_ip=True)
         
 
-            ehos.verbose_print("Created server id:{} ip:{}".format( server.id, server_ip(server.id)), ehos.DEBUG)
+            logger.debug("Created server id:{} ip:{}".format( server.id, server_ip(server.id)))
         
             return server.id
 
@@ -190,7 +193,7 @@ class Openstack( ehos.vm.Vm ):
         #    pp.pprint( servers )
 
         if id not in servers.keys():
-            ehos.verbose_print("Unknown server to delete id:{}".format( id ), ehos.DEBUG)
+            logger.debug("Unknown server to delete id:{}".format( id ))
             raise RuntimeError( "Unknown server {}".format( id ))
 
         if ( 'id' in servers[ id ]):
@@ -198,7 +201,7 @@ class Openstack( ehos.vm.Vm ):
 
 
         self._connection.delete_server( id )
-        ehos.verbose_print("Deleted server id:{}".format( id ), ehos.INFO)
+        logger.info("Deleted server id:{}".format( id ))
 
 
     def server_log(self, id:str):
@@ -232,7 +235,7 @@ class Openstack( ehos.vm.Vm ):
         """
 
         log = server_log( id )
-        ehos.verbose_print("Spooling server log for id:{}".format( id ), ehos.DEBUG)
+        logger.debug("Spooling server log for id:{}".format( id ))
         
         results = []
         
@@ -257,7 +260,7 @@ class Openstack( ehos.vm.Vm ):
         TimeoutError if entry not found before timeout is 
         """
 
-        ehos.verbose_print("Waiting for log entry  id:{} --> entry:{}".format( id, match ), ehos.INFO)
+        logger.info("Waiting for log entry  id:{} --> entry:{}".format( id, match ))
 
         while( True ):
             matches = server_log_search( id, match)
@@ -271,7 +274,7 @@ class Openstack( ehos.vm.Vm ):
 
             #        print(". {}".format( timeout))
             time.sleep( 1 )        
-            ehos.verbose_print("sleeping in wait_for_log_entry TO:{}".format( timeout ), ehos.DEBUG)
+            logger.debug("sleeping in wait_for_log_entry TO:{}".format( timeout ))
 
 
 
@@ -316,7 +319,7 @@ class Openstack( ehos.vm.Vm ):
 
 
         check_connection()
-        ehos.verbose_print("Stopping server id{} ".format( id ), ehos.INFO)
+        logger.info("Stopping server id{} ".format( id ))
         
         server = self._connection.compute.get_server( id )
         self._connection.compute.stop_server( server )
@@ -329,49 +332,49 @@ class Openstack( ehos.vm.Vm ):
             if ( not timeout ):
                 raise TimeoutError
 
-            ehos.verbose_print("sleeping in server stop TO:{} status:{}".format( timeout, server.status ), ehos.DEBUG)
+            logger.debug("sleeping in server stop TO:{} status:{}".format( timeout, server.status ))
             time.sleep(1)
 
-        ehos.verbose_print("Server stopped id:{} ".format( id ), ehos.INFO)
+        logger.info("Server stopped id:{} ".format( id ))
 
 
-        def _wait_for_image_creation( image_name:str, timeout:int=200):
-            """ Wait for a single image with the given name exists and them return the id of it
-            
-            Args:
-            image_name: name of the image
-            timeout: how long to wait for the image to be created.
-            
-            Returns:
-            image id (str)
-            
-            Raises:
-            None
-            """
+    def _wait_for_image_creation( image_name:str, timeout:int=200):
+        """ Wait for a single image with the given name exists and them return the id of it
 
-            ehos.verbose_print("Waiting for image creationimage_name:{} ".format( image_name ), ehos.INFO)
-            while ( True ):
-                
-                nr_images = 0
-                image_id = None
-                image_status = None
-                for image in self._connection.image.images():
-                    if image.name == image_name:
-                        nr_images += 1
-                        image_id = image.id
-                        image_status = image.status.lower()
+        Args:
+        image_name: name of the image
+        timeout: how long to wait for the image to be created.
 
-                # Only one image with our name exist, so return its id
-                if nr_images == 1 and image_status == 'active':
-                    ehos.verbose_print("Created image from server id{}, image_id:{} ".format( id, image_id ), ehos.INFO)
-                    return image_id
+        Returns:
+        image id (str)
 
-                # decrease the timeout counter, if hits 0 raise an exception, otherwise sleep a bit
-                timeout -= 1
-                if ( not timeout ):
-                    raise TimeoutError
-                time.sleep(1)
-                ehos.verbose_print("sleeping in wait_for_image_creation TO:{} NR:{} status:{}".format( timeout, nr_images, image_status ), ehos.DEBUG)
+        Raises:
+        None
+        """
+
+        logger.info("Waiting for image creationimage_name:{} ".format( image_name ))
+        while ( True ):
+
+            nr_images = 0
+            image_id = None
+            image_status = None
+            for image in self._connection.image.images():
+                if image.name == image_name:
+                    nr_images += 1
+                    image_id = image.id
+                    image_status = image.status.lower()
+
+            # Only one image with our name exist, so return its id
+            if nr_images == 1 and image_status == 'active':
+                logger.info("Created image from server id{}, image_id:{} ".format( id, image_id ))
+                return image_id
+
+            # decrease the timeout counter, if hits 0 raise an exception, otherwise sleep a bit
+            timeout -= 1
+            if ( not timeout ):
+                raise TimeoutError
+            time.sleep(1)
+            logger.debug("sleeping in wait_for_image_creation TO:{} NR:{} status:{}".format( timeout, nr_images, image_status ))
         
     def make_image_from_server(self,  id:str, image_name:str, timeout:int=200):
         """ creates an image from a server. Due to some bug in the openstack we spin it down before doing the backup
@@ -393,7 +396,7 @@ class Openstack( ehos.vm.Vm ):
 
 
 
-        ehos.verbose_print("Creating an image from server id{}, image_name:{} ".format( id, image_name ), ehos.INFO)
+        logger.info("Creating an image from server id{}, image_name:{} ".format( id, image_name ))
         server_stop( id )
         # rotation == 1 will only keep one version of this name, not sure about backup type
         self._connection.compute.backup_server( id, image_name, backup_type='', rotation=1 )

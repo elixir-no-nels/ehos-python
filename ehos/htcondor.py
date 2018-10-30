@@ -13,6 +13,9 @@ pp = pprint.PrettyPrinter(indent=4)
 
 from enum import IntEnum
 
+import logging
+logger = logging.getLogger('ehos.htcondor')
+
 
 from munch import Munch
 import htcondor
@@ -141,11 +144,11 @@ class Condor( object ):
             if "@" in name:
                 (slot, host) = name.split("@")
 
-            ehos.verbose_print("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')), ehos.DEBUG)
+            logger.debug("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')))
 
             # When was the last time we heard from this node? Assume lost of longer than max_head_from_time
             if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
-                ehos.verbose_print( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')), ehos.INFO)
+                logger.info( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')))
                 node_states[ name ] = 'lost'
                 continue
 
@@ -163,7 +166,7 @@ class Condor( object ):
 
 
 
-        ehos.verbose_print("Node states: \n{}".format( pp.pformat(node_states)), ehos.DEBUG )
+        logger.debug("Node states: \n{}".format( pp.pformat(node_states)))
 
         return node_states
     

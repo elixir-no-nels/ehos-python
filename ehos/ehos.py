@@ -23,15 +23,8 @@ import subprocess
 
 from munch import Munch
 
-
-level = 1
-
-
-FATAL = 1
-ERROR = 2
-WARN  = 3
-INFO  = 4
-DEBUG = 5
+import logging
+logger = logging.getLogger('ehos')
 
 
 def timestamp() -> int:
@@ -159,7 +152,7 @@ def check_config_file(config:Munch):
     for value in ['flavor', 'base_image_id', 'network', 'key', 'security_groups']:
         
         if value not in config.ehos or config.ehos[ value ] == 'None':
-            verbose_print("{} not set or set to 'None' in the configuration file".format(value), FATAL)
+            logger.fatal("{} not set or set to 'None' in the configuration file".format(value))
             sys.exit(1)
 
 
@@ -175,12 +168,12 @@ def check_config_file(config:Munch):
     for value in defaults.keys():
         
         if value not in config.ehos:
-            verbose_print("{} not set in configuration file, setting it to {}".format(value, defaults[ value ]), WARN)
+            logger.warning("{} not set in configuration file, setting it to {}".format(value, defaults[ value ]))
             config.ehos[ value ] = defaults[ value ]
 
 
     if ( config.ehos.nodes_min < config.ehos.nodes_spare):
-            verbose_print("configuration min-nodes smaller than spare nodes, changing min-nodes to {}".format(config.ehos.nodes_min), WARN)
+            logger.warm("configuration min-nodes smaller than spare nodes, changing min-nodes to {}".format(config.ehos.nodes_min))
             config.ehos.nodes_min = config.ehos.nodes_spare
         
 
@@ -252,9 +245,6 @@ def find_config_file( filename:str, dirs:List[str]=None) -> str:
                     "{}/../configs".format( script_dir ),
                     'configs',
                     './']
-
-
-    
 
     
     if dirs is not None:
@@ -340,15 +330,11 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
             fh.close()
         
 
-    
 
-        
+def log_level(new_level:int):
+    """ Set the log level, value is forced with in the [1-5] range
 
-
-def verbose_level(new_level:int):
-    """ Set the verbosity level, value is forced with in the [1-5] range
-
-    levels correspond to: DEBUG=5,  INFO=4 WARN=3, ERROR=2 and FATAL=1
+    levels correspond to: DEBUG=5,  INFO=4 WARN=3, ERROR=2 and CRITICAL=1
 
     Args:
       level: when to report
@@ -364,36 +350,17 @@ def verbose_level(new_level:int):
         new_level = 1
     elif new_level > 5:
         new_level = 5
-        
-    global level
-    level = new_level
-    
 
-        
-def verbose_print( message:str, report_level:int=1):
-    """ If level is equal or above limit print message
-
-    Args:
-      message: what to print
-      level: when to report
-
-    Returns:
-      None
-
-    Raises:
-      None
-
-    """
-
-    levels = {FATAL: 'FATAL',
-              ERROR: 'ERROR',
-              WARN:  'WARN',
-              INFO:  'INFO',
-              DEBUG: 'DEBUG' }
-
-    
-    if ( report_level <= level):
-        print( "{}: {}".format(levels[report_level], message ))
+    if new_level   == 1:
+        logging.basicConfig(level=logging.CRITICAL)
+    elif new_level == 2:
+        logging.basicConfig(level=logging.ERROR)
+    elif new_level == 3:
+        logging.basicConfig(level=logging.WARNING)
+    elif new_level == 4:
+        logging.basicConfig(level=logging.INFO)
+    elif new_level == 5:
+        logging.basicConfig(level=logging.DEBUG)
         
 
 def system_call(command:str):
@@ -415,7 +382,7 @@ def system_call(command:str):
         
 
 def make_uid_domain_name(length:int=3):
-    """ Makes a uid domain name
+    """ Makes a 'random' uid domain name
 
     Args:
       length: domain length
@@ -428,7 +395,6 @@ def make_uid_domain_name(length:int=3):
 
     """
 
-
     quote = "Piglet was so excited at the idea of being Useful that he forgot to be frightened any more, and when Rabbit went on to say that Kangas were only Fierce during the winter months, being at other times of an Affectionate Disposition, he could hardly sit still, he was so eager to begin being useful at once"
 
 #    quote = "The more he looked inside the more Piglet wasnt there"
@@ -439,8 +405,6 @@ def make_uid_domain_name(length:int=3):
     if (len(words) < length):
         raise RuntimeError( 'length required is longer than dictonary used')
         
-
-    
     choices = []
     while( True ):
         word = random.choice(words)
