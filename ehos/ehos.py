@@ -107,13 +107,13 @@ def make_node_name(prefix="ehos", name='node') -> str:
     return node_name
     
 
-def get_node_id() -> str:
+def get_node_id(filename:str='/var/lib/cloud/data/instance-id') -> str:
     """ Cloud init stores the node id on disk so it possible to use this for us to get host information that way
 
     Ideally this would have been done using the cloud_init library, but that is python2 only, so this is a bit of a hack
 
     Args:
-      None
+      filename: should only be changed when testing the function
 
     Returns:
       node id (string)
@@ -122,19 +122,18 @@ def get_node_id() -> str:
       if the instance not found raise a RuntimeError
     """
 
-    instance_file = '/var/lib/cloud/data/instance-id'
     
-    if ( not os.path.isfile( instance_file )):
+    if ( not os.path.isfile( filename )):
       raise RuntimeError
     
 
-    fh = open(instance_file, 'r')
+    fh = open(filename, 'r')
     id  = fh.readline().rstrip("\n")
     fh.close()
 
     return id
 
-def check_config_file(config:Munch):
+def check_config_file(config:Munch) -> bool:
     """ Check the integrity of the config file and make sure the values are valid
 
     The function will set defaults if values are missing and adjust incorrect values, eg spare-nodes > min-nodes
@@ -153,7 +152,7 @@ def check_config_file(config:Munch):
         
         if value not in config.ehos or config.ehos[ value ] == 'None':
             logger.fatal("{} not set or set to 'None' in the configuration file".format(value))
-            sys.exit(1)
+            raise RuntimeError
 
 
     
@@ -175,7 +174,8 @@ def check_config_file(config:Munch):
     if ( config.ehos.nodes_min < config.ehos.nodes_spare):
             logger.warm("configuration min-nodes smaller than spare nodes, changing min-nodes to {}".format(config.ehos.nodes_min))
             config.ehos.nodes_min = config.ehos.nodes_spare
-        
+
+    return True
 
 def readin_config_file(config_file:str) -> Munch:
     """ reads in and checks the config file 
@@ -193,9 +193,6 @@ def readin_config_file(config_file:str) -> Munch:
     with open(config_file, 'r') as stream:
         config = Munch.fromYAML(stream)
         stream.close()
-
-#        check_config_file(config)
-
 
     return config
 
@@ -331,7 +328,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
         
 
 
-def log_level(new_level:int):
+def log_level(new_level:int) -> int:
     """ Set the log level, value is forced with in the [1-5] range
 
     levels correspond to: DEBUG=5,  INFO=4 WARN=3, ERROR=2 and CRITICAL=1
@@ -363,7 +360,9 @@ def log_level(new_level:int):
         logging.basicConfig(level=logging.DEBUG)
         
 
-def system_call(command:str):
+    return new_level
+        
+def system_call(command:str) -> int:
     """ runs a system command
 
     Args:
@@ -377,7 +376,7 @@ def system_call(command:str):
     
     """
 
-    subprocess.call(shlex.split( command ), shell=False)
+    return(subprocess.call(shlex.split( command ), shell=False))
         
         
 
