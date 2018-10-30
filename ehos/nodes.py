@@ -210,8 +210,11 @@ class Nodes(object):
         """
 
 
+        if ( name is not None):
+            id = self.name2id( name )
+
         if id is not None:
-            return id, self._nodes[ id ][ 'name' ],self._nodes[ id ][ 'cloud_name' ], self._nodes[ id ][ 'status' ]
+            return id, self._nodes[ id ][ 'name' ],self._nodes[ id ][ 'cloud' ], self._nodes[ id ][ 'status' ]
         
 
 

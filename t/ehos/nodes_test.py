@@ -190,7 +190,7 @@ def test_nodes_in_cloud():
     n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
     n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
 
-    assert n.nodes_in_cloud('tyt3') == ['123_23', '123_13']
+    assert sorted(n.nodes_in_cloud('tyt3')) == sorted(['123_23', '123_13'])
 
 
 def test_nodes_in_cloud_empty(): 
@@ -263,6 +263,9 @@ def test_find_name():
     n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
     n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
 
+    print( n.find( name='qwerty23') )
+
+    
     assert n.find( name='qwerty23') == ('123_23', 'qwerty23', 'tyt3', "running")
 
 
