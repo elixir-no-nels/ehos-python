@@ -10,8 +10,10 @@ import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+from munch import Munch
 
-class Nodes(object):
+
+class Instances(object):
 
 
     _nodes = {}
@@ -40,7 +42,63 @@ class Nodes(object):
 
 
 
-    def add( self, id:str, name:str, cloud:str, status:str='starting')-> None:
+
+    def add_cloud(self, name:str, instance) -> None:
+        """ adds a cloud to the class
+        
+        Args:
+          name: name of the cloud
+          instance: an connection object to the cloud
+
+        Returns:
+          None
+
+        Raises:
+          RuntimeError if cloud already exists
+        """
+
+        if name in self._clouds:
+            raise RuntimeError
+        
+        self._clouds[ name ] = instance
+
+
+    def get_cloud( self, name:str):
+        """ returns a cloud instance 
+        
+        Args:
+          name: name of the cloud
+
+        Returns:
+          instance (obj?)
+
+        Raises:
+          RuntimeError if cloud dont exist 
+        """
+
+        if name not in self._clouds:
+            raise RuntimeError
+        
+        return self._clouds[ name ]
+        
+
+    def get_cloud_names(self) -> [] :
+        """ get a list of cloud names
+
+        Args:
+          None
+
+        Returns:
+          node dict (name, cloud, status)
+
+        Raises:
+          RuntimeError if unknown node_id
+        """
+
+        return list(self._clouds.keys())
+        
+
+    def add_node( self, id:str, name:str, cloud:str, status:str='starting')-> None:
         """ Adds a node to the class 
 
         Args:
@@ -53,36 +111,34 @@ class Nodes(object):
           None
         
         Raises:
-          RuntimeError if node id or name  already exist
+          RuntimeError if unknown cloud, or node id/name already exist
         """
 
-
+        if (cloud not in self._clouds):
+            raise RuntimeError
+        
         if ( id in self._nodes ):
             raise RuntimeError
 
         if ( name in self._name_to_id ):
             raise RuntimeError
         
-        self._nodes[ id ] = { 'name'  : name,
+        self._nodes[ id ] = { 'id': id,
+                              'name'  : name,
                               'cloud' : cloud,
                               'status': status}
-
-        if cloud not in self._clouds:
-            self._clouds[ cloud ] = set()
-
-        self._clouds[ cloud ].add( id )
 
         self._name_to_id[ name ] = id
         
 
     def get_node(self, id:str) -> {} :
-        """ get a list of nodes, can be filtered based on status
+        """ get a nodes based on its id
 
         Args:
-          status: (optional) for filtering on status 
+          id: id of the node
 
         Returns:
-          node dict (name, cloud, status)
+          node dict (id, name, cloud, status)
 
         Raises:
           RuntimeError if unknown node_id
@@ -92,25 +148,31 @@ class Nodes(object):
             raise RuntimeError
 
 
-        return self._nodes[ id ]
+        return Munch(self._nodes[ id ])
 
 
-
-    def get_clouds(self) -> [] :
-        """ get a list of nodes, can be filtered based on status
+    def get_nodes(self, status=[], cloud=[]) -> {} :
+        """ get a list of nodes, can be filtered based on status names
 
         Args:
           status: (optional) for filtering on status 
+          cloud: (optional) for filtering on cloud name 
 
         Returns:
-          node dict (name, cloud, status)
+          list of node dict (name, cloud, status)
 
         Raises:
           RuntimeError if unknown node_id
         """
 
-        return list(self._clouds.keys())
-    
+
+        res = []
+        for node in self._nodes:
+            if self._nodes[ node ][ 'status' ] in status or self._nodes[ node ]['cloud'] in cloud:
+                res.append( Munch(self._nodes[ node ] ))
+        
+
+        return res        
 
         
     def get_node_ids(self, status:str=None) -> [] :
@@ -194,8 +256,13 @@ class Nodes(object):
         if ( cloud_name not in self._clouds ):
             return []
 
+
         else:
-            return list(self._clouds[ cloud_name ])
+            res = []
+            for node in self.get_nodes(cloud=[cloud_name]):
+                res.append( node[ 'id' ] )
+
+            return res
 
 
     def find( self, id:str=None, name:str=None):
@@ -253,6 +320,9 @@ class Nodes(object):
 
         if ( node_id not in self._nodes):
             raise RuntimeError
+
+        
+        logger.info("Node {}/{} status changed to {}".format( id, self._nodes[ id ][ 'name' ], status))
 
         self._nodes[ node_id][ 'status'] = status
 

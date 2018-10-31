@@ -1,306 +1,407 @@
 import pytest
 
-import ehos.nodes as N
-
+import ehos.instances as I
 
 
 def test_init():
 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    assert n._nodes == {}
+    assert i._nodes == {}
 
 
+def test_add_cloud():
+    i = I.Instances() 
+
+    i.add_cloud(name='cph', instance='12345')
+
+def test_add_cloud_dup():
+    i = I.Instances() 
+
+    i.add_cloud(name='cph', instance='12345')
+    
+    with pytest.raises( RuntimeError ):
+        i.add_cloud(name='cph', instance='12345')
+
+    
+def test_get_cloud():
+    i = I.Instances() 
+
+    i.add_cloud(name='cph', instance='12345')
+    i.add_cloud(name='osl', instance='56789')
+    
+    c = i.get_cloud('cph')
+    assert c == '12345'
+
+def test_get_cloud_unknown():
+    i = I.Instances() 
+
+    i.add_cloud(name='cph', instance='12345')
+    i.add_cloud(name='osl', instance='56789')
+    
+    with pytest.raises( RuntimeError ):
+        i.get_cloud('bgn')
+
+def test_get_cloud_names():
+    i = I.Instances() 
+
+    i.add_cloud(name='cph', instance='12345')
+    i.add_cloud(name='osl', instance='56789')
+    
+    names = i.get_cloud_names()
+    assert names ==  ['cph', 'osl']
+
+
+def test_get_cloud_names_empty():
+    i = I.Instances() 
+
+    names = i.get_cloud_names()
+    assert names ==  []
+    
+    
+    
 def test_add_node():
-    n = N.Nodes() 
+    i = I.Instances() 
     
-    n.add( '123', name = 'qwerty', cloud='tyt')
+    i.add_cloud(name='tyt', instance='12345')
+
+    i.add_node( '123', name = 'qwerty', cloud='tyt')
     
-    assert n._nodes[ '123'][ 'name'] == 'qwerty'
-    assert n._nodes[ '123'][ 'cloud'] == 'tyt'
-    assert n._nodes[ '123'][ 'status'] == 'starting'
+    assert i._nodes[ '123'][ 'name'] == 'qwerty'
+    assert i._nodes[ '123'][ 'cloud'] == 'tyt'
+    assert i._nodes[ '123'][ 'status'] == 'starting'
     
 
 def test_add_node_duplicate_id():
-    n = N.Nodes() 
+    i = I.Instances() 
     
-    n.add( '123', name = 'qwerty2', cloud='tyt')
+    i.add_cloud(name='tyt', instance='12345')
+    i.add_node( '123', name = 'qwerty2', cloud='tyt')
 
     with pytest.raises( RuntimeError ):
-        n.add( '123', name = 'qwerty2', cloud='tyt')
+        i.add_node( '123', name = 'qwerty2', cloud='tyt')
 
 
 def test_add_node_duplicate_name():
-    n = N.Nodes() 
+    i = I.Instances() 
     
-    n.add( '1234', name = 'qwerty2', cloud='tyt')
+    i.add_cloud(name='tyt', instance='12345')
+    i.add_node( '1234', name = 'qwerty2', cloud='tyt')
 
     with pytest.raises( RuntimeError ):
-        n.add( '123', name = 'qwerty2', cloud='tyt')
+        i.add_node( '123', name = 'qwerty2', cloud='tyt')
 
 
 def test_get_node():
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_1', name = 'qwerty1', cloud='tyt', status='running')
-    n.add( '123_2', name = 'qwerty2', cloud='tyt')
-    n.add( '123_3', name = 'qwerty3', cloud='tyt2')
+    i.add_cloud(name='tyt', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
 
-    node = n.get_node('123_1')
+    i.add_node( '123_1', name = 'qwerty1', cloud='tyt', status='running')
+    i.add_node( '123_2', name = 'qwerty2', cloud='tyt')
+    i.add_node( '123_3', name = 'qwerty3', cloud='tyt2')
+
+    node = i.get_node('123_1')
     print( node )
     
-    assert node == {'name': 'qwerty1', 'cloud':'tyt', 'status':'running'}
+    assert node == {'id':'123_1', 'name': 'qwerty1', 'cloud':'tyt', 'status':'running'}
 
-def test_get_clouds(): 
-    n = N.Nodes() 
-
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
-
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
-      
-    clouds = n.get_clouds()
-
-    assert clouds == ['tyt1','tyt2','tyt3']
-    
     
 def test_get_node_ids():
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_1', name = 'qwerty1', cloud='tyt')
-    n.add( '123_2', name = 'qwerty2', cloud='tyt')
-    n.add( '123_3', name = 'qwerty3', cloud='tyt2')
+    i.add_cloud(name='tyt', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
 
-    nodes = n.get_node_ids()
+    i.add_node( '123_1', name = 'qwerty1', cloud='tyt')
+    i.add_node( '123_2', name = 'qwerty2', cloud='tyt')
+    i.add_node( '123_3', name = 'qwerty3', cloud='tyt2')
+
+    nodes = i.get_node_ids()
     
     assert nodes == ['123_1','123_2','123_3']
 
 
 def test_get_node_unknown_id():
-    n = N.Nodes() 
+    i = I.Instances() 
     
-    n.add( '1234', name = 'qwerty2', cloud='tyt')
-    n.add( '123_2', name = 'qwerty22', cloud='tyt')
-    n.add( '123_3', name = 'qwerty32', cloud='tyt2')
+    i.add_cloud(name='tyt', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+
+    i.add_node( '1234', name = 'qwerty2', cloud='tyt')
+    i.add_node( '123_2', name = 'qwerty22', cloud='tyt')
+    i.add_node( '123_3', name = 'qwerty32', cloud='tyt2')
 
     with pytest.raises( RuntimeError ):
-        node = n.get_node('123_10')
+        node = i.get_node('123_10')
     
 
 def test_get_node_ids_filtered(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
       
-    nodes = n.get_node_ids(status='running')
+    nodes = i.get_node_ids(status='running')
 
     assert nodes == ['123_21','123_22','123_23']
 
 
 def test_get_node_ids_filtered_empty(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
 
-    nodes = n.get_node_ids(status='stopped')
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    nodes = i.get_node_ids(status='stopped')
 
     assert nodes == []
 
 
 
 def test_node_name2id(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
     
-    assert n.name2id('qwerty21') == '123_21'
+    assert i.name2id('qwerty21') == '123_21'
 
 def test_node_name2id_unknown(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
     
     with pytest.raises( RuntimeError ):
-        n.name2id('qwerty213')
+        i.name2id('qwerty213')
 
 def test_get_node_id2name(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
     
-    assert n.id2name('123_21') == 'qwerty21'
+    assert i.id2name('123_21') == 'qwerty21'
 
 def test_node_id2name_unknown(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
     
     with pytest.raises( RuntimeError ):
-        n.id2name('123_91') == 'qwerty213'
+        i.id2name('123_91') == 'qwerty213'
         
 
 
 def test_nodes_in_cloud(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
 
-    assert sorted(n.nodes_in_cloud('tyt3')) == sorted(['123_23', '123_13'])
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    print( i.nodes_in_cloud('tyt3') )
+    
+    assert sorted(i.nodes_in_cloud('tyt3')) == sorted(['123_23', '123_13'])
 
 
 def test_nodes_in_cloud_empty(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
 
-    assert n.nodes_in_cloud('tyt4') == []
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    assert i.nodes_in_cloud('tyt4') == []
     
 
 def test_set_status(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
 
-    n.set_status( '123_22', 'changed')
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    i.set_status( '123_22', 'changed')
     
-    assert n._nodes[ '123_22']['status'] == 'changed'
+    assert i._nodes[ '123_22']['status'] == 'changed'
     
     
 
 def test_set_status(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
 
-    assert n.get_status( '123_23') == 'running'
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    assert i.get_status( '123_23') == 'running'
 
 
 
 def test_find_id(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
 
-    assert n.find( id='123_23') == ('123_23', 'qwerty23', 'tyt3', "running")
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    assert i.find( id='123_23') == ('123_23', 'qwerty23', 'tyt3', "running")
 
 def test_find_name(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
 
-    print( n.find( name='qwerty23') )
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+
+    print( i.find( name='qwerty23') )
 
     
-    assert n.find( name='qwerty23') == ('123_23', 'qwerty23', 'tyt3', "running")
+    assert i.find( name='qwerty23') == ('123_23', 'qwerty23', 'tyt3', "running")
 
 
 def test_find_id_wrong(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
 
     with pytest.raises( RuntimeError ):
-        n.find( name='does_not_exist')
-    
-    
-    
-
+        i.find( name='does_not_exist')
 
     
 def test_find_name_wrong(): 
-    n = N.Nodes() 
+    i = I.Instances() 
 
-    n.add( '123_11', name = 'qwerty11', cloud='tyt1')
-    n.add( '123_12', name = 'qwerty12', cloud='tyt2')
-    n.add( '123_13', name = 'qwerty13', cloud='tyt3')
+    i.add_cloud(name='tyt1', instance='12345')
+    i.add_cloud(name='tyt2', instance='12345')
+    i.add_cloud(name='tyt3', instance='12345')
 
-    n.add( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
-    n.add( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
-    n.add( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+    i.add_node( '123_12', name = 'qwerty12', cloud='tyt2')
+    i.add_node( '123_13', name = 'qwerty13', cloud='tyt3')
+
+    i.add_node( '123_21', name = 'qwerty21', cloud='tyt1', status="running")
+    i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
+    i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
 
     with pytest.raises( RuntimeError ):
-        n.find( name='qwerty231')
+        i.find( name='qwerty231')
     
     
     
