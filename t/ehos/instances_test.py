@@ -5,7 +5,9 @@ import ehos.instances as I
 
 def test_init():
 
-    i = I.Instances() 
+    print( I )
+    
+    i = I.Instances()
 
     assert i._nodes == {}
 
@@ -58,6 +60,14 @@ def test_get_cloud_names_empty():
     names = i.get_cloud_names()
     assert names ==  []
     
+def test_get_clouds():
+    i = I.Instances() 
+
+    i.add_cloud(name='cph', instance='12345')
+    i.add_cloud(name='osl', instance='56789')
+    
+    names = i.get_clouds()
+    assert names ==  {'cph':'12345', 'osl':'56789'}
     
     
 def test_add_node():
@@ -91,6 +101,15 @@ def test_add_node_duplicate_name():
     with pytest.raises( RuntimeError ):
         i.add_node( '123', name = 'qwerty2', cloud='tyt')
 
+def test_add_node_unknown_cload():
+    i = I.Instances() 
+    
+    i.add_cloud(name='tyt', instance='12345')
+    i.add_node( '1234', name = 'qwerty2', cloud='tyt')
+
+    with pytest.raises( RuntimeError ):
+        i.add_node( '123', name = 'qwerty2', cloud='tytss')
+        
 
 def test_get_node():
     i = I.Instances() 
@@ -307,9 +326,18 @@ def test_set_status():
     
     assert i._nodes[ '123_22']['status'] == 'changed'
     
+def test_set_status_unknown(): 
+    i = I.Instances() 
+
+    i.add_cloud(name='tyt1', instance='12345')
+
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+
+    with pytest.raises( RuntimeError ):
+        i.set_status( '123_23', 'yt')
     
 
-def test_set_status(): 
+def test_get_status(): 
     i = I.Instances() 
 
     i.add_cloud(name='tyt1', instance='12345')
@@ -324,8 +352,22 @@ def test_set_status():
     i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="running")
     i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="running")
 
-    assert i.get_status( '123_23') == 'running'
+    i.set_status( '123_23','running')
+    assert i.get_status('123_23') == 'running'
 
+
+
+    
+def test_get_status_unknown(): 
+    i = I.Instances() 
+
+    i.add_cloud(name='tyt1', instance='12345')
+
+    i.add_node( '123_11', name = 'qwerty11', cloud='tyt1')
+
+    with pytest.raises( RuntimeError ):
+        i.get_status( '123_23dd')
+    
 
 
 def test_find_id(): 

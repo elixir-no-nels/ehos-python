@@ -181,7 +181,14 @@ def test_make_uid_domain_name():
 
     assert type(uid_domain) == str
     assert uid_domain.count(".") == 9
-        
+
+
+def test_make_uid_domain_name_long():
+
+
+    with pytest.raises( RuntimeError ):
+        uid_domain = E.make_uid_domain_name(length=1000)
+    
 
     
     

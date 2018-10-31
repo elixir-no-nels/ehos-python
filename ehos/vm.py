@@ -23,6 +23,7 @@ class Status( Enum ):
     restarting = 4
     stopping   = 5
     deleted    = 6
+    unknown    = 7
 
 
 

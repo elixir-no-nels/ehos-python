@@ -165,7 +165,6 @@ class Openstack( ehos.vm.Vm ):
             
             # htcondor changes the name slightly, so make sure we can find them gtain
             server.name = server.name.lower()
-            server.name = re.sub('_','-', server.name)
             servers[ server.name ] = {'id':server.id, 'status':server.status}
     
         return servers

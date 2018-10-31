@@ -20,11 +20,254 @@ import shutil
 import shlex
 from typing import List, Tuple
 import subprocess
+import socket
 
 from munch import Munch
 
 import logging
 logger = logging.getLogger('ehos')
+
+
+import ehos.openstack
+import ehos.htcondor 
+import ehos.instances as I
+
+#htcondor  = None
+#instances = None
+
+
+def init():
+    """ init function for the module, connects to the htcondor server and sets up the instance tracking module
+
+    Args:
+      None
+    
+    Returns:
+      None
+    
+    Raises:
+      None
+    """
+
+    global htcondor
+    global nodes
+    htcondor  = ehos.htcondor.Condor()
+    instances = I.Instances()
+
+ 
+def connect_to_clouds(config:Munch) -> None:
+    """ Connects to the clouds spefified in the config file
+
+    Args:
+      config: from the yaml input file
+    
+    Returns:
+      connection names (list)
+
+    Raises:
+      RuntimeError if unknown backend
+    """
+
+    global instances
+
+    for cloud_name in config.clouds:
+
+        if ( config.clouds[ cloud_name ].backend == 'openstack'):
+
+            cloud_config = config.clouds[ cloud_name ]
+
+            cloud = openstack.Openstack()
+            cloud.connect( cloud_name=cloud_name,
+                           **cloud_config)
+            
+            instances.add_cloud( cloud_name, cloud )
+
+            logger.info("Successfully connected to the {} openStack service".format(cloud))
+        else:
+            print( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
+            raise RuntimeError
+                   
+    return None
+
+
+def update_node_states( max_heard_from_time:int=300 ):
+    """ Update the status of nodes.
+
+    This will update the nodes object based on information from HTcondor and the vm backends.
+
+    Args:
+      max_heard_from_time: if we have not heard from a node this long, we expect it is dead (~30 is default)
+    
+    Returns:
+      None
+
+    Raises:
+      None
+    """
+
+    global instances
+
+    # Get a list of servers running on the VMs
+    cloud_servers = {}
+    for cloud_name, connector in instances.get_clouds():
+        server_list = connector.server_list()
+
+        for server_id in server_list:
+            server = server_list[ server_id ]
+
+            cloud_servers[ server_id ] = server[ 'status']
+            cloud_servers[ server[ 'name'] ] = server[ 'status']
+    
+    # The list of nodes known to htcondor        
+    condor_nodes = condor_nodes[ node ] = status
+    
+    for node in nodes.get_nodes(filter=[ 'booting', 'running', 'stopping']):
+        if node[ 'status' ] == 'booting':
+            # often htcondor knows about the server before it is fully booted up
+            if node['name'] in condor_nodes:
+                nodes.set_status( node['id'], 'running')
+            else:
+                # Looking for the "server is running" keywords in the server log
+                node_status = clouds[ node['cloud']].server_log_search()
+                if (node_status is not None and node_status != []):
+                    nodes.set_status( node['id'], 'running')
+        
+        elif (node[ 'status' ] == 'running'):
+            if node['name'] not in cloud_servers:
+                nodes.set_status( node['id'], 'deleted')
+
+            elif node['name'] not in condor_nodes:
+                nodes.set_status( node['id'], 'unknown')
+
+        elif (node[ 'status' ] == 'stopping'):
+            if node['name'] not in cloud_servers:
+                nodes.set_status( node['id'], 'deleted')
+
+            elif node['name'] not in condor_nodes:
+                nodes.set_status( node['id'], 'unknown')
+
+
+
+
+
+def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
+    """ Delete idle nodes, by default one node is deleted
+
+    Args:
+      nr: nr of nodes to delete (if possible)
+      max_heard_from_time: if we have not heard from a node this long, we expect it is dead
+
+    Returns:
+      None
+
+    Raises:
+      None
+    """
+
+    global instances
+    
+    condor_nodes = htcondor.nodes( max_heard_from_time )
+
+    # Subtract the ones that are currently stopping
+    nr -= len( instances.get_nodes( status=['stopping']))
+
+    # We have already tagged the number of nodes to be deleted so be
+    # conservative and see if we still need to do this later on
+    if ( nr <= 0 ):
+        return
+    # loop through the nodes that are deletable
+    for node_name in condor_nodes:
+        
+        node = nodes.find( name = node_name )
+        if ( condor_node[ node_name ] == 'idle' and node[ 'status' ] == 'running'):
+            
+            condor_turn_off_fast( node_name )
+            nodes.set_status( node[ 'id' ], 'stopping' )
+            
+            clouds[ node[ 'cloud' ]].server_delete( node[ 'id' ] )
+
+        nodes -= 1
+        if ( nr <= 0 ):
+            return
+
+    return
+
+
+def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
+    """ Create a number of execute nodes
+
+    Args:
+       config: config settings
+       config_file: config file for node
+       nr: nr of nodes to spin up (default 1)
+
+    Returns:
+      None
+    
+    Raises:
+      RuntimeError if unknown node-allocation method
+      None
+    """
+
+    global nodes
+    
+
+    for i in range(0, nr ):
+
+
+        # for round-robin
+        ### find the next cloud name
+        if ( config.ehos-daemon.node_allocation == 'round-robin'):
+            clouds = nodes.get_clouds()
+            nodes_created = len( nodes.get_nodes())
+            
+            cloud_name = clouds[ nodes_created%len( clouds )]
+            
+            node_name = ehos.make_node_name(config.ehos.project_prefix, "execute")
+            
+            cloud = clouds[ cloud_name ]
+            
+            try:
+                node_id = cloud.server_create( node_name,
+                                               **config.ehos,
+                                               **cloud,
+                                               userdata_file=execute_config_file)
+
+                nodes.add( id=node_id, name=node_name, cloud=cloud_name, status='starting')
+                logger.info("Execute server {}/{} is booting".format( node_id, node_name))
+                
+            except Exception as e:
+                logger.warning("Could not create execute server")
+                logger.info("Error: {}".format(e))
+
+        else:
+            logger.critical("Unknown node allocation method ({})".format( config.ehos-daemon.node_allocation ))
+            raise RuntimeError
+                            
+
+    return
+
+
+
+# ===================== Low level generic function =====================
+
+
+def get_host_ip() -> str:
+    """ gets the host ip address
+
+    Args:
+      None
+
+    returns:
+      Host Ip 4 address
+
+    Raises:
+      None
+    """
+
+    
+    return socket.gethostbyname(socket.getfqdn()) 
+
 
 
 def timestamp() -> int:
@@ -256,9 +499,6 @@ def find_config_file( filename:str, dirs:List[str]=None) -> str:
 
     raise RuntimeError("File {} not found".format( filename ))
 
-        
-
-
 def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[ str, str]]=None, outfile:str=None):
     """ Alter a file by searching for a pattern (str or regex) and replace it
 
@@ -417,3 +657,6 @@ def make_uid_domain_name(length:int=3):
             break
         
     return('.'.join(choices))
+
+
+

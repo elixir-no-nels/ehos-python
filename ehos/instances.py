@@ -10,6 +10,11 @@ import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+import logging
+logger = logging.getLogger('ehos.instances')
+
+
+
 from munch import Munch
 
 
@@ -81,6 +86,21 @@ class Instances(object):
         
         return self._clouds[ name ]
         
+    def get_clouds( self) -> {}:
+        """ returns a copy of the cloud dict
+        
+        Args:
+          None
+
+        Returns:
+          clouds (dict)
+
+        Raises:
+          None
+        """
+
+        
+        return self._clouds.copy()
 
     def get_cloud_names(self) -> [] :
         """ get a list of cloud names
@@ -322,7 +342,7 @@ class Instances(object):
             raise RuntimeError
 
         
-        logger.info("Node {}/{} status changed to {}".format( id, self._nodes[ id ][ 'name' ], status))
+        logger.info("Node {}/{} status changed to {}".format( node_id, self._nodes[ node_id ][ 'name' ], status))
 
         self._nodes[ node_id][ 'status'] = status
 
