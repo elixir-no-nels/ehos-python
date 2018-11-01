@@ -399,4 +399,54 @@ class Openstack( ehos.vm.Vm ):
 
     
     
+    def get_resources(self):
+        """ get the resources available for the cloud
 
+        Args:
+          None
+        
+        Returns:
+          ?
+
+        Raises:
+          None
+        """
+        
+        limits = self._connection.compute.get_limits()
+
+        total_cores      = limits.absolute.total_cores
+        total_cores_used = limits.absolute.total_cores_used
+        instances        = limits.absolute.instances
+        instances_used   = limits.absolute.instances_used
+        total_ram        = limits.absolute.total_ram
+        total_ram_used   = limits.absolute.total_ram_used
+
+
+        res = {'total_cores'      = total_cores,
+               'total_cores_used' = total_cores_used,
+               'instances'        = instances,
+               'instances_used'   = instances_used,
+               'total_ram'        = total_ram,
+               'total_ram_used'   = total_ram_used }
+
+
+        return res
+
+    def get_resources_available(self):
+        """ get the resources available for the cloud
+
+        Args:
+          None
+        
+        Returns:
+          ?
+
+        Raises:
+          None
+        """
+        raw_res = self.get_resources()
+
+        return {'cores'         : raw_res['total_cores'] - raw_res['total_cores_used'],
+                'instances'     : raw_res['instances'] - raw_res['instances_used'],
+                'total_ram'     : raw_res['total_ram'] - raw_res['total_ram_used']}
+        
