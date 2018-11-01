@@ -109,7 +109,7 @@ class Instances(object):
           None
 
         Returns:
-          node dict (name, cloud, status)
+          node dict (name, cloud, state, status)
 
         Raises:
           RuntimeError if unknown node_id
@@ -118,14 +118,15 @@ class Instances(object):
         return list(self._clouds.keys())
         
 
-    def add_node( self, id:str, name:str, cloud:str, status:str='starting')-> None:
+    def add_node( self, id:str, name:str, cloud:str, state:str='starting', status='idle')-> None:
         """ Adds a node to the class 
 
         Args:
           id: vm id of the node (should prob be a uuid)
           name: human readable name of node
           cloud: name of cloud where the node lives
-          status: status of the node, default is 'starting'
+          state: VM state of the node, default is 'starting'
+          status: condor status of the node, default is 'idle'
 
         Returns:
           None
@@ -146,6 +147,7 @@ class Instances(object):
         self._nodes[ id ] = { 'id': id,
                               'name'  : name,
                               'cloud' : cloud,
+                              'state': state,
                               'status': status}
 
         self._name_to_id[ name ] = id
@@ -158,7 +160,7 @@ class Instances(object):
           id: id of the node
 
         Returns:
-          node dict (id, name, cloud, status)
+          node dict (id, name, cloud, state, status)
 
         Raises:
           RuntimeError if unknown node_id
@@ -171,11 +173,12 @@ class Instances(object):
         return Munch(self._nodes[ id ])
 
 
-    def get_nodes(self, status=[], cloud=[]) -> {} :
+    def get_nodes(self, state=[], status=[], cloud=[]) -> {} :
         """ get a list of nodes, can be filtered based on status names
 
         Args:
-          status: (optional) for filtering on status 
+          state: (optional) for filtering on vm state
+          status: (optional) for filtering on condor status 
           cloud: (optional) for filtering on cloud name 
 
         Returns:
@@ -188,18 +191,22 @@ class Instances(object):
 
         res = []
         for node in self._nodes:
-            if self._nodes[ node ][ 'status' ] in status or self._nodes[ node ]['cloud'] in cloud:
+            if ((state is None or state == []) and status is None or status == []) and (cloud is None or cloud == []):
+                res.append( Munch(self._nodes[ node ] ))
+                
+            elif self._nodes[ node ][ 'state' ] in state or self._nodes[ node ][ 'status' ] in status or self._nodes[ node ]['cloud'] in cloud:
                 res.append( Munch(self._nodes[ node ] ))
         
 
         return res        
 
         
-    def get_node_ids(self, status:str=None) -> [] :
+    def get_node_ids(self, state:str=None, status:str=None) -> [] :
         """ get a list of nodes, can be filtered based on status
 
         Args:
-          status: (optional) for filtering on status 
+          state: (optional) for filtering on vm state
+          status: (optional) for filtering on condor status 
 
         Returns:
           list of node ids
@@ -213,15 +220,43 @@ class Instances(object):
 
         for node_id in self._nodes:
             # No filtering, get all nodes
-            if status is None:
+            if status is None and state is None:
                 node_ids.append( node_id )
             # Check if the status fits with what we are filtering on
-            elif self._nodes[ node_id ]['status'] == status:
+            elif self._nodes[ node_id ]['state'] == state or self._nodes[ node_id ]['status'] == status:
                 node_ids.append( node_id )
 
         return node_ids
 
 
+    def get_node_names(self, state:str=None, status:str=None) -> [] :
+        """ get a list of node names, can be filtered based on status
+
+        Args:
+          state: (optional) for filtering on vm state 
+          status: (optional) for filtering on condor status 
+
+        Returns:
+          list of node names
+
+        Raises:
+          None
+        """
+
+
+        node_names = []
+
+        for node_id in self._nodes:
+            # No filtering, get all nodes
+            if status is None:
+                node_ids.append( self._nodes[node_id]['name'] )
+            # Check if the status fits with what we are filtering on
+            elif self._nodes[ node_id ]['state'] == state or self._nodes[ node_id ]['status'] == status:
+                node_ids.append( self._nodes[node_id]['name'] )
+
+        return node_names
+
+    
 
     def id2name(self, node_id:str) -> str:
         """ translate a node id to a node name
@@ -293,20 +328,73 @@ class Instances(object):
           name: human readable node name
         
         returns 
-          node info: (id, name, cloud_name, status)
+          node info: (id, name, cloud_name, state, status), None if name does not exist
+
+        raises:
+          RuntimeError if id is unknown
+
         """
 
-
-        if ( name is not None):
-            id = self.name2id( name )
-
+        try:
+            if ( name is not None):
+                id = self.name2id( name )
+        except:
+            return None
+            
+        if id  not in self._nodes :
+            raise RuntimeError
+            
         if id is not None:
             return id, self._nodes[ id ][ 'name' ],self._nodes[ id ][ 'cloud' ], self._nodes[ id ][ 'status' ]
         
 
 
+    def get_state(self, node_id:str):
+        """ get vm state for a node
+        
+        Args:
+          node_id: id of the node
+
+        Returns:
+          None
+        
+        Raises:
+          RuntimeError if unknown node id
+        """
+
+        if ( node_id not in self._nodes):
+            raise RuntimeError
+
+        return self._nodes[ node_id][ 'state']
+
+        
+    def set_state(self, node_id:str, state:str):
+        """ set vm status for a node
+        
+        Args:
+          node_id: id of the node
+          state: new status of the node
+
+        Returns:
+          None
+        
+        Raises:
+          RuntimeError if unknown node id
+        """
+
+        if ( node_id not in self._nodes):
+            raise RuntimeError
+
+        
+        logger.info("Node {}/{} state changed to {}".format( node_id, self._nodes[ node_id ][ 'name' ], state))
+
+        self._nodes[ node_id][ 'state'] = state
+        
+        
+
+        
     def get_status(self, node_id:str):
-        """ get status for a node
+        """ get condor status for a node
         
         Args:
           node_id: id of the node
@@ -325,7 +413,7 @@ class Instances(object):
 
         
     def set_status(self, node_id:str, status:str):
-        """ set status for a node
+        """ set condor status for a node
         
         Args:
           node_id: id of the node
