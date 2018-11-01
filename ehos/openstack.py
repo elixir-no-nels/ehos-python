@@ -406,7 +406,7 @@ class Openstack( ehos.vm.Vm ):
           None
         
         Returns:
-          ?
+          dict of useful values
 
         Raises:
           None
@@ -422,12 +422,12 @@ class Openstack( ehos.vm.Vm ):
         total_ram_used   = limits.absolute.total_ram_used
 
 
-        res = {'total_cores'      = total_cores,
-               'total_cores_used' = total_cores_used,
-               'instances'        = instances,
-               'instances_used'   = instances_used,
-               'total_ram'        = total_ram,
-               'total_ram_used'   = total_ram_used }
+        res = {'total_cores'      : total_cores,
+               'total_cores_used' : total_cores_used,
+               'instances'        : instances,
+               'instances_used'   : instances_used,
+               'total_ram'        : total_ram,
+               'total_ram_used'   : total_ram_used }
 
 
         return res
@@ -439,14 +439,14 @@ class Openstack( ehos.vm.Vm ):
           None
         
         Returns:
-          ?
+          dict of valuess ( cores, instances, ram)
 
         Raises:
           None
         """
         raw_res = self.get_resources()
 
-        return {'cores'         : raw_res['total_cores'] - raw_res['total_cores_used'],
-                'instances'     : raw_res['instances'] - raw_res['instances_used'],
-                'total_ram'     : raw_res['total_ram'] - raw_res['total_ram_used']}
+        return {'cores'     : raw_res['total_cores'] - raw_res['total_cores_used'],
+                'instances' : raw_res['instances'] - raw_res['instances_used'],
+                'ram'       : raw_res['total_ram'] - raw_res['total_ram_used']}
         
