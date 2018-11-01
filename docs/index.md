@@ -64,7 +64,7 @@ openstack server create --flavor <FLAVOR> --image <IMAGE> --nic net-id=<NETID> -
 openstack server stop <VM_ID>
 
 # Make the VM into an image for us to use later:
-openstack backup create --name <IMAGE_NAME> <VM_NAME>
+openstack server backup create --name <IMAGE_NAME> <VM_NAME>
 ```
 
 
