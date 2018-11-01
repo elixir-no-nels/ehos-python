@@ -12,6 +12,10 @@ pp = pprint.PrettyPrinter(indent=4)
 import random
 import socket
 
+# python3+ is broken on centos 7, so add the /usr/local/paths by hand
+sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+sys.path.append("/usr/local/lib64/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+
 import htcondor
 
 

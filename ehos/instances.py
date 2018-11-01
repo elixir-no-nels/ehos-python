@@ -200,7 +200,38 @@ class Instances(object):
 
         return res        
 
-        
+
+    def node_state_counts(self ) -> {}:
+        """ returns the states of nodes
+
+        Args:
+          None
+
+        Returns:
+          dict of states and their counts + a total 
+
+        Raises:
+          None
+        """
+
+        res = { 'idle': 0,
+                'busy': 0,
+                'total':0}
+
+        for node in self._nodes:
+            
+            if ( self._nodes[node]['status'] == 'idle'):
+                res[ 'idle'  ] += 1
+                res[ 'total' ] += 1
+
+            elif ( self._nodes[node]['status'] in ['busy', 'starting', 'vacating', 'benchmarking']):
+                res[ 'busy'  ] += 1
+                res[ 'total' ] += 1
+
+        pp.pprint( res )
+                
+        return Munch(res)
+                
     def get_node_ids(self, state:str=None, status:str=None) -> [] :
         """ get a list of nodes, can be filtered based on status
 
@@ -345,7 +376,7 @@ class Instances(object):
             raise RuntimeError
             
         if id is not None:
-            return id, self._nodes[ id ][ 'name' ],self._nodes[ id ][ 'cloud' ], self._nodes[ id ][ 'status' ]
+            return self._nodes[ id ]
         
 
 

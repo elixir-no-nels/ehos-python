@@ -42,8 +42,7 @@ class Openstack( ehos.vm.Vm ):
         """
 
         self._backend = "openstack"
-    
-    
+        self._connection = None
     
     def check_connection(self):
         """ Checks that there is a connection to the openstack, otherwise will raise an exception
@@ -58,12 +57,12 @@ class Openstack( ehos.vm.Vm ):
         ConnectionError if not connected
         """
 
-        if  self._connection is not None:
-            logger.critical("No connection to openstack clouds")
+        if  self._connection is None:
+            logger.critical("No connection to openstack cloud")
             raise ConnectionError
 
 
-    def connect(self, cloud_name:str, auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, no_cache:str,   ):
+    def connect(self, cloud_name:str, auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, no_cache:str, **kwargs  ):
         """ Connects to a openstack cloud
 
         Args:
@@ -73,6 +72,7 @@ class Openstack( ehos.vm.Vm ):
           username: name of the user
           password: password for the user
           region_name: global connection
+          **kwargs catches extra cloud information from the config file
         
         Returns:
           None
@@ -96,7 +96,7 @@ class Openstack( ehos.vm.Vm ):
         logger.info("Connected to openstack server")
         
 
-    def server_create(self, name:str, image:str, flavor:str, network:str, key:str, security_groups:str, userdata_file:str=None): 
+    def server_create(self, name:str, image:str, flavor:str, network:str, key:str, security_groups:str, userdata_file:str=None, **kwargs): 
         """ creates and spins up a server
     
         Args:
@@ -136,7 +136,7 @@ class Openstack( ehos.vm.Vm ):
                                               auto_ip=True)
         
 
-            logger.debug("Created server id:{} ip:{}".format( server.id, server_ip(server.id)))
+            logger.debug("Created server id:{} ip:{}".format( server.id, self.server_ip(server.id)))
         
             return server.id
 
@@ -160,12 +160,9 @@ class Openstack( ehos.vm.Vm ):
         servers = {}
 
         for server in self._connection.compute.servers():
-            servers[ server.name ] = {'id':server.id, 'status':server.status}
-            servers[ server.id ]  = {'name':server.id, 'status':server.status}
+            server.name = re.sub("_","-", server.name)
+            servers[ server.id ] = {'id':server.id, 'name':server.name.lower(), 'status':server.status.lower()}
             
-            # htcondor changes the name slightly, so make sure we can find them gtain
-            server.name = server.name.lower()
-            servers[ server.name ] = {'id':server.id, 'status':server.status}
     
         return servers
 
@@ -188,15 +185,12 @@ class Openstack( ehos.vm.Vm ):
         if ("." in id):
             id = re.sub(r'\..*', '', id)
 
-        servers = server_list()
+        servers = self.server_list()
         #    pp.pprint( servers )
 
         if id not in servers.keys():
             logger.debug("Unknown server to delete id:{}".format( id ))
             raise RuntimeError( "Unknown server {}".format( id ))
-
-        if ( 'id' in servers[ id ]):
-            id = servers[ id ]['id']
 
 
         self._connection.delete_server( id )

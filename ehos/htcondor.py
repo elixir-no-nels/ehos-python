@@ -206,7 +206,7 @@ class Condor( object ):
 
 
 
-    def condor_turn_off_fast(name:str):
+    def turn_off_fast(self, name:str):
         """ Turns off a startd daemon as defined by name
 
         Ideally this should be done by an API call but this "feature" is undocumented
