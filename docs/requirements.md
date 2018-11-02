@@ -1,8 +1,19 @@
+## Requirements:
 
-*Requirements:*
+
+EHOS is implemented in python and is reliant on HTcondor as the
+scheduler. CentosOS 7 is the OS used on all virtual servers for this
+implementation and testing, but it should work as well if HTCondor is
+supported. The provided config files are all specific to CentOS 7 but
+should be easy to tweak for an alternative Linux OS.
 
 
-EHOS is implemented in python and is reliant on HTcondor as the scheduler.
+HTCondor version 8.6.13 was used for the development of the system.
+
+
+
+
+These python libraries will be installed automatically if the ehos package is installed using pip.
 
 
 ** Python libraries:**
