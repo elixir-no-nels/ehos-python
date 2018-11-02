@@ -173,7 +173,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
 
         # this one is just a sanity one
         elif ( jobs.idle and nodes.total == config.ehos_daemon.nodes_max):
-            logger.info("We are busy. bu all nodes we are allowed have been created, nothing to do")
+            logger.info("We are busy. but all nodes we are allowed have been created, nothing to do")
 
 
         ### Looks like we have an excess of nodes, lets cull some

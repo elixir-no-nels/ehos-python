@@ -21,6 +21,7 @@ import shlex
 from typing import List, Tuple
 import subprocess
 import socket
+import random
 
 from munch import Munch
 
@@ -86,6 +87,8 @@ def connect_to_clouds(config:Munch) -> None:
             cloud = ehos.openstack.Openstack()
             cloud.connect( cloud_name=cloud_name,
                            **cloud_config)
+
+
             
             instances.add_cloud( cloud_name, cloud )
 
@@ -160,7 +163,7 @@ def update_node_states( max_heard_from_time:int=300 ):
 
     for node in instances.get_nodes(state=['booting', 'running', 'stopping', 'unknown']):
 
-#        print( node )
+        print( node )
 
 
         if node['name'] not in cloud_server_name_to_id:
@@ -227,6 +230,10 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
     for node_name in condor_nodes:
         
         node = instances.find( name = node_name )
+        if node is None:
+            continue
+        
+        print( node )
         if ( node[ 'status' ] == 'idle' and node['state'] == 'active'):
             logger.info("Killing node {}".format( node_name ))
             
@@ -269,14 +276,31 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
 
     for i in range(0, nr ):
 
+        cloud_name = None
+        clouds = list(instances.get_clouds().keys())
 
-#        print( config.ehos_daemon )
+        clouds_usable = []
+        
+        for cloud_name in clouds:
+            cloud = instances.get_cloud( cloud_name )
+            resources = cloud.get_resources_available()
+            if ( resources['ram'] > config.ehos_daemon.min_ram/1000 and
+                 resources['cores'] > config.ehos_daemon.min_cores and
+                 resources['instances'] > config.ehos_daemon.min_instances ):
+                clouds_usable.append( cloud_name )
 
+        clouds = clouds_usable
+                
+        if ( clouds == []):
+            logger.warn('No resources available to make a new node')
+            
+                
+
+        
         # for round-robin
         ### find the next cloud name
         if ( config.ehos_daemon.node_allocation == 'round-robin'):
-            clouds = list(instances.get_clouds().keys())
-#            print( clouds )
+
             nodes_created = len( instances.get_nodes())
 
             if nodes_created == 0:
@@ -285,27 +309,35 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                 cloud_name = clouds[ nodes_created%len( clouds )]
             
             node_name = ehos.make_node_name(config.ehos.project_prefix, "execute")
-            
-            cloud = instances.get_cloud( cloud_name )
-            
-            try:
-                node_id = cloud.server_create( name=node_name,
-                                               userdata_file=execute_config_file,
-                                               **config.ehos )
 
-                instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting')
-                logger.info("Execute server {}/{} is booting".format( node_id, node_name))
-                
-            except Exception as e:
-                logger.warning("Could not create execute server")
-                logger.info("Error: {}".format(e))
-#                print( execute_config_file)
-#                print( config.ehos)
-#                sys.exit( 1 )
+        elif ( config.ehos.deamon.node_allocation == 'random'):
+            cloud_name = random.choice( clouds )
+        elif (  config.ehos.deamon.node_allocation == 'fill first'):
+            cloud_name = clouds[ 0 ]
 
         else:
             logger.critical("Unknown node allocation method ({})".format( config.ehos-daemon.node_allocation ))
             raise RuntimeError
+
+
+        cloud = instances.get_cloud( cloud_name )
+
+        print( "Using image {}".format( config.clouds[ cloud_name ].image ))
+        
+        try:
+            config.ehos.image= config.clouds[ cloud_name ].image
+            
+            node_id = cloud.server_create( name=node_name,
+                                           userdata_file=execute_config_file,
+                                           **config.ehos )
+
+            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting')
+            logger.info("Execute server {}/{} is booting".format( node_id, node_name))
+                
+        except Exception as e:
+            logger.warning("Could not create execute server")
+            logger.info("Error: {}".format(e))
+
                             
 
     return

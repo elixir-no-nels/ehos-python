@@ -47,7 +47,13 @@ ehos_daemon:
   sleep_min: 10
   sleep_max: 60
 
-  node_allocation: round-robin # or fill-first
+  # min resources for spinning up a new node
+  min_ram: 8
+  min_cores: 4
+  min_instances: 1
+  
+
+  node_allocation: round-robin # round-robin, fill-first or random
 
 
 # Condor settings
