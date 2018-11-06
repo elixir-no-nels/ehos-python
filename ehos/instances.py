@@ -416,8 +416,11 @@ class Instances(object):
         if ( node_id not in self._nodes):
             raise RuntimeError
 
+
+        if ( self._nodes[ node_id][ 'state'] == state ):
+            return
         
-        logger.info("Node {}/{} state changed to {}".format( node_id, self._nodes[ node_id ][ 'name' ], state))
+        logger.info("Node {}/{} state changed to {} from {}".format( node_id, self._nodes[ node_id ][ 'name' ], state))
 
         self._nodes[ node_id][ 'state'] = state
         
@@ -459,6 +462,10 @@ class Instances(object):
 
         if ( node_id not in self._nodes):
             raise RuntimeError
+        
+        if (self._nodes[ node_id][ 'status'] == status):
+            return
+
 
         
         logger.info("Node {}/{} status changed to {}".format( node_id, self._nodes[ node_id ][ 'name' ], status))
