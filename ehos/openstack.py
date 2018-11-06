@@ -337,7 +337,6 @@ class Openstack( ehos.vm.Vm ):
         Args:
         image_name: name of the image
         timeout: how long to wait for the image to be created.
-
         Returns:
         image id (str)
 
@@ -422,6 +421,8 @@ class Openstack( ehos.vm.Vm ):
         total_ram_used   = limits.absolute.total_ram_used
 
 
+        pp.pprint ( limits.absolute )
+        
         res = {'total_cores'      : total_cores,
                'total_cores_used' : total_cores_used,
                'instances'        : instances,
@@ -449,4 +450,214 @@ class Openstack( ehos.vm.Vm ):
         return {'cores'     : raw_res['total_cores'] - raw_res['total_cores_used'],
                 'instances' : raw_res['instances'] - raw_res['instances_used'],
                 'ram'       : raw_res['total_ram'] - raw_res['total_ram_used']}
+        
+
+    def volume_create(self, size:int, name:str=None, **kwargs) -> str:
+        """ Create a volume
+
+        Args:
+          size in GB
+          name of the volume (set to none for UID name)
+
+        Returns:
+          id of volume (str)
+
+        Raises:
+          RuntimeError if 
+
+        """
+
+        volume = self._connection.create_volume( size=size, name=name )
+
+        logger.info( "Created volume id {} with the size of {}GB".format( volume.id, size ))
+        
+        return volume.id
+
+    def volume_delete(self, id:str=None, name:str=None) -> None:
+        """ deletes a volume
+
+        Args:
+          id: volume id
+          name: volume name (might not be unique)
+          
+
+        Returns:
+          None
+
+        Raises:
+          RuntimeError if no id or name provided
+
+        """
+
+        if ( id is not None):
+            self._connection.delete_volume( id )
+            logger.info("Deleted volume {}".format( id ))
+
+        elif ( name is not None):
+            self._connection.delete_volume( name )
+            logger.info("Deleted volume {}".format( name ))
+        else:
+            raise RuntimeError("No id or name provided")
+
+    def volumes(self):
+        """ get volumes information, currently one volume can only be attached to one node.
+
+        Args:
+          None
+
+        Returns:
+          dict of volumes w/ keys (size, attachment, name, id )
+
+        Raises:
+          none
+        """
+
+        volumes = []
+        for volume in self._connection.block_storage.volumes( details=True ):
+            pp.pprint( volume )
+
+            volume_data = { 'id': volume.id,
+                            'name' : volume.name,
+                            'size': volume.size,
+                            'description': volume.description,
+                            'server_id': None,
+                            'device': None,
+                            'attachment_id': None,
+                            }
+
+            if volume.attachments != []:
+                attachment = volume.attachments[ 0 ]
+                volume_data[ 'server_id']     = attachment[ 'server_id' ]
+                volume_data[ 'device']        = attachment[ 'device' ]
+                volume_data[ 'attachment_id'] = attachment[ 'id' ]
+                
+            volumes.append( volume_data )
+
+        return volumes
+
+            
+    def attach_volume( self, server_id:str, volume_id:str):
+        """ Attaches a volume to a server
+
+        Args:
+          server_id, id of the server
+          volume_id, id of the volume
+
+        Returns:
+          None
+
+        Raises:
+          None
+
+        """
+
+        attachment = self._connection.compute.create_volume_attachment(server=server_id, volumeId=volume_id)
+        pp.pprint( attachment )
+        return attachment.device
+        
+
+    def server_attached_to_volume( self, volume_id:str) -> str:
+        """ Find the server attached to a volume, if none returns None
+
+        Args:
+          volume id
+
+        returns 
+          server id (str or none)
+
+        raises:
+          None
+        """
+
+        for volume in self.volumes():
+            if ( volume['id'] == volume_id ):
+                return volume['server_id']
+
+        return None
+
+
+    def volumes_attached_to_server( self, server_id:str) -> []:
+        """ Find the server attached to a volume, if none returns None
+
+        Args:
+          server id
+
+        returns 
+          server id (str or none)
+
+        raises:
+          None
+        """
+
+        volumes = []
+        
+        for volume in self.volumes():
+            if ( volume['server_id'] == volume_id ):
+                volumes.append(volume['id'])
+
+        return volumes
+
+    def server_attachments(self, server_id):
+        """ returns all the attachment id's related to a server
+
+        Args:
+          server_id
+
+        returns 
+          attachment id(s) (str or none)
+
+        raises:
+          None
+        """
+
+
+        attachments = []
+        
+        for volume in self.volumes():
+            if ( volume['server_id'] == server_id ):
+                attachments.append(volume['attachment_id'])
+
+        return attachments
+    
+    
+    def detach_volume( self, attachment_id:str, server_id:str=None, volume_id:str=None) -> None:
+        """ Detaches a volume to a server
+
+        Args:
+          attachment_id id of the server
+          server_id, id of the server
+          volume_id, id of the server
+
+        Returns:
+          None
+
+        Raises:
+          None
+
+        """
+
+        attachment = self._connection.compute.delete_volume_attachment(attachment_id, server=server_id)
+        
+    
+
+    def detach_volumes_from_server(self, id ) -> int:
+        """ detaches all volumes attached to a node
+
+        args:
+          id: id/name of server
+
+        returns:
+          nr of volumes detached
+
+        raises:
+          passes on from other functions
+        """
+
+        volumes_detached = 0
+        
+        for attachment_id in self.server_attachments( id ):
+            self.detach_volume( attachment_id, server_id=id)
+            volumes_detached +=1
+
+        return volumes_detached;
         
