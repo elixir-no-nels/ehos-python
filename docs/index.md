@@ -8,8 +8,11 @@ according to a workload.  This ensures that resources are not wasted when during
 
 
 EHOS is implemented in python 3, uses HTCondor for job scheduling, and
-using openstack for the virtual compute generation. The long time goal
-is it to support additional virtulisation backends including AWS and VmWare.
+using openstack for the virtual compute generation. It is possible to
+spread the workload across multiple openstack
+project/regions/solutions to ensure full scalability. The long time goal is
+it to support additional virtulisation backends including AWS and
+VmWare.
 
 
 This system was implemented on CentOS 7, using the openstack

@@ -11,7 +11,7 @@ import sys
 import re
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
-
+import time
 
 import logging
 logger = logging.getLogger('ehos.openstack')
@@ -163,7 +163,9 @@ class Openstack( ehos.vm.Vm ):
             server.name = re.sub("_","-", server.name)
             servers[ server.id ] = {'id':server.id, 'name':server.name.lower(), 'status':server.status.lower()}
             
-    
+        logger.debug("Servers: \n{}".format( pp.pformat( servers )))
+
+            
         return servers
 
 
@@ -412,6 +414,7 @@ class Openstack( ehos.vm.Vm ):
         """
         
         limits = self._connection.compute.get_limits()
+#        pp.pprint( self._connection.block_storage.get_limits())
 
         total_cores      = limits.absolute.total_cores
         total_cores_used = limits.absolute.total_cores_used
@@ -421,7 +424,7 @@ class Openstack( ehos.vm.Vm ):
         total_ram_used   = limits.absolute.total_ram_used
 
 
-        pp.pprint ( limits.absolute )
+#        pp.pprint ( limits.absolute )
         
         res = {'total_cores'      : total_cores,
                'total_cores_used' : total_cores_used,
@@ -431,6 +434,8 @@ class Openstack( ehos.vm.Vm ):
                'total_ram_used'   : total_ram_used }
 
 
+
+        
         return res
 
     def get_resources_available(self):
@@ -446,6 +451,7 @@ class Openstack( ehos.vm.Vm ):
           None
         """
         raw_res = self.get_resources()
+#        pp.pprint( raw_res)
 
         return {'cores'     : raw_res['total_cores'] - raw_res['total_cores_used'],
                 'instances' : raw_res['instances'] - raw_res['instances_used'],
@@ -473,12 +479,12 @@ class Openstack( ehos.vm.Vm ):
         
         return volume.id
 
-    def volume_delete(self, id:str=None, name:str=None) -> None:
+    def volume_delete(self, id:str=None, wait:bool=True) -> None:
         """ deletes a volume
 
         Args:
           id: volume id
-          name: volume name (might not be unique)
+          wait: wait for the volume to be deleted before returning.
           
 
         Returns:
@@ -489,16 +495,78 @@ class Openstack( ehos.vm.Vm ):
 
         """
 
+        logger.debug("Trying to delete volume {}".format( id ))
+
+        if ( self._volume_exists( id ) == False ):
+            logger.debug("Volume {} does not exist, cannot delete it".format( id ))
+            import sys
+            sys.exit()
+            return
+        
+        
         if ( id is not None):
             self._connection.delete_volume( id )
-            logger.info("Deleted volume {}".format( id ))
+            logger.info("Deleted volume id:{}".format( id ))
+            if ( wait ):
+                self._wait_for_volume_deletion( id )
 
-        elif ( name is not None):
-            self._connection.delete_volume( name )
-            logger.info("Deleted volume {}".format( name ))
         else:
             raise RuntimeError("No id or name provided")
 
+
+    def _volume_exists(self, volume_id:str) -> bool:
+        """ Checks if a volume exists or not in the volume list
+
+        Args:
+          volume_id to look for
+
+        Returns:
+          True/False if present/not-present
+
+        Raises:
+          None
+        """
+
+        for volume in self.volumes():
+#            print("{} ===== {}".format( volume['id'], volume_id))
+            if ( volume['id'] == volume_id ):
+                    return True
+        return False
+
+        
+        
+    def _wait_for_volume_deletion(self, id:str, sleep_time:float=0.05, timeout:float=20.0):
+        """ hangs till the volume has been deleted.
+
+        Args:
+          id volume to watch
+          sleep_time: amount of time to sleep between checks
+          timeout: max time to check before raising a RuntimeError
+
+        Returns:
+          None
+        
+        Raises:
+          RuntimeError if volume not deleted within the timeout time
+        """
+
+        logger.info("Waiting for volume {} being deleted".format( id ))
+
+        
+        while( True ):
+            if ( self._volume_exists( id ) == False ):
+                logger.info("Volume {} has been successfully deleted".format( id ))
+                return
+
+            time.sleep( sleep_time )
+
+            timeout -= sleep_time
+
+            if ( timeout < 0.0 ):
+                raise RuntimeError("Volume {} has not been deleted".format( id ))
+            
+            
+        
     def volumes(self):
         """ get volumes information, currently one volume can only be attached to one node.
 
@@ -514,7 +582,7 @@ class Openstack( ehos.vm.Vm ):
 
         volumes = []
         for volume in self._connection.block_storage.volumes( details=True ):
-            pp.pprint( volume )
+#            pp.pprint( volume )
 
             volume_data = { 'id': volume.id,
                             'name' : volume.name,
@@ -552,10 +620,56 @@ class Openstack( ehos.vm.Vm ):
         """
 
         attachment = self._connection.compute.create_volume_attachment(server=server_id, volumeId=volume_id)
-        pp.pprint( attachment )
+#        pp.pprint( attachment )
         return attachment.device
         
 
+    def _get_attachment_id(server_id:str, volume_id:str) -> str:
+        """ get an attachment id for the connections between server_id and volume_id
+
+        Args:
+          server_id 
+          volume_id
+
+        Returns:
+          attachment_id, else None
+
+        Raises:
+          None
+        """
+
+
+        for volume in self.volumes():
+            if ( volume['server_id'] == server_id and
+                 volume['volume_id'] == volume_id):
+                
+                volume['attachment_id']
+
+        return None
+
+    def _get_attachment_server_id(attachment_id:str) -> str:
+        """ get a server-id for an  attachment
+
+        Args:
+          attachment_id 
+
+        Returns:
+          server_id, else None
+
+        Raises:
+          None
+        """
+
+
+        for volume in self.volumes():
+            if ( volume['attachment_id'] == attachment_id):
+                
+                volume['server_id']
+
+        return None
+    
+    
+    
     def server_attached_to_volume( self, volume_id:str) -> str:
         """ Find the server attached to a volume, if none returns None
 
@@ -592,7 +706,7 @@ class Openstack( ehos.vm.Vm ):
         volumes = []
         
         for volume in self.volumes():
-            if ( volume['server_id'] == volume_id ):
+            if ( volume['server_id'] == server_id ):
                 volumes.append(volume['id'])
 
         return volumes
@@ -636,6 +750,22 @@ class Openstack( ehos.vm.Vm ):
 
         """
 
+        
+        if ( attachment_id is None ):
+            if ( server_id is not None and volume_id is not None):
+                attachment_id = self._get_attachment_id( server_id, volume_id)
+                if ( attachment_id is None ):
+                    raise RuntimeError( "Could not find attachment if for server:{}, volume:{}".format(server_id, volume_id))
+            else:
+                raise RuntimeError( "Need to provide either a attachment-id or server & volume id")
+                
+
+        # Function needs a server-id to detach volume, as the user didnt provide one, get it
+        if ( server_id is None ):
+            server_id = self._get_attachment_server_id( attachment_id )
+            if ( server_id is None ):
+                raise RuntimeError( "Could not find server for attachment:{}".format(attachment_id))
+        
         attachment = self._connection.compute.delete_volume_attachment(attachment_id, server=server_id)
         
     
@@ -657,6 +787,7 @@ class Openstack( ehos.vm.Vm ):
         
         for attachment_id in self.server_attachments( id ):
             self.detach_volume( attachment_id, server_id=id)
+            time.sleep( 1 )
             volumes_detached +=1
 
         return volumes_detached;

@@ -31,6 +31,7 @@ ehos:
 # for creating servers 
   project_prefix: EHOS_V1
   flavor: <FLAVOR_NAME>
+  scratch_size: <SIZE IN GB>
   image_id: None  #this will be set by the the deploy script
   network: <NETWORK_NAME>
   key: <KEY_NAME>

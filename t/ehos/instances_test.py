@@ -1,6 +1,11 @@
 import pytest
 
 import ehos.instances as I
+#import ehos.tyt
+
+import sys
+print(sys.modules['ehos.instances'] )
+print( I )
 
 
 def test_init():

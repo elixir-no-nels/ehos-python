@@ -123,7 +123,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
     config = ehos.readin_config_file( config_file )
 
     ehos.init()
-    ehos.connect_to_clouds( config )
+    ehos.connect_to_clouds( config )    
 
     htcondor_setup_config_file()
     

@@ -14,18 +14,16 @@ pp = pprint.PrettyPrinter(indent=4)
 
 import ehos
 
-from enum import Enum
+from enum import IntEnum
 
-class Status( Enum ):
+class State( IntEnum ):
     booting    = 1
-    running    = 2
+    active     = 2
     suspended  = 3
     restarting = 4
     stopping   = 5
     deleted    = 6
     unknown    = 7
-
-
 
 class Vm(object):
 

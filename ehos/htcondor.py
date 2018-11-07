@@ -33,15 +33,15 @@ class Job_status( IntEnum ):
     suspended            = 7
 
 class Node_status( IntEnum ):
-    idle         = 1
-    starting     = 2
-    busy         = 3
-    suspended    = 4
-    vacating     = 5
-    killing      = 6
-    benchmarking = 7
-    retiring     = 8
-    lost         = 9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
+    idle         =  1
+    starting     =  2
+    busy         =  3
+    suspended    =  4 
+    vacating     =  5 
+    killing      =  6
+    benchmarking =  7
+    retiring     =  8
+    lost         =  9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
 
 
 

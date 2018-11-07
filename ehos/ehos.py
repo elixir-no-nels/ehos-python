@@ -30,9 +30,6 @@ logger = logging.getLogger('ehos')
 
 
 
-import ehos.openstack
-import ehos.htcondor 
-import ehos.instances as I
 
 global condor
 condor    = None
@@ -52,6 +49,10 @@ def init():
     Raises:
       None
     """
+
+    # Some odd bug as the name space gets polluted when I install the module multiple times
+    import ehos.htcondor 
+    import ehos.instances as I
 
     global condor
     global instances
@@ -78,8 +79,14 @@ def connect_to_clouds(config:Munch) -> None:
 
     global instances
 
+    import ehos.openstack
+
     for cloud_name in config.clouds:
 
+        # Use bergen instance for now.
+        if cloud_name != 'uh_bgn':
+            continue
+        
         if ( config.clouds[ cloud_name ].backend == 'openstack'):
 
             cloud_config = config.clouds[ cloud_name ]
@@ -88,11 +95,14 @@ def connect_to_clouds(config:Munch) -> None:
             cloud.connect( cloud_name=cloud_name,
                            **cloud_config)
 
-
-            
             instances.add_cloud( cloud_name, cloud )
-
             logger.info("Successfully connected to the {} openStack service".format( cloud_name ))
+
+
+#            cloud.get_resources()
+#            sys.exit()
+            
+
         else:
             logger.critical( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
             raise RuntimeError
@@ -159,22 +169,20 @@ def update_node_states( max_heard_from_time:int=300 ):
 
         instances.set_status( node_id= server_id, status=condor_nodes[condor_node])
 
-
-
-    for node in instances.get_nodes(state=['booting', 'running', 'stopping', 'unknown']):
+    for node in instances.get_nodes(state=['booting', 'active', 'stopping', 'unknown']):
 
         print( node )
 
-
         if node['name'] not in cloud_server_name_to_id:
             instances.set_state( node['id'], state='deleted')
+            instances.set_status( node['id'], status='lost')
             continue
-        
 
         # these are in states that are not helpful for us, so ignore them for now
         if condor_nodes[ condor_node ] in ['suspended', 'killing', 'retiring', 'lost']:
             if ( instances.find( name = condor_node ) is not None ):
-                instances.set_state( id=server_id, state='deleted' )
+                instances.set_state( node_id=server_id, state='deleted' )
+                instances.set_status( node['id'], status='lost')
             continue
 
 
@@ -192,6 +200,7 @@ def update_node_states( max_heard_from_time:int=300 ):
         # Not known in the clouds or status != active, set is as deleted.
         if node['id'] not in cloud_servers or cloud_servers[ node['id']] != 'active':
             instances.set_state( node['id'], state='deleted')
+            instances.set_status( node['id'], status='lost')
 
         
 
@@ -232,13 +241,25 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
         node = instances.find( name = node_name )
         if node is None:
             continue
+
+#        if node_name != 'ehos-v1-execute-20181107t071902':
+#            continue
         
-        print( node )
-        if ( node[ 'status' ] == 'idle' and node['state'] == 'active'):
+#        print( node )
+        if ( node[ 'status' ] == 'idle' and node['state'] in ['active', 'booting']):
             logger.info("Killing node {}".format( node_name ))
             
             condor.turn_off_fast( node_name )
             cloud = instances.get_cloud( node['cloud'])
+            
+            volumes = cloud.volumes_attached_to_server(node['id'])
+            cloud.detach_volumes_from_server(node['id'])
+
+            for volume in volumes:
+            
+                cloud.volume_delete( volume )
+            
+            
             cloud.server_delete( node['id'] )
 
             instances.set_state( node['id'], 'stopping')
@@ -308,7 +329,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
             else:
                 cloud_name = clouds[ nodes_created%len( clouds )]
             
-            node_name = ehos.make_node_name(config.ehos.project_prefix, "execute")
+            node_name = make_node_name(config.ehos.project_prefix, "execute")
 
         elif ( config.ehos.deamon.node_allocation == 'random'):
             cloud_name = random.choice( clouds )
@@ -322,7 +343,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
 
         cloud = instances.get_cloud( cloud_name )
 
-        print( "Using image {}".format( config.clouds[ cloud_name ].image ))
+        logger.debug( "Using image {}".format( config.clouds[ cloud_name ].image ))
         
         try:
             config.ehos.image= config.clouds[ cloud_name ].image
@@ -331,7 +352,10 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                                            userdata_file=execute_config_file,
                                            **config.ehos )
 
-            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting')
+            volume_id = cloud.volume_create(size=config.ehos.scratch_size, name=node_name)
+            cloud.attach_volume( node_id, volume_id=volume_id)
+
+            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting', state='booting')
             logger.info("Execute server {}/{} is booting".format( node_id, node_name))
                 
         except Exception as e:

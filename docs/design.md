@@ -18,7 +18,7 @@ sub-modules.
 When passing config information onto the vm/openstack functions this
 is done by using kwargs. This limits the readability of the code, but
 ensure that going forward it is possible to use different information
-to connect to different vm backends.
+to connect to different VM backends.
 
 
 ### ehos.instances
@@ -48,6 +48,7 @@ nodes.
 
 This is a template class describing the interfaces required for the VM backends. 
 
+*future plans*: add support of VmWare and AWS.
 
 ### ehos.openstack
 

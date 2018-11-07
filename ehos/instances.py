@@ -17,6 +17,10 @@ logger = logging.getLogger('ehos.instances')
 
 from munch import Munch
 
+import ehos.vm
+import ehos.htcondor
+
+
 
 class Instances(object):
 
@@ -118,21 +122,21 @@ class Instances(object):
         return list(self._clouds.keys())
         
 
-    def add_node( self, id:str, name:str, cloud:str, state:str='starting', status='idle')-> None:
+    def add_node( self, id:str, name:str, cloud:str, state:str='booting', status='starting')-> None:
         """ Adds a node to the class 
 
         Args:
           id: vm id of the node (should prob be a uuid)
           name: human readable name of node
           cloud: name of cloud where the node lives
-          state: VM state of the node, default is 'starting'
-          status: condor status of the node, default is 'idle'
+          state: VM state of the node, default is 'booting'
+          status: condor status of the node, default is 'busy'
 
         Returns:
           None
         
         Raises:
-          RuntimeError if unknown cloud, or node id/name already exist
+          RuntimeError if unknown cloud, node id/name already exist, illegal state or status
         """
 
         if (cloud not in self._clouds):
@@ -143,11 +147,19 @@ class Instances(object):
 
         if ( name in self._name_to_id ):
             raise RuntimeError
+
+        if ( self.valid_state( state ) == False):
+            raise RuntimeError("Illegal state {}".format( state ))
+        
+        if ( self.valid_status( status ) == False):
+            raise RuntimeError("Illegal status {}".format( status ))
+        
+
         
         self._nodes[ id ] = { 'id': id,
                               'name'  : name,
                               'cloud' : cloud,
-                              'state': state,
+                              'state' : state,
                               'status': status}
 
         self._name_to_id[ name ] = id
@@ -191,7 +203,7 @@ class Instances(object):
 
         res = []
         for node in self._nodes:
-            if ((state is None or state == []) and status is None or status == []) and (cloud is None or cloud == []):
+            if ((state is None or state == []) and (status is None or status == []) and (cloud is None or cloud == [])):
                 res.append( Munch(self._nodes[ node ] ))
                 
             elif self._nodes[ node ][ 'state' ] in state or self._nodes[ node ][ 'status' ] in status or self._nodes[ node ]['cloud'] in cloud:
@@ -218,13 +230,14 @@ class Instances(object):
                 'busy': 0,
                 'total':0}
 
-        for node in self._nodes:
+        for node in self.get_nodes(state=['active', 'booting']):
+            pp.pprint( node )
             
-            if ( self._nodes[node]['status'] == 'idle'):
+            if ( node['status'] == 'idle'):
                 res[ 'idle'  ] += 1
                 res[ 'total' ] += 1
 
-            elif ( self._nodes[node]['status'] in ['busy', 'starting', 'vacating', 'benchmarking']):
+            elif ( node['status'] in ['busy', 'starting', 'vacating', 'benchmarking']):
                 res[ 'busy'  ] += 1
                 res[ 'total' ] += 1
 
@@ -398,7 +411,54 @@ class Instances(object):
 
         return self._nodes[ node_id][ 'state']
 
+
+
+    def valid_state( self, state:str) -> bool:
+        """ check that a state has a valid value
+
+        Args:
+          state to check
+
+        Returns 
+          boolean 
+
+        Raises
+          None
+        """
+
+        logger.debug("Testing the state validity of {}".format( state ))
+
         
+        if ( state not in ehos.vm.State.__members__ ):
+            return False
+
+        return True
+
+
+    def valid_status( self, status:str) -> bool:
+        """ check that a state has a valid value
+
+        Args:
+          status to check
+
+        Returns 
+          boolean 
+
+        Raises
+          None
+        """
+
+        logger.debug("Testing the status validity of {}".format( status ))
+
+        
+        if ( status not in ehos.htcondor.Node_status.__members__ ):
+            return False
+
+        return True
+    
+        
+    
+    
     def set_state(self, node_id:str, state:str):
         """ set vm status for a node
         
@@ -410,17 +470,20 @@ class Instances(object):
           None
         
         Raises:
-          RuntimeError if unknown node id
+          RuntimeError if unknown node id or illegal state name
         """
 
         if ( node_id not in self._nodes):
-            raise RuntimeError
+            raise RuntimeError("Unknown node {}".format( node_id ))
 
+        if ( self.valid_state( state ) == False):
+            raise RuntimeError("Illegal state {}".format( state ))
+        
 
         if ( self._nodes[ node_id][ 'state'] == state ):
             return
-        
-        logger.info("Node {}/{} state changed to {} from {}".format( node_id, self._nodes[ node_id ][ 'name' ], state))
+
+        logger.info("Node {}/{} state changed to {} from {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'state' ], state))
 
         self._nodes[ node_id][ 'state'] = state
         
@@ -467,8 +530,11 @@ class Instances(object):
             return
 
 
+        if ( self.valid_status( status ) == False):
+            raise RuntimeError("Illegal status {}".format( status ))
         
-        logger.info("Node {}/{} status changed to {}".format( node_id, self._nodes[ node_id ][ 'name' ], status))
+        
+        logger.info("Node {}/{} status changed from {} to {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'status' ], status))
 
         self._nodes[ node_id][ 'status'] = status
 
