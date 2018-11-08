@@ -67,7 +67,7 @@ class Instances(object):
         """
 
         if name in self._clouds:
-            raise RuntimeError
+            raise RuntimeError("Cloud {} is already present in instances".format( name ))
         
         self._clouds[ name ] = instance
 
@@ -86,7 +86,7 @@ class Instances(object):
         """
 
         if name not in self._clouds:
-            raise RuntimeError
+            raise RuntimeError("Unknown cloud name {}".format( name ))
         
         return self._clouds[ name ]
         
@@ -149,11 +149,10 @@ class Instances(object):
             raise RuntimeError
 
         if ( self.valid_state( state ) == False):
-            raise RuntimeError("Illegal state {}".format( state ))
+            raise RuntimeError("Illegal state '{}'".format( state ))
         
         if ( self.valid_status( status ) == False):
-            raise RuntimeError("Illegal status {}".format( status ))
-        
+            raise RuntimeError("Illegal status '{}'".format( status ))        
 
         
         self._nodes[ id ] = { 'id': id,
@@ -200,7 +199,29 @@ class Instances(object):
           RuntimeError if unknown node_id
         """
 
+        state  = list(filter(None, state))
+        status = list(filter(None, status))
+        cloud  = list(filter(None, cloud))
 
+        
+        if state is not None and state != []:
+            for s in state:
+                if self.valid_state(s) == False:
+                    raise RuntimeError("Illegal state {}".format(s))
+                                       
+        if status is not None and status != []:
+            for s in status:
+                if self.valid_status(s) == False:
+                    raise RuntimeError("Illegal status {}".format(s))
+            
+        
+        if cloud is not None and cloud != []:
+            for c in cloud:
+                if c not in self._clouds:
+                    raise RuntimeError("Unknown cloud {}".format( c ))
+
+
+        
         res = []
         for node in self._nodes:
             if ((state is None or state == []) and (status is None or status == []) and (cloud is None or cloud == [])):
@@ -228,10 +249,11 @@ class Instances(object):
 
         res = { 'idle': 0,
                 'busy': 0,
-                'total':0}
+                'total':0,
+                'other':0 }
 
         for node in self.get_nodes(state=['active', 'booting']):
-            pp.pprint( node )
+#            pp.pprint( node )
             
             if ( node['status'] == 'idle'):
                 res[ 'idle'  ] += 1
@@ -240,12 +262,14 @@ class Instances(object):
             elif ( node['status'] in ['busy', 'starting', 'vacating', 'benchmarking']):
                 res[ 'busy'  ] += 1
                 res[ 'total' ] += 1
+            else:
+                res[ 'other'  ] += 1
 
-        pp.pprint( res )
+#        pp.pprint( res )
                 
         return Munch(res)
                 
-    def get_node_ids(self, state:str=None, status:str=None) -> [] :
+    def get_node_ids(self, state:str=None, status:str=None, cloud:str=None) -> [] :
         """ get a list of nodes, can be filtered based on status
 
         Args:
@@ -262,18 +286,14 @@ class Instances(object):
 
         node_ids = []
 
-        for node_id in self._nodes:
-            # No filtering, get all nodes
-            if status is None and state is None:
-                node_ids.append( node_id )
-            # Check if the status fits with what we are filtering on
-            elif self._nodes[ node_id ]['state'] == state or self._nodes[ node_id ]['status'] == status:
-                node_ids.append( node_id )
+        for node in self.get_nodes(state=[state], status=[status], cloud=[cloud]):
+            node_ids.append( node['id'] )
 
         return node_ids
 
 
-    def get_node_names(self, state:str=None, status:str=None) -> [] :
+
+    def get_node_names(self, state:str=None, status:str=None, cloud:str=None) -> [] :
         """ get a list of node names, can be filtered based on status
 
         Args:
@@ -290,13 +310,8 @@ class Instances(object):
 
         node_names = []
 
-        for node_id in self._nodes:
-            # No filtering, get all nodes
-            if status is None:
-                node_ids.append( self._nodes[node_id]['name'] )
-            # Check if the status fits with what we are filtering on
-            elif self._nodes[ node_id ]['state'] == state or self._nodes[ node_id ]['status'] == status:
-                node_ids.append( self._nodes[node_id]['name'] )
+        for node in self.get_nodes(state=[state], status=[status], cloud=[cloud]):
+            node_names.append( node['name'] )
 
         return node_names
 
@@ -383,7 +398,7 @@ class Instances(object):
             if ( name is not None):
                 id = self.name2id( name )
         except:
-            return None
+            raise RuntimeError
             
         if id  not in self._nodes :
             raise RuntimeError
@@ -479,7 +494,6 @@ class Instances(object):
         if ( self.valid_state( state ) == False):
             raise RuntimeError("Illegal state {}".format( state ))
         
-
         if ( self._nodes[ node_id][ 'state'] == state ):
             return
 
