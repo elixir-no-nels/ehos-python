@@ -105,7 +105,7 @@ def connect_to_clouds(config:Munch) -> None:
 
         else:
             logger.critical( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
-            raise RuntimeError
+            raise RuntimeError( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
                    
     return None
 
@@ -338,7 +338,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
 
         else:
             logger.critical("Unknown node allocation method ({})".format( config.ehos-daemon.node_allocation ))
-            raise RuntimeError
+            raise RuntimeError("Unknown node allocation method ({})".format( config.ehos-daemon.node_allocation ))
 
 
         cloud = instances.get_cloud( cloud_name )
@@ -490,7 +490,7 @@ def get_node_id(filename:str='/var/lib/cloud/data/instance-id') -> str:
 
     
     if ( not os.path.isfile( filename )):
-      raise RuntimeError
+      raise RuntimeError("instance file ({}) does not exists".format( filename))
     
 
     fh = open(filename, 'r')
@@ -518,7 +518,7 @@ def check_config_file(config:Munch) -> bool:
         
         if value not in config.ehos or config.ehos[ value ] == 'None':
             logger.fatal("{} not set or set to 'None' in the configuration file".format(value))
-            raise RuntimeError
+            raise RuntimeError("{} not set or set to 'None' in the configuration file".format(value))
 
 
     
