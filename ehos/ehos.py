@@ -352,8 +352,12 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                                            userdata_file=execute_config_file,
                                            **config.ehos )
 
-            volume_id = cloud.volume_create(size=config.ehos.scratch_size, name=node_name)
-            cloud.attach_volume( node_id, volume_id=volume_id)
+            if ( 'scratch_size' in config.ehos and
+                 config.ehos.scratch_size is not None and
+                 config.ehos.scratch_size != 'None'):
+            
+                volume_id = cloud.volume_create(size=config.ehos.scratch_size, name=node_name)
+                cloud.attach_volume( node_id, volume_id=volume_id)
 
             instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting', state='booting')
             logger.info("Execute server {}/{} is booting".format( node_id, node_name))
