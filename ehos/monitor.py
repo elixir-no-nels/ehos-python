@@ -80,10 +80,6 @@ def _get_value_id(table:str, value:int):
     else:
         return _add_value( table, value )
         
-        
-    
-
-    
     
 
     
@@ -153,7 +149,27 @@ def _add_entry(table:str, context:int, target:int, value:str):
     
 
     
-def add_stat(context_id:int, target_id:int, value:str):
+def add_stat(context:int, target:int, value:str):
+    """ adds a standard stat/event entry to a table function, that will be wrapped by simpler functions below
+
+
+    Args:
+      table: table to add to
+      context:  
+      target:
+      value: what happened, nr or something else
+
+    returns:
+      None
+
+    Raises:
+      None
+    """
+
+    _add_entry('stat', context, target, value)
+
+
+def add_event(context:int, target:int, value:str):
     """ adds a standard stat/event entry to a table function, that will be wrapped by simpler functions below
 
 
@@ -170,25 +186,5 @@ def add_stat(context_id:int, target_id:int, value:str):
       None
     """
 
-    _add_entry('stat', context_id, target_id, value)
-
-
-def add_event(context_id:int, target_id:int, value:str):
-    """ adds a standard stat/event entry to a table function, that will be wrapped by simpler functions below
-
-
-    Args:
-      table: table to add to
-      context_id:  
-      target_id:
-      value: what happened, nr or something else
-
-    returns:
-      None
-
-    Raises:
-      None
-    """
-
-    _add_entry('event', context_id, target_id, value)
+    _add_entry('event', context, target, value)
     
