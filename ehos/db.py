@@ -1,191 +1,156 @@
-import pprint as pp
-import sys
-import os 
-import re
-import subprocess
-import tempfile
+# -*- coding: utf-8 -*-
 
-import db as db
-
-import sqlalchemy
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.ext.automap import automap_base
-from sqlalchemy import or_, and_
+import records
 
 
-# Globlal variables to be used through out the script
-Session = None
-Base    = None
 
-dbase     = 'genetics_ark_dev'
-db_host   = 'localhost'
-db_user   = 'easih_admin'
-db_passwd = 'easih'
-db_model  = 'mysql'
+from os import path
 
-def init_database( dbase = dbase, db_host = db_host, db_user = db_user, db_passwd = db_passwd, db_model = db_model) :
+import records
 
-    """initiate the connection to the database.
+import file_utils
+import string_utils
+
+db = None
+
+
+def connect(url:str) -> None:
+    """ connects to a database instance 
 
     Args:
-        dbase (str): database name
-        db_host (str): the server name of the database 
-        db_user (str): who to connect as
-        db_passwd (str): the password for the user, if applicable 
-        db_model (str): model, eg: mysql
-            
-    Returns:
-        Bool
-        
-    Raises:
-        All sqlalchemy exceptions are re-raised
-
-    """
-    global Session, Base
-
-    try:
-        Session, Base = db.init_database(dbase, db_host, db_user, db_passwd, db_model)
-    except:
-        raise
-        return False
-
-    return True
-
-
-def commit( ):
-    """Commits any changes to the database
-
-    Args:
-        None
-    Returns:
-        Boolean
-
-    Raises:
-        All sqlalchemy exceptions are re-raised
-
-    """
-
-    global Session
-    try:
-        Session.commit()
-    except:
-        raise
-
-    return True
-
-
-
-def delete( entry ):
-    """delete object from database
-
-    Args:
-        entry (obj): sqlalchemy object to delete
-    Returns:
-        None
-
-    Raises:
-        All sqlalchemy exceptions are re-raised
-
-    """
-
-    global Session
-    try:
-        Session.delete( entry )
-        commit()
-    except:
-        raise
-
-    return True
-
-
-
-def check_db_init():
-    """ Checks if the database connection have been initiated, otherwise raises a RuntimeWarning
-
-
-    """
-
-    if Base == None or Session == None:
-        raise RuntimeWarning('Database connection not initialised yet')
-
-
-#================== Sample functions =========================
-
-
-def node( name ):
-    """Get, or add, a node from the database. 
-
-    If newly created the object added value is set to true
-
-    Args:
-        uuid (str)      : The node uuid
-        name (str)      : The node name
-            
-    Returns:
-        Single sample database object
-        
-    Raises:
-        All sqlalchemy exceptions are re-raised
-
-    """
-
-    check_db_init()
-    try:
-        node, added = db.get_or_create(Session,
-                                         Base.classes.node,
-                                         name = name,
-                                         uuid = uuid)
-
-        commit()
-        
-    except:
-        raise
-
-    node.added = added
-    return node
-
-
-
-
-def nodes( id = None, name = None, uuid=None, status=None ):
-    """Get all samples from the database filtered by any of the args
-
-    If newly created the object added value is set to true
-
-    Args:
-        id(int)          : database id
-        name (str)       : The node name
-        uuid (str)       : The node uuid 
-        status (str)     : The node uuid 
+      url: as specified by sqlalchemy ( {driver}://{user}:{password}@{host}:{port}/{dbase}
 
     Returns:
-        database Query object
-        
+      none
+
     Raises:
-        All sqlalchemy exceptions are re-raised
+      RuntimeError on failure.
+
 
     """
-    constraints = []
+    global db
+    
+    db = records.Database( url )
 
-    if ( id is not None):
-        constraints.append( Base.classes.node.id == id )
-
-    if ( name is not None):
-        constraints.append( Base.classes.node.name == name )
-
-    if ( uuid is not None):
-        constraints.append( Base.classes.node.uuid == uuid )
-
-    if ( status is not None):
-        constraints.append( Base.classes.node.status == status )
+    return db
 
 
-    check_db_init()
-    try:
-        samples = Session.query( Base.classes.node ).filter( and_(*constraints ))
 
-    except:
-        raise
+def execute_file(sql_file):
+    global DB
+    for command in file_utils.read_file_content(sql_file).replace("\n", " ").split(';'):
+        if command.strip() == "":
+            continue
+        DB.query(command)
 
-    return node
+
+def execute_query(sql):
+    global DB
+    return DB.query(sql).as_dict()
+
+
+def execute_nonquery(sql):
+    global DB
+    return DB.query(sql)
+
+
+def execute_count(sql):
+    global DB
+    return DB.query(sql).all()[0].count
+
+
+def get_all(tbl, flds="*", order_by=None):
+    sql = 'SELECT %s FROM %s' % (flds, tbl)
+    if order_by:
+        sql = '%s ORDER BY %s' % (sql, order_by)
+    return execute_query(sql)
+
+
+def get_by_id(tbl, id_val, flds="*"):
+    sql = "SELECT %s FROM %s WHERE id ='%s'" % (flds, tbl, id_val)
+    res = execute_query(sql)
+    return res[0] if len(res) == 1 else None
+
+
+def record_exists(tbl, id_val):
+    return get_by_id(tbl, id_val) is not None
+
+
+def delete_by_id(tbl, id_val):
+    execute_nonquery("DELETE FROM %s WHERE id ='%s'" % (tbl,id_val))
+
+
+def key_val_where(keyVals):
+    where = ''
+    for col_name in keyVals.keys():
+        col_val = keyVals[col_name]
+        if not string_utils.is_number(col_val):  # assume it's text
+            col_val = "'%s'" % col_val
+        where = string_utils.append_and_filter(where, "%s = %s" % (col_name, col_val))
+    return where
+
+
+def delete_by_column(tbl, col_name, col_val):
+    delete_by_columns(tbl, {col_name: col_val})
+
+
+def delete_by_columns(tbl, keyVals):
+    execute_nonquery('DELETE FROM %s WHERE %s ' % (tbl, key_val_where(keyVals)))
+
+
+def get_by_column(tbl, col_name, col_val, flds="*", order_by=None):
+    return get_by_columns(tbl, {col_name: col_val}, flds, order_by)
+
+
+def get_by_columns(tbl, keyVals, flds="*", order_by=None):
+    sql = 'SELECT %s FROM %s WHERE %s ' % (flds, tbl, key_val_where(keyVals))
+    if order_by:
+        sql = "%s ORDER BY %s" % (sql, order_by)
+    return execute_query(sql)
+
+
+def get_add_sql(tbl, fields):
+    flds = ""
+    values = ""
+    for fld in fields:
+        flds = string_utils.append_with_delimiter(flds, fld, ",")
+        values = string_utils.append_with_delimiter(values, ":%s" % fld, ",")
+    return ("insert into %s(%s) values(%s) RETURNING id" % (tbl, flds, values))
+
+
+def get_update_sql(tbl, fields, filters=["id"]):
+    flds = ""
+    for fld in fields:
+        flds = string_utils.append_with_delimiter(flds, fld + "=:%s" % fld, ",")
+    fltrs = ""
+    for fltr in filters:
+        fltrs = string_utils.append_with_delimiter(fltrs, fltr + "=:%s" % fltr, " AND ", "(", ")")
+    return ("update %s set %s where %s" % (tbl, flds, fltrs))
+
+
+def get_search_where(flds):
+    filters = ""
+    for fld in flds:
+        filters = string_utils.append_with_delimiter(filters, "lower(%s) Like lower (:%s)" % (fld, fld), " OR ")
+    return filters
+
+
+def get_search_sql(tbl, search_fields, summary_fields="*"):
+    return ("select %s from %s where %s" % (summary_fields, tbl, get_search_where(search_fields)))
+
+
+def get_count(tbl):
+    return execute_count("Select count(*) from %s " % tbl)
+
+
+def get_count_by_column(tbl, col_name, col_val):
+    return get_count_by_columns(tbl, {col_name: col_val})
+
+
+def get_count_by_columns(tbl, keyVals):
+    return execute_count("SELECT count(*) FROM %s WHERE %s" % (tbl, key_val_where(keyVals)))
+
+
+def group_count(tbl, col_name):
+    return execute_query("select %s, count(*) from %s group by %s" % (col_name, tbl, col_name))
+

@@ -22,7 +22,7 @@ import htcondor
 collector = htcondor.Collector()
 schedd = htcondor.Schedd()
 
-for i in range(0,50):
+for i in range(0,20):
     
     sub = htcondor.Submit()
     sub['executable'] = '/bin/sleep'

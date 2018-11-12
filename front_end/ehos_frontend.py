@@ -15,63 +15,28 @@ pp = pprint.PrettyPrinter(indent=4)
 import re
 import os
 
+# python3+ is broken on centos 7, so add the /usr/local/paths by hand
+sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+sys.path.append("/usr/local/lib64/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+
+
 from flask import Flask
 from flask import render_template
 
+
+
+
 from munch import Munch
 
+sys.path.append("/tmp/ehos-python/")
+
+pp.pprint( sys.path )
+
+import ehos
+
+import ehos.htcondor
 import ehos.instances
-#import ehos.htcondor
 
-
-def queue_status(schedd):
-    """get the number of jobs in the queue and group them by status
-
-    The following are the states a job can be in:
-      idle, running, removed0, completed, held, transferring_output, suspended
-
-    Args:
-      schedd: htcondor schedd connector
-
-    Returns:
-      counts of jobs in states ( dict )
-
-    Raises:
-      None
-
-    """
-
-
-    status_codes = {1: 'idle',
-                    2: 'running',
-                    3: 'removed',
-                    4: 'completed',
-                    5: 'held',
-                    6: 'transferring_output',
-                    7: 'suspended'}
-
-    
-    status_counts = {'idle': 0,
-                     'idle_p': 0,
-                     'running': 0,
-                     'running_p': 0,
-                     'removed': 0,
-                     'completed': 0,
-                     'held': 0,
-                     'transferring_output': 0,
-                     'suspended': 0,
-                     'total': 0}
-
-
-    for job in schedd.xquery(projection=['ClusterId', 'ProcId', 'JobStatus']):
-        status_counts[ status_codes[  job.get('JobStatus') ]] += 1
-        status_counts[ 'total' ] += 1
-
-
-        
-    return status_counts
-
-            
 
 app = Flask(__name__)
 
@@ -84,24 +49,40 @@ def index():
     host_ip    = '158.37.63.101'
 
     context = {'host_id': host_id,
-               'host_ip': host_ip}
+               'host_ip': host_ip,
+               'nodes': {}}
     
 
     
     i = ehos.instances.Instances()
     i.connect( 'postgresql://ehos:ehos@127.0.0.1:5432/ehos_instances')
-    context['nodes']  = i.node_list_db()
-               
-    #    ehos.init()
-    #    condor  = ehos.htcondor.Condor()
-    #    context['queue']  = condor.job_counts()
 
-    context['queue'] = {'idle': 10, 'running': 2, 'total': 12}
+    nodes = i.node_list_db()
+    
+    for cloud in nodes:
+        context['nodes'][cloud] = []
+        for node in nodes[ cloud ]:
+            if node[ 'state'] not in ['active', 'booting', 'retiring']:
+                continue 
+            context['nodes'][ cloud ].append( node )
+
+    
+    
+    
+    if ( 10 ):
+        ehos.init()
+        condor  = ehos.htcondor.Condor()
+        context['queue']  = condor.job_counts()
+    else:
+        context['queue'] = {'idle': 10, 'running': 2, 'total': 12}
 
 
-    context['queue']['idle_p'] =  context['queue']['idle']/context['queue']['total']*100.0
-
-    context['queue']['running_p'] =  context['queue']['running']/context['queue']['total']*100.0
+    context['queue']['idle_p'] = 0
+    context['queue']['running_p'] = 0
+    
+    if ( context['queue']['total'] > 0 ):
+        context['queue']['idle_p'] =  context['queue']['idle']/context['queue']['total']*100.0
+        context['queue']['running_p'] =  context['queue']['running']/context['queue']['total']*100.0
 
     
     

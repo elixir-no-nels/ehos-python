@@ -59,6 +59,7 @@ def init():
 
     condor  = ehos.htcondor.Condor()
     instances = I.Instances()
+    instances.connect("postgresql://ehos:ehos@127.0.0.1:5432/ehos_instances")
 
 
 #    print(condor)
@@ -84,8 +85,8 @@ def connect_to_clouds(config:Munch) -> None:
     for cloud_name in config.clouds:
 
         # Use bergen instance for now.
-        if cloud_name != 'uh_bgn':
-            continue
+#        if cloud_name != 'uh_bgn':
+#            continue
         
         if ( config.clouds[ cloud_name ].backend == 'openstack'):
 
@@ -169,38 +170,37 @@ def update_node_states( max_heard_from_time:int=300 ):
 
         instances.set_status( node_id= server_id, status=condor_nodes[condor_node])
 
-    for node in instances.get_nodes(state=['booting', 'active', 'stopping', 'unknown']):
+#    for node in instances.get_nodes(state=['booting', 'active', 'stopping', 'unknown']):
+    for node in instances.get_nodes():
 
-        print( node )
+#        print( node )
 
-        if node['name'] not in cloud_server_name_to_id:
+        # Not known in the clouds or status != active, set is as deleted.
+        if node['id'] not in cloud_servers or cloud_servers[ node['id']] != 'active':
             instances.set_state( node['id'], state='deleted')
             instances.set_status( node['id'], status='lost')
-            continue
 
         # these are in states that are not helpful for us, so ignore them for now
-        if condor_nodes[ condor_node ] in ['suspended', 'killing', 'retiring', 'lost']:
+        elif condor_nodes[ condor_node ] in ['suspended', 'killing', 'retiring', 'lost']:
             if ( instances.find( name = condor_node ) is not None ):
                 instances.set_state( node_id=server_id, state='deleted' )
                 instances.set_status( node['id'], status='lost')
             continue
 
-
-        if node[ 'status' ] == 'booting':
+        elif node[ 'state' ] == 'booting':
             # often htcondor knows about the server before it is fully booted up
             if node['name'] in condor_nodes:
-                instances.set_state( node['id'], 'running')
-            else:
+                instances.set_state( node['id'], 'active')
+#            else:
                 # Looking for the "server is running" keywords in the server log
-                node_status = clouds[ node['cloud']].server_log_search()
-                if (node_status is not None and node_status != []):
-                    instances.set_status( node['id'], status='running')
-
+#                node_status = clouds[ node['cloud']].server_log_search()
+#                if (node_status is not None and node_status != []):
+#                    instances.set_status( node['id'], status='running')
+        else:
+            instances.set_state( node['id'], 'active')
+            
+            
         
-        # Not known in the clouds or status != active, set is as deleted.
-        if node['id'] not in cloud_servers or cloud_servers[ node['id']] != 'active':
-            instances.set_state( node['id'], state='deleted')
-            instances.set_status( node['id'], status='lost')
 
         
 
@@ -227,7 +227,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
     condor_nodes = condor.nodes( max_heard_from_time )
 
     # Subtract the ones that are currently stopping
-    nr -= len( instances.get_nodes( status=['stopping']))
+    nr -= len( instances.get_nodes( state=['stopping']))
 
     # We have already tagged the number of nodes to be deleted so be
     # conservative and see if we still need to do this later on
@@ -293,6 +293,8 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     """
 
     global nodes
+
+    nr = 1
     
 
     for i in range(0, nr ):

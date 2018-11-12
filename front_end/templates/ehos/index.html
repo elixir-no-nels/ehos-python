@@ -3,36 +3,54 @@
 
 {% block content %}
 <div class="container">
+  <br>
+  <h2>Queue:</h2>
 
- <br><br>
-<h2>Queue:</h2><br>
+  <h5>Waiting:</h5>
+  <div class=" progress" style="height: 40px;">
 
-<h5>Idle:</h5>
-<div class=" progress" style="height: 40px;">
+    <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" ><h5>{{info.queue.idle}}</h5></div>
+  </div>
 
-   <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" ><h5>{{info.queue.idle}}</h5></div>
-</div>
+  <h5>Running:</h5> 
+  <div class=" progress" style="height: 40px;">
+    <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" ><h5>{{info.queue.running}}</h5></div>
+  </div>
+  
 
-<h5>Running:</h5> 
-<div class=" progress" style="height: 40px;">
-  <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" ><h5>{{info.queue.running}}</h5></div>
-</div>
+  <br><br>
 
 
+  <div class="container">
+    <h2>Cluster:</h2>
+    <div class="row">
 
-<br><br>
-<h2>Nodes:</h2>
+      {% for cloud in info.nodes %}
+      <div class="col-sm-6" style="background-color:lightgrey;">
+	<h5> {{cloud}}: </h5>
+	
+	<div class="container">
 
-  {% for node in info.nodes %}
-<div class="progress" style="height: 50px;">
-  {% if info.nodes[ node ] == 'idle' %}
-  <div class="progress-bar  bg-success " role="progressbar" style="width: 100%"><h5>{{node}}</h5></div>
-  {% else %}
-  <div class="progress-bar  bg-danger " role="progressbar" style="width: 100%" ><h5>{{node}}</h5></div>
-  {% endif %} 
-</div>
-<br>
-{% endfor %}
+	  {% for node in info.nodes[ cloud ] %}
+	  
+    	    {% if node.status == 'idle' %}
+	  <div class="progress-bar  bg-success " role="progressbar" style="width: 100%"><h5>{{node.name}} (idle)</h5></div>
+	    {% elif  node.status == 'busy' %}
+	  <div class="progress-bar  bg-danger " role="progressbar" style="width: 100%" ><h5>{{node.name}} (busy)</h5></div>
+	    {% elif  node.status == 'starting' or node.status == 'benchmarking'%}
+	  <div class="progress-bar  bg-warning " role="progressbar" style="width: 100%" ><h5>{{node.name}} (starting)</h5></div>
+	    {% elif  node.state == 'retiring' %}
+	  <div class="progress-bar  bg-warning " role="progressbar" style="width: 100%" ><h5>{{node.name}} ({{node.state}}) ({{node.status}})</h5></div>
+	    {% else %}
+	  <div class="progress-bar  bg-warn " role="progressbar" style="width: 100%" ><h5>{{node.name}} ({{node.state}}) ({{node.status}})</h5></div>
+	    {% endif %} 
+	  {% endfor %}
+        </div    
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
 
 <br>
 

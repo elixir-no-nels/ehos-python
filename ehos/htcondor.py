@@ -144,11 +144,11 @@ class Condor( object ):
             if "@" in name:
                 (slot, host) = name.split("@")
 
-            logger.debug("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')))
+#            logger.debug("Node info: node:{} state:{} Activity:{} last seen:{} secs".format( name, node.get('State'), node.get('Activity'),timestamp - node.get('LastHeardFrom')))
 
             # When was the last time we heard from this node? Assume lost of longer than max_head_from_time
             if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
-                logger.info( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')))
+#                logger.info( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')))
                 node_states[ name ] = 'lost'
                 continue
 
@@ -166,7 +166,7 @@ class Condor( object ):
 
 
 
-        logger.debug("Node states: \n{}".format( pp.pformat(node_states)))
+#        logger.debug("Node states: \n{}".format( pp.pformat(node_states)))
 
         return node_states
     

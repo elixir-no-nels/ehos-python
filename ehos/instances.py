@@ -185,7 +185,7 @@ class Instances(object):
         self._name_to_id[ name ] = id
 
         if ( self._db is not None ):
-            self._add_node_db( id, name, cloud, state, status)
+            self._add_node_to_db( id, name, cloud, state, status)
         
 
         
@@ -483,7 +483,7 @@ class Instances(object):
           None
         """
 
-        logger.debug("Testing the state validity of {}".format( state ))
+#        logger.debug("Testing the state validity of {}".format( state ))
 
         
         if ( state not in ehos.vm.State.__members__ ):
@@ -505,7 +505,7 @@ class Instances(object):
           None
         """
 
-        logger.debug("Testing the status validity of {}".format( status ))
+#        logger.debug("Testing the status validity of {}".format( status ))
 
         
         if ( status not in ehos.htcondor.Node_status.__members__ ):
@@ -536,14 +536,14 @@ class Instances(object):
         if ( self.valid_state( state ) == False):
             raise RuntimeError("Illegal state {}".format( state ))
         
-        if ( self._nodes[ node_id][ 'state'] == state ):
-            return
+#        if ( self._nodes[ node_id][ 'state'] == state ):
+#            return
 
         logger.info("Node {}/{} state changed to {} from {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'state' ], state))
 
         self._nodes[ node_id][ 'state'] = state
         
-        
+        self._update_node( node_id, state=state)
 
         
     def get_status(self, node_id:str):
@@ -593,6 +593,7 @@ class Instances(object):
         logger.info("Node {}/{} status changed from {} to {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'status' ], status))
 
         self._nodes[ node_id][ 'status'] = status
+        self._update_node( node_id, status=status)
 
         
 
@@ -759,7 +760,7 @@ class Instances(object):
             self._update_node( id, state=state, status=status)
 
             
-    def _update_node(self, id:str, state:str=None, status=None)-> None:
+    def _update_node(self, uuid:str, state:str=None, status=None)-> None:
         """ Adds a node to the class 
 
         Args:
@@ -780,7 +781,11 @@ class Instances(object):
 
             query = "update node set node_state_id={node_state_id} where uuid='{uuid}';"
 
-            self._db.query(query.format(uuid=id,
+            print( "running {}".format( query.format(uuid=uuid,
+                                        node_state_id=node_state_id)))
+            
+            
+            self._db.query(query.format(uuid=uuid,
                                         node_state_id=node_state_id))
 
         if ( status is not None):
@@ -788,6 +793,54 @@ class Instances(object):
 
             query = "update node set node_status_id={node_status_id} where uuid='{uuid}';"
 
-            self._db.query(query.format(uuid=id,
+            print( "running {}".format( query.format(uuid=uuid,
+                                        node_status_id=node_status_id)))
+            
+
+            self._db.query(query.format(uuid=uuid,
                                         node_status_id=node_status_id))
 
+
+
+
+    def node_list_db(self ) -> {}:
+        """ returns the states of nodes split into clouds
+
+        Args:
+          None
+
+        Returns:
+          dict of list of nodes
+
+        Raises:
+          None
+        """
+
+        template = { 'idle': 0,
+                     'busy': 0,
+                     'total':0,
+                     'other':0 }
+
+
+        res = { 'all': template.copy() }
+        
+
+        query =  "select uuid, n.name, state.name as state, status.name as status, c.name as cloud_name "
+        query += "from node n, cloud c, node_status status, node_state state "
+        query += "where n.cloud_id = c.id and n.node_state_id = state.id and n.node_status_id = status.id;";
+
+        res = {}
+    
+        nodes = self._db.query( query ).as_dict()
+        for node in nodes:
+            cloud_name = node['cloud_name']
+            if cloud_name not in res:
+                res[ cloud_name ] = []
+            res[ cloud_name ].append( node )
+
+
+        return res
+
+                
+
+            
