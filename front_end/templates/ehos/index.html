@@ -5,13 +5,19 @@
 <div class="container">
 
  <br><br>
-<h2>Queue:</h2>
+<h2>Queue:</h2><br>
 
+<h5>Idle:</h5>
 <div class=" progress" style="height: 40px;">
 
-    <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" ><h5>{{info.queue.idle}}</h5></div>
-    <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" ><h5>{{info.queue.running}}</h5></div>
+   <div class="progress-bar progress-bar-animated progress-bar-striped bg-success" role="progressbar" style="width: {{info.queue.idle_p}}%" ><h5>{{info.queue.idle}}</h5></div>
 </div>
+
+<h5>Running:</h5> 
+<div class=" progress" style="height: 40px;">
+  <div class="progress-bar progress-bar-animated progress-bar-striped bg-danger" role="progressbar" style="width: {{info.queue.running_p}}%" ><h5>{{info.queue.running}}</h5></div>
+</div>
+
 
 
 <br><br>
@@ -30,7 +36,7 @@
 
 <br>
 
-<div id="reload">0 s</div>
+<div id="reload">.</div>
 </div>
 
 
@@ -42,12 +48,12 @@
 {% block javascript %}
 $(function() {
    $( document ).ready(function() {
-   var Interval = 1
+   var Interval = "."
 
    setInterval(function time(){
 
-      document.getElementById("reload").innerHTML = Interval +" s"
-      Interval++;
+      document.getElementById("reload").innerHTML = Interval 
+      Interval += "."
 
    }, 1000); });
 });
