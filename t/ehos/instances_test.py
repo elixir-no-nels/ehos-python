@@ -10,8 +10,6 @@ print( I )
 
 def test_init():
 
-    print( I )
-    
     i = I.Instances()
 
     assert i._nodes == {}
@@ -591,7 +589,11 @@ def test_node_state_counts( ):
     i.add_node( '123_25', name = 'qwerty25', cloud='tyt1', status="vacating", state='unknown')
     i.add_node( '123_26', name = 'qwerty26', cloud='tyt1', status="lost", state='booting')
 
-    assert i.node_state_counts() == {'idle': 1, 'busy': 3, 'other': 1, 'total': 4}
+    assert i.node_state_counts()['all'] == {'idle': 1, 'busy': 3, 'other': 1, 'total': 4}
+    assert i.node_state_counts() == {'all': {'busy': 3, 'idle': 1, 'other': 1, 'total': 4},
+                                     'tyt1': {'busy': 1, 'idle': 1, 'other': 1, 'total': 2},
+                                     'tyt2': {'busy': 2, 'idle': 0, 'other': 0, 'total': 2}}
+
 
 
 
@@ -814,8 +816,7 @@ def test_find_id_wrong():
     i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="idle")
     i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="idle")
 
-    with pytest.raises( RuntimeError ):
-        i.find( id='does_not_exist')
+    assert i.find( id='does_not_exist') == None
 
     
 def test_find_name_wrong(): 
@@ -833,8 +834,7 @@ def test_find_name_wrong():
     i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', status="idle")
     i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', status="idle")
 
-    with pytest.raises( RuntimeError ):
-        i.find( name='qwerty231')
+    assert i.find( id='does_not_exist') == None
     
     
     

@@ -19,7 +19,7 @@ from munch import Munch
 
 import ehos.vm
 import ehos.htcondor
-
+import records
 
 
 class Instances(object):
@@ -48,8 +48,27 @@ class Instances(object):
         self._clouds = {}
         
         self._name_to_id = {}
+        self._db = None
 
 
+
+    def connect(self, url:str) -> None:
+        """ connects to a database instance 
+        
+        Args:
+        url: as specified by sqlalchemy ( {driver}://{user}:{password}@{host}:{port}/{dbase}
+        
+        Returns:
+        none
+        
+        Raises:
+        RuntimeError on failure.
+        
+
+        """
+        
+        self._db = records.Database( url )    
+        
 
 
     def add_cloud(self, name:str, instance) -> None:
@@ -71,6 +90,8 @@ class Instances(object):
         
         self._clouds[ name ] = instance
 
+        if ( self._db is not None ):
+            self._get_cloud_id( name=name)
 
     def get_cloud( self, name:str):
         """ returns a cloud instance 
@@ -162,8 +183,12 @@ class Instances(object):
                               'status': status}
 
         self._name_to_id[ name ] = id
+
+        if ( self._db is not None ):
+            self._add_node_db( id, name, cloud, state, status)
         
 
+        
     def get_node(self, id:str) -> {} :
         """ get a nodes based on its id
 
@@ -235,7 +260,7 @@ class Instances(object):
 
 
     def node_state_counts(self ) -> {}:
-        """ returns the states of nodes
+        """ returns the states of nodes split into clouds
 
         Args:
           None
@@ -247,28 +272,43 @@ class Instances(object):
           None
         """
 
-        res = { 'idle': 0,
-                'busy': 0,
-                'total':0,
-                'other':0 }
+        template = { 'idle': 0,
+                     'busy': 0,
+                     'total':0,
+                     'other':0 }
 
+
+        res = { 'all': template.copy() }
+        
         for node in self.get_nodes(state=['active', 'booting']):
+
+            if node[ 'cloud' ] not in res:
+                res[ node[ 'cloud' ] ] = template.copy()
+
+            
 #            pp.pprint( node )
             
             if ( node['status'] == 'idle'):
-                res[ 'idle'  ] += 1
-                res[ 'total' ] += 1
+                res[ 'all' ][ 'idle'  ] += 1
+                res[ 'all' ][ 'total' ] += 1
+
+                res[ node[ 'cloud' ] ][ 'idle'  ] += 1
+                res[ node[ 'cloud' ] ][ 'total' ] += 1
 
             elif ( node['status'] in ['busy', 'starting', 'vacating', 'benchmarking']):
-                res[ 'busy'  ] += 1
-                res[ 'total' ] += 1
-            else:
-                res[ 'other'  ] += 1
+                res[ 'all' ][ 'busy'  ] += 1
+                res[ 'all' ][ 'total' ] += 1
 
-#        pp.pprint( res )
+                res[ node[ 'cloud' ] ][ 'busy'  ] += 1
+                res[ node[ 'cloud' ] ][ 'total' ] += 1
+            else:
+                res[ 'all' ][ 'other'  ] += 1
+
+                res[ node[ 'cloud' ] ][ 'other'  ] += 1
                 
         return Munch(res)
                 
+
     def get_node_ids(self, state:str=None, status:str=None, cloud:str=None) -> [] :
         """ get a list of nodes, can be filtered based on status
 
@@ -387,10 +427,10 @@ class Instances(object):
           name: human readable node name
         
         returns 
-          node info: (id, name, cloud_name, state, status), None if name does not exist
+          node info: (id, name, cloud_name, state, status), None if id/name does not exist
 
         raises:
-          RuntimeError if id is unknown
+ 
 
         """
 
@@ -398,10 +438,12 @@ class Instances(object):
             if ( name is not None):
                 id = self.name2id( name )
         except:
-            raise RuntimeError
+            return None
+#            raise RuntimeError("Node name not found {}".format( name))
             
         if id  not in self._nodes :
-            raise RuntimeError
+            return None
+#            raise RuntimeError("Unknown node id {}".format( id ))
             
         if id is not None:
             return self._nodes[ id ]
@@ -555,3 +597,197 @@ class Instances(object):
         
 
         
+################ DB functions #########################
+
+
+
+    def _add_name(self, table:str, name:str):
+        """ low level function for adding a name to a table
+
+        Args:
+          table: table to add to
+          name: the name to get/add
+        
+        returns:
+          None
+        
+        Raises:
+          None
+        """
+        
+        self._db.query("insert into {table} (name) VALUES ('{name}');".format(table=table, name=name))
+        return ( self._get_name_id( table, name ))
+            
+            
+
+            
+    def _get_name_id(self, table:str, name:str):
+        """ low level function for getting a name if present in database, otherwise add the entry.
+            
+        Args:
+          table: table to add to
+          name: the name to get/add
+            
+        returns:
+          None
+            
+        Raises:
+          None
+        """
+
+        rows = self._db.query("select * from {table} where name = '{name}';".format(table=table, name=name)).as_dict()
+
+    
+        if len( rows) > 0:
+            return rows[ 0 ]['id']
+        
+        else:
+            return self._add_name( table, name )
+        
+
+            
+    def _get_state_id(self,  state:str ) -> int:
+        """ get or create  the id corresponding to the state
+
+        Args:
+          State of a node 
+
+        Returns
+          state-id (int)
+
+        Raises:
+          None
+        """
+
+        return self._get_name_id('node_state', state)
+
+    
+    def _get_status_id(self,  status:str ) -> int:
+        """ get or create  the id corresponding to the state
+
+        Args:
+          Status of a node 
+
+        Returns
+          status-id (int)
+
+        Raises:
+          None
+        """
+
+        return self._get_name_id('node_status', status)
+
+    
+    def _get_cloud_id(self,  name:str ) -> int:
+        """ get or create  the id corresponding to the state
+
+        Args:
+          name of cloud
+
+        Returns
+          cloud-id (int)
+
+        Raises:
+          None
+        """
+
+        return self._get_name_id('cloud', name)
+
+
+    def _get_node_id(self, id:str) -> int:
+        """ gets a node-id if node exists
+
+        Args:
+          id
+        
+        Returns:
+          db-id if exists, else None
+
+        Raises:
+          None
+        """
+
+        rows = self._db.query("select * from node where uuid = '{id}';".format(id=id)).as_dict()
+
+    
+        if len( rows) > 0:
+            return rows[ 0 ]['id']
+        
+        else:
+            return None
+        
+        
+        
+    
+        
+            
+    def _add_node_to_db( self, id:str, name:str, cloud:str, state:str='booting', status='starting')-> None:
+        """ Adds a node to the class 
+
+        Args:
+          id: vm id of the node (should prob be a uuid)
+          name: human readable name of node
+          cloud: name of cloud where the node lives
+          state: VM state of the node, default is 'booting'
+          status: condor status of the node, default is 'busy'
+
+        Returns:
+          None
+        
+        Raises:
+          RuntimeError if unknown cloud, node id/name already exist, illegal state or status
+        """
+
+        
+        node_state_id  = self._get_state_id( state )
+        node_status_id = self._get_status_id( status )
+        cloud_id       = self._get_cloud_id( cloud )
+
+
+        node_id = self._get_node_id(id)
+
+        if ( node_id is None):
+                
+            query = "insert into node (uuid, name, cloud_id, node_status_id, node_state_id) VALUES ('{uuid}', '{name}', {cloud_id}, {node_status_id}, {node_state_id});"
+
+            self._db.query(query.format(uuid=id,
+                                        name=name,
+                                        cloud_id=cloud_id,
+                                        node_status_id=node_status_id,
+                                        node_state_id=node_state_id))
+        else:
+            self._update_node( id, state=state, status=status)
+
+            
+    def _update_node(self, id:str, state:str=None, status=None)-> None:
+        """ Adds a node to the class 
+
+        Args:
+          id: vm id of the node (should prob be a uuid)
+          state: VM state of the node, default is 'booting'
+          status: condor status of the node, default is 'busy'
+
+        Returns:
+          None
+        
+        Raises:
+          RuntimeError if unknown cloud, node id/name already exist, illegal state or status
+        """
+
+
+        if ( state is not None):
+            node_state_id  = self._get_state_id( state )
+
+            query = "update node set node_state_id={node_state_id} where uuid='{uuid}';"
+
+            self._db.query(query.format(uuid=id,
+                                        node_state_id=node_state_id))
+
+        if ( status is not None):
+            node_status_id  = self._get_status_id( status )
+
+            query = "update node set node_status_id={node_status_id} where uuid='{uuid}';"
+
+            self._db.query(query.format(uuid=id,
+                                        node_status_id=node_status_id))
+
