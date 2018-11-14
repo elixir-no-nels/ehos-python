@@ -55,6 +55,8 @@
 <br>
 
 <div id="reload">.</div>
+
+<canvas id="myChart"></canvas>
 </div>
 
 
@@ -64,16 +66,44 @@
 {% endblock %}
 
 {% block javascript %}
+
 $(function() {
-   $( document ).ready(function() {
-   var Interval = "."
 
-   setInterval(function time(){
 
-      document.getElementById("reload").innerHTML = Interval 
-      Interval += "."
+$( document ).ready(function() {
 
-   }, 1000); });
+  var ctx = document.getElementById('myChart').getContext('2d');
+  var chart = new Chart(ctx, {
+    // The type of chart we want to create
+  type: 'line',
+
+  
+  // The data for our dataset
+  data: {
+//  labels: ["January", "February", "March", "April", "May", "June",  "July"],
+
+  labels: {{info.graph.labels|safe}},
+  datasets: [
+  {% for dataset in info.graph.datasets %}
+    { {{dataset|safe}} },
+
+  {% endfor %}
+
+  ]
+  },
+  
+
+  // Configuration options go here
+  options: {animation: false}
+  });
+  var Interval = "."
+
+  setInterval(function time(){
+
+  document.getElementById("reload").innerHTML = Interval 
+  Interval += "."
+
+  }, 1000); });
 });
 
 {% endblock %}

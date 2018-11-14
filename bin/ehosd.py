@@ -186,8 +186,13 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
 
         # got jobs in the queue but less than or equal to our idle + spare nodes, do nothing
         elif (  jobs.idle and jobs.idle <= nodes.idle ):
-            logger.info("We got stuff to do, but seems to have enough nodes to cope...")
+            logger.info("We got stuff to do, but seems to have excess nodes to cope...")
 
+            nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle -jobs.idle , nodes.idle - config.ehos_daemon.nodes_spare)
+            
+            logger.info("Deleting {} idle nodes...".format( nr_of_nodes_to_delete))
+            monitor.add_event(context = 'delete_nodes', target = 'master', value= nr_of_nodes_to_delete )
+            ehos.delete_idle_nodes(nr_of_nodes_to_delete)
 
             
         # Got room to make some additional nodes
