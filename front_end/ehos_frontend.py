@@ -60,7 +60,6 @@ def wrap_strings( a ):
 def index(lag=10):
 
 
-    print( " LAAAAGG  :: {}".format(lag))
     try:
         lag = int( lag )
     except:
@@ -107,15 +106,15 @@ def index(lag=10):
 
 
     if ( lag == 5 ):
-        time_series = monitor.timeserie_5min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='mean')
+        time_series = monitor.timeserie_5min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
     elif ( lag == 10 ):
-        time_series = monitor.timeserie_10min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='mean')
+        time_series = monitor.timeserie_10min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
     elif( lag == 30 ):
-        time_series = monitor.timeserie_30min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='mean')
+        time_series = monitor.timeserie_30min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
     elif( lag == 60 ):
-        time_series = monitor.timeserie_30min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='mean')
+        time_series = monitor.timeserie_1hour(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
     else:
-        time_series = monitor.timeserie_10min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='mean')
+        time_series = monitor.timeserie_10min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
 
     time_series = monitor.transform_timeserie_to_dict( time_series )
 
@@ -130,10 +129,14 @@ def index(lag=10):
 
     data_template = "label: '{name}', fill: 0, borderColor: '{colour}',  data: {data},\n"
 
-    context['graph']['datasets'].append( data_template.format(name='Nodes idle',   colour="rgb(200, 200, 200)", data=time_series['all-idle']))
-    context['graph']['datasets'].append( data_template.format(name='Nodes busy',   colour="rgb(100, 100, 100)", data=time_series['all-busy']))
-    context['graph']['datasets'].append( data_template.format(name='Jobs waiting', colour="rgb(255, 128,   0)", data=time_series['queue-idle']))
-    context['graph']['datasets'].append( data_template.format(name='Jobs Running', colour="rgb(  0, 200,   0)", data=time_series['queue-running']))
+    if 'all-idle' in time_series:
+        context['graph']['datasets'].append( data_template.format(name='Nodes idle',   colour="rgb(200, 200, 200)", data=time_series['all-idle']))
+    if 'all-busy' in time_series:
+        context['graph']['datasets'].append( data_template.format(name='Nodes busy',   colour="rgb(100, 100, 100)", data=time_series['all-busy']))
+    if 'queue-idle' in time_series:
+        context['graph']['datasets'].append( data_template.format(name='Jobs waiting', colour="rgb(255, 128,   0)", data=time_series['queue-idle']))
+    if 'queue-running' in time_series:
+        context['graph']['datasets'].append( data_template.format(name='Jobs Running', colour="rgb(  0, 200,   0)", data=time_series['queue-running']))
 
     
     return render_template('ehos/index.html', info=context)

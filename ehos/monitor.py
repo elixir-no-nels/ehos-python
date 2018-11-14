@@ -189,6 +189,43 @@ def add_event(context:int, target:int, value:str):
     _add_entry('event', context, target, value)
     
 
+def _make_timeserie(start:str, end:str, res:int=60):
+    """Extract a timeserie from the database. The values are filtered by
+       keys if provided. The timerange is divided into bins of res
+       size. If multiple values occur for a key the mean value is
+       returned.
+
+    Args:
+    start: datatime format start time
+    end: datatime format start time
+    res: size of bins in seconds
+
+    Returns
+      list of times
+
+    Raises:
+      None
+
+    """
+
+    start = int(start.timestamp())
+    end   = int(end.timestamp())
+
+    print(start, end)
+    
+    bins = []
+    for i in range(start, end, res):
+        if i > end:
+            break
+        
+        i = int( i/res)*res
+        
+        bins.append( datetime.datetime.fromtimestamp( i ))
+
+    return bins
+
+    
+    
     
 def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:str='mean') -> {}:
     """Extract a timeserie from the database. The values are filtered by
@@ -220,6 +257,8 @@ def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:st
 
     db_data =  db.query( Q ).as_dict()
 
+    keys_in_dataset = [] + keys
+
     
     data = {}
     for entry in db_data:
@@ -227,6 +266,9 @@ def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:st
         if ( keys != [] and key not in keys):
             continue
 
+        if ( key not in keys_in_dataset ):
+            keys_in_dataset.append( key )
+        
         ts   = entry[ 'ts' ].timestamp()
         ts = int( ts/res)*res
 
@@ -240,15 +282,25 @@ def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:st
 
         data[ ts ][ key ].append( int(entry['count']))
         
-    for timestamp in data:
-        for key in data[ timestamp]:
-            if method == 'sum':
-                data[ timestamp][ key ] = sum(data[ timestamp][ key ])
-            if method == 'mean':
-                data[ timestamp][ key ] = sum(data[ timestamp][ key ])/len(data[ timestamp][ key ])
-            elif method == 'median':
-                data[ timestamp][ key ] = sorted( data[ timestamp][ key ])
-                data[ timestamp][ key ] = data[ timestamp][ key ][ int(len ( data[ timestamp][ key ])/2)]
+#    for timestamp in data:
+    for timestamp in _make_timeserie(start, end, res):
+
+        if timestamp not in data:
+            data[ timestamp] = {}
+
+        
+        for key in keys_in_dataset:
+            if key not in data[ timestamp ]:
+                data[ timestamp][ key ] = 0
+            else:
+                 
+                if method == 'sum':
+                    data[ timestamp][ key ] = sum(data[ timestamp][ key ])
+                elif method == 'mean':
+                    data[ timestamp][ key ] = sum(data[ timestamp][ key ])/len(data[ timestamp][ key ])
+                elif method == 'median':
+                    data[ timestamp][ key ] = sorted( data[ timestamp][ key ])
+                    data[ timestamp][ key ] = data[ timestamp][ key ][ int(len ( data[ timestamp][ key ])/2)]
                 
 
         
@@ -280,7 +332,7 @@ def _get_timeserie_offset(seconds:int, keys:list=[], method:str='mean'):
     start = datetime.datetime.fromtimestamp( now - seconds)
     end   = datetime.datetime.fromtimestamp( now )
 
-    return _get_timeserie_range(start = start, end=end, keys=keys, method=method)
+    return _get_timeserie_range(start = start, end=end, keys=keys, method=method, res=30)
 
 
 def timeserie_5min(keys:list=[], method:str='mean'):

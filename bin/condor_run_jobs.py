@@ -22,10 +22,11 @@ import htcondor
 collector = htcondor.Collector()
 schedd = htcondor.Schedd()
 
-for i in range(0,20):
+for i in range(0,12):
     
     sub = htcondor.Submit()
     sub['executable'] = '/bin/sleep'
-    sub['arguments'] = "{}s".format( random.randint(30,60))
+#    sub['arguments'] = "{}s".format( random.randint(40,120))
+    sub['arguments'] = "{}s".format( random.randint(40,60))
     with schedd.transaction() as txn:
         sub.queue(txn)
