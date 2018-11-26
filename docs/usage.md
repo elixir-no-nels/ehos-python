@@ -15,10 +15,11 @@ rule for port 9618 for both TCP and UDP traffic.
 
 **Important notes**
 
-Openstack has an issue where ssh key pair added using the dashboard is
-not visible for the API/CLI. If this is the case add the key using the
-CLI. See:
+Openstack (at least the uh-cloud instance) has an issue where ssh key
+pair added using the dashboard is not visible for the API/CLI. If this
+is the case add the key using the CLI. See:
 http://docs.uh-iaas.no/en/latest/known-issues.html#api-access
+
 
 ```bash
 # Upload ssh the id-rsa publich key to openstack with the name mykey
