@@ -181,7 +181,7 @@ def update_node_states( max_heard_from_time:int=300 ):
             instances.set_status( node['id'], status='lost')
 
         # these are in states that are not helpful for us, so ignore them for now
-        elif condor_nodes[ condor_node ] in ['suspended', 'killing', 'retiring', 'lost']:
+        elif node['state' ] in ['suspended', 'killing', 'retiring', 'lost']:
             if ( instances.find( name = condor_node ) is not None ):
                 instances.set_state( node_id=server_id, state='deleted' )
                 instances.set_status( node['id'], status='lost')

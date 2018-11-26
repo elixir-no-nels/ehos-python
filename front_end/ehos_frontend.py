@@ -104,22 +104,36 @@ def index(lag=10):
         context['queue']['idle_p'] =  context['queue']['idle']/context['queue']['total']*100.0
         context['queue']['running_p'] =  context['queue']['running']/context['queue']['total']*100.0
 
+    keys = {'all-idle': 'Nodes idle',
+            'all-busy': 'Node busy',
+            'queue-running': 'Jobs running',
+            'queue-idle': 'Jobs waiting',
+            'all-total': 'Nodes total'}
+        
 
     if ( lag == 5 ):
-        time_series = monitor.timeserie_5min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
+        time_series = monitor.timeserie_5min(keys=list(keys.keys()), method='median')
     elif ( lag == 10 ):
-        time_series = monitor.timeserie_10min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
+        time_series = monitor.timeserie_10min(keys=list(keys.keys()), method='median')
+    elif ( lag == 15 ):
+        time_series = monitor.timeserie_15min(keys=list(keys.keys()), method='median')
     elif( lag == 30 ):
-        time_series = monitor.timeserie_30min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
+        time_series = monitor.timeserie_30min(keys=list(keys.keys()), method='median')
     elif( lag == 60 ):
-        time_series = monitor.timeserie_1hour(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
+        time_series = monitor.timeserie_1hour(keys=list(keys.keys()), method='median')
     else:
-        time_series = monitor.timeserie_10min(keys=['all-idle', 'all-busy', 'queue-running', 'queue-idle'], method='median')
+        time_series = monitor.timeserie_10min(keys=list(keys.keys()), method='median')
 
-    time_series = monitor.transform_timeserie_to_dict( time_series )
 
     context['graph'] = {}
 
+#    pp.pprint( time_series )
+    
+    max_value =   monitor.timeserie_max_value( time_series )
+    context['graph'][ 'max_y'] = max_value + 2
+
+    time_series = monitor.transform_timeserie_to_dict( time_series )
+    
     
     time_series[ 'x'] = wrap_strings(time_series[ 'x'] )    
     context['graph']['labels'] = "[{}]".format(",".join( time_series[ 'x'] ))
@@ -129,10 +143,12 @@ def index(lag=10):
 
     data_template = "label: '{name}', fill: 0, borderColor: '{colour}',  data: {data},\n"
 
-    if 'all-idle' in time_series:
-        context['graph']['datasets'].append( data_template.format(name='Nodes idle',   colour="rgb(200, 200, 200)", data=time_series['all-idle']))
+    if 'all-total' in time_series:
+        context['graph']['datasets'].append( data_template.format(name='Nodes total',  colour="rgb(230, 230, 230)", data=time_series['all-total']))
+#    if 'all-idle' in time_series:
+#        context['graph']['datasets'].append( data_template.format(name='Nodes idle',   colour="rgb(200, 200, 200)", data=time_series['all-idle']))
     if 'all-busy' in time_series:
-        context['graph']['datasets'].append( data_template.format(name='Nodes busy',   colour="rgb(100, 100, 100)", data=time_series['all-busy']))
+        context['graph']['datasets'].append( data_template.format(name='Nodes busy',   colour="rgb(150,   0,   0)", data=time_series['all-busy']))
     if 'queue-idle' in time_series:
         context['graph']['datasets'].append( data_template.format(name='Jobs waiting', colour="rgb(255, 128,   0)", data=time_series['queue-idle']))
     if 'queue-running' in time_series:

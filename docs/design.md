@@ -57,5 +57,14 @@ connector to the instance of the openstack cloud as ehos can now be
 connected and use multiple openstack instances at the same time. 
 
 
+### config and files
+
+
+If the repository is downloaded the config files
+will be in the configs directory instead. The order of directories to
+be searched by the scripts are: /etc/ehos/, /usr/local/etc/ehos,
+/usr/share/ehos/, /usr/local/share/ehos/ and configs/. As ehos can be
+run as a systemctl service the scripts are installed in /usr/local/bin
+so they can be referred to correctly
 
 

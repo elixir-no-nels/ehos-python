@@ -531,6 +531,9 @@ class Instances(object):
         """
 
         if ( node_id not in self._nodes):
+            logger.warn("Unknown Node {}".format( node_id))
+            
+            return
             raise RuntimeError("Unknown node {}".format( node_id ))
 
         if ( self.valid_state( state ) == False):

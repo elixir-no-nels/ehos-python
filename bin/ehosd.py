@@ -190,7 +190,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
 
             nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle -jobs.idle , nodes.idle - config.ehos_daemon.nodes_spare)
             
-            logger.info("Deleting {} idle nodes...".format( nr_of_nodes_to_delete))
+            logger.info("Deleting {} idle nodes... (1)".format( nr_of_nodes_to_delete))
             monitor.add_event(context = 'delete_nodes', target = 'master', value= nr_of_nodes_to_delete )
             ehos.delete_idle_nodes(nr_of_nodes_to_delete)
 
@@ -208,6 +208,10 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
             logger.info("We are busy. but all nodes we are allowed have been created, nothing to do")
 
 
+        elif (  jobs.idle ):
+            logger.info("We got stuff to do, but seems to have nodes to cope...")
+
+            
         ### Looks like we have an excess of nodes, lets cull some
 
         # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
@@ -216,7 +220,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
 
             nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle - config.ehos_daemon.nodes_spare)
             
-            logger.info("Deleting {} idle nodes...".format( nr_of_nodes_to_delete))
+            logger.info("Deleting {} idle nodes... (2)".format( nr_of_nodes_to_delete))
             monitor.add_event(context = 'delete_nodes', target = 'master', value= nr_of_nodes_to_delete )
             ehos.delete_idle_nodes(nr_of_nodes_to_delete)
             

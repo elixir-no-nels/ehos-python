@@ -211,10 +211,8 @@ def _make_timeserie(start:str, end:str, res:int=60):
     start = int(start.timestamp())
     end   = int(end.timestamp())
 
-    print(start, end)
-    
     bins = []
-    for i in range(start, end, res):
+    for i in range(start, end+res, res):
         if i > end:
             break
         
@@ -259,7 +257,6 @@ def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:st
 
     keys_in_dataset = [] + keys
 
-    
     data = {}
     for entry in db_data:
         key = "{}-{}".format( entry['target'], entry['context'])
@@ -281,6 +278,8 @@ def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:st
             data[ ts ][ key ] = []
 
         data[ ts ][ key ].append( int(entry['count']))
+
+    left_padding = True
         
 #    for timestamp in data:
     for timestamp in _make_timeserie(start, end, res):
@@ -290,9 +289,10 @@ def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:st
 
         
         for key in keys_in_dataset:
-            if key not in data[ timestamp ]:
+            if left_padding and key not in data[ timestamp ]:
                 data[ timestamp][ key ] = 0
-            else:
+            elif key in data[ timestamp ]:
+                left_padding = False
                  
                 if method == 'sum':
                     data[ timestamp][ key ] = sum(data[ timestamp][ key ])
@@ -301,8 +301,6 @@ def _get_timeserie_range(start:str, end:str, keys:list=[], res:int=60, method:st
                 elif method == 'median':
                     data[ timestamp][ key ] = sorted( data[ timestamp][ key ])
                     data[ timestamp][ key ] = data[ timestamp][ key ][ int(len ( data[ timestamp][ key ])/2)]
-                
-
         
     return data
 
@@ -323,11 +321,23 @@ def transform_timeserie_to_dict( timeserie:dict):
 
     return trans
 
+
+def timeserie_max_value( timeserie:dict ):
+
+    max_value = 12
+    
+    for timestamp in sorted(timeserie):
+        for key in timeserie[ timestamp ]:
+            if max_value < timeserie[ timestamp ][ key ]:
+                max_value = timeserie[ timestamp ][ key ]
+
+    return max_value
+
+
 def _get_timeserie_offset(seconds:int, keys:list=[], method:str='mean'):
 
 
     now = time.time()
-
     
     start = datetime.datetime.fromtimestamp( now - seconds)
     end   = datetime.datetime.fromtimestamp( now )
@@ -342,6 +352,10 @@ def timeserie_5min(keys:list=[], method:str='mean'):
 def timeserie_10min(keys:list=[], method:str='mean'):
 
     return _get_timeserie_offset(10*60, keys=keys, method=method)
+
+def timeserie_15min(keys:list=[], method:str='mean'):
+
+    return _get_timeserie_offset(15*60, keys=keys, method=method)
 
 def timeserie_30min(keys:list=[], method:str='mean'):
 
