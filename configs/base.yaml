@@ -19,14 +19,14 @@ runcmd:
 
 # docker install 
 
-  - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  - yum install -y docker-ce
+#  - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+#  - yum install -y docker-ce
 
   ## Enable condor to run docker
-  - usermod -aG docker condor
+#  - usermod -aG docker condor
 
   ## Enable rootless use of docker
-  - usermod -aG docker centos
+#  - usermod -aG docker centos
 
 # htcondor install
 
@@ -42,12 +42,12 @@ runcmd:
 # startup services
 
 ## Start autofs and enable automatic start at boot
-  - service autofs start
-  - systemctl enable autofs
+#  - service autofs start
+#  - systemctl enable autofs
 
   ## Start docker and enable automatic start at boot
-  - service docker start
-  - systemctl enable docker
+#  - service docker start
+#  - systemctl enable docker
 
 # Start condor and enable it on start
   - service condor start

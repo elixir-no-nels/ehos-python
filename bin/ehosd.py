@@ -37,13 +37,8 @@ from munch import Munch
 
 import ehos
 import ehos.htcondor
-import ehos.monitor as monitor
 
 
-monitor.connect("postgresql://ehos:ehos@127.0.0.1:5432/ehos_monitor")
-
-
-MONITORING = True
 
 condor = ehos.htcondor.Condor()
 
@@ -156,14 +151,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
 
 
 
-        # send some data off to the monitoring system
-        if ( MONITORING ):
-            for cloud in nodes:
-                for state in nodes[ cloud ]:
-                    monitor.add_stat(context = state, target = cloud, value= nodes[ cloud ][state])
-
-            for job_state in jobs:
-                monitor.add_stat( context = job_state, target = 'queue', value=jobs[ job_state ])
 
                 
         # just care about the overall number of nodes, not how many in each cloud
@@ -179,7 +166,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
         if ( nodes.total < config.ehos_daemon.nodes_min ):
             logger.info("We are below the min number of nodes, creating {} nodes".format( config.ehos_daemon.nodes_min - nodes.total))
 
-            monitor.add_event(context = 'create_nodes', target = 'master', value= config.ehos_daemon.nodes_min - nodes.total)
             ehos.create_execute_nodes(config, execute_config_file, config.ehos_daemon.nodes_min - nodes.total)
 
         ### there are jobs queuing, let see what we should do
@@ -191,7 +177,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
             nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle -jobs.idle , nodes.idle - config.ehos_daemon.nodes_spare)
             
             logger.info("Deleting {} idle nodes... (1)".format( nr_of_nodes_to_delete))
-            monitor.add_event(context = 'delete_nodes', target = 'master', value= nr_of_nodes_to_delete )
             ehos.delete_idle_nodes(nr_of_nodes_to_delete)
 
             
@@ -200,7 +185,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
-            monitor.add_event(context = 'create_nodes', target = 'master', value= config.ehos_daemon.nodes_max - nodes.total)
             ehos.create_execute_nodes(config, execute_config_file, config.ehos_daemon.nodes_max - nodes.total )
 
         # this one is just a sanity one
@@ -221,7 +205,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
             nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle - config.ehos_daemon.nodes_spare)
             
             logger.info("Deleting {} idle nodes... (2)".format( nr_of_nodes_to_delete))
-            monitor.add_event(context = 'delete_nodes', target = 'master', value= nr_of_nodes_to_delete )
             ehos.delete_idle_nodes(nr_of_nodes_to_delete)
             
         else:
