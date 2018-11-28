@@ -205,7 +205,6 @@ openstack server create --flavor <FLAVOR> --image <IMAGE> --nic net-id=<NETID> -
 
 # Notice the vm ID as this is needed below ( it is uuid string)
 
-
 #Check the status of the booting of the VM, will normally take 1-2 minuttes: 
 openstack console log show <VM_ID>
 
@@ -289,12 +288,15 @@ nodes running etc.
 ```bash
 #make a copy of the ehos config file and edit it with your
 # openstack keystone credentials and ehosd setting
+
 cp /usr/loca/share/ehos/ehos.yaml.example /usr/loca/etc/ehos/ehos.yaml
 vim /usr/local/etc/ehos/ehos.yaml
 
 # to run the server manually
 # Start up the ehos sever, adding some -v will increase the logging amount:
 /usr/local/bin/ehosd.py /usr/local/etc/ehos/ehos.yaml
+
+To run is as a systemd service:
 
 # or run it as as systemd service
 systemctl enable ehos.service

@@ -113,7 +113,7 @@ def write_master_yaml( config:Munch, master_filename:str, submit_filename:str=No
 
     # readin the maste file and insert out write_file_block(s)
     master_content = ehos.readin_whole_file(master_filename)
-    master_content = re.sub('{write_files}', write_file_block, master_content)
+    master_content = re.sub('#{write_files}', write_file_block, master_content)
 
     
     # write new config file to it and close it. As this is an on level
@@ -145,7 +145,7 @@ def create_base_image(args:dict, config:Munch):
     logger.info("Creating base server")
 
     base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
-                                  image=config.ehos.base_image,
+                                  image=config.ehos.image,
                                   flavor=config.ehos.flavor,
                                   network=config.ehos.network,
                                   key=config.ehos.key,

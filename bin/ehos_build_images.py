@@ -145,7 +145,7 @@ def create_base_image(args:dict, config:Munch):
     logger.info("Creating base server")
 
     base_id = ehos.server_create( "{}-base".format(config.ehos.project_prefix),
-                                  image=config.ehos.base_image,
+                                  image=config.ehos.image,
                                   flavor=config.ehos.flavor,
                                   network=config.ehos.network,
                                   key=config.ehos.key,
