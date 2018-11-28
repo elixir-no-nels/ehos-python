@@ -39,7 +39,6 @@ write_files:
         STARTER_ALLOW_RUNAS_OWNER = TRUE
         TRUST_UID_DOMAIN=TRUE
         SOFT_UID_DOMAIN = TRUE
-        
 
 
         SEC_PASSWORD_FILE = $(LOCK)/pool_password
@@ -60,7 +59,7 @@ write_files:
     owner: root:root
     path: /etc/condor/00personal_condor.config
     permissions: '0644'
-{write_files}
+#{write_files}
 
 
 runcmd:
@@ -78,8 +77,6 @@ runcmd:
 #  - ehos_setup.sh /usr/local/etc/ehos_master.yaml
 #  - systemctl enable ehos
 #  - systemctl start  ehos
-
-
 
 
 final_message: "The EHOS vm is up after $UPTIME seconds"
