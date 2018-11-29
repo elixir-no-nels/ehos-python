@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # 
 # 
 # 
@@ -29,6 +29,14 @@ import logging
 logger = logging.getLogger('ehos')
 
 
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+logging.getLogger('keystoneauth').setLevel(logging.CRITICAL)
+logging.getLogger('stevedore').setLevel(logging.CRITICAL)
+logging.getLogger('concurrent').setLevel(logging.CRITICAL)
+logging.getLogger('openstack').setLevel(logging.CRITICAL)
+logging.getLogger('dogpile').setLevel(logging.CRITICAL)
+
+
 
 
 global condor
@@ -37,11 +45,11 @@ global instances
 instances = None
 
 
-def init():
+def init(condor_init:bool=True):
     """ init function for the module, connects to the htcondor server and sets up the instance tracking module
 
     Args:
-      None
+      condor_init: wether to init the condor module or not.
     
     Returns:
       None
@@ -51,19 +59,19 @@ def init():
     """
 
     # Some odd bug as the name space gets polluted when I install the module multiple times
-    import ehos.htcondor 
     import ehos.instances as I
 
     global condor
     global instances
 
-    condor  = ehos.htcondor.Condor()
+
+    if ( condor_init ):
+        import ehos.htcondor 
+        condor  = ehos.htcondor.Condor()
+
     instances = I.Instances()
-    instances.connect("postgresql://ehos:ehos@127.0.0.1:5432/ehos_instances")
 
 
-#    print(condor)
-#    print( instances )
     
 def connect_to_clouds(config:Munch) -> None:
     """ Connects to the clouds spefified in the config file
@@ -95,6 +103,9 @@ def connect_to_clouds(config:Munch) -> None:
             cloud = ehos.openstack.Openstack()
             cloud.connect( cloud_name=cloud_name,
                            **cloud_config)
+
+
+            
 
             instances.add_cloud( cloud_name, cloud )
             logger.info("Successfully connected to the {} openStack service".format( cloud_name ))
@@ -374,6 +385,54 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
 
 
 
+
+def create_images( config:Munch,config_file:str):
+    """ Create a number of images to be used later to create nodes
+
+    Args:
+       config: config settings
+       config_file: config file for base system
+
+    Returns:
+      dict of cloud-name : image-id
+    
+    Raises:
+      RuntimeError if unknown node-allocation method
+    """
+
+    clouds = list(instances.get_clouds().keys())
+
+    images = {}
+    
+    for cloud_name in clouds:
+        cloud = instances.get_cloud( cloud_name )
+
+        logger.info("Creating base server in {}".format( cloud_name ))
+
+        node_name = make_node_name(config.ehos.project_prefix, "base")
+        
+        base_id = cloud.server_create( name=node_name,
+                                       userdata_file=config_file,
+                                       **config.ehos )
+
+        
+        logger.info("Created base server, waiting for it to come online")
+
+
+        # Wait for the server to come online and everything have been configured.    
+        cloud.wait_for_log_entry(base_id, "The EHOS vm is up after ")
+        logger.info("Base server is now online")
+            
+        image_name = make_node_name(config.ehos.project_prefix, "image")
+        image_id = cloud.make_image_from_server( base_id,  image_name )
+
+        logger.info("Created image {} from {}".format( image_name, node_name ))
+
+        images[ cloud_name ] = image_id
+
+    return images
+
+
 # ===================== Low level generic function =====================
 
 
@@ -605,10 +664,12 @@ def find_config_file( filename:str, dirs:List[str]=None) -> str:
 
     default_dirs = ['/etc/ehos/',
                     '/usr/local/etc/ehos',
+                    "{}/../etc".format( script_dir ),
+                    'etc/',
                     '/usr/share/ehos/',
                     '/usr/local/share/ehos/',
-                    "{}/../configs".format( script_dir ),
-                    'configs',
+                    "{}/../share".format( script_dir ),
+                    'share/',
                     './']
 
     
