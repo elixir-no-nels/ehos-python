@@ -229,7 +229,7 @@ class Openstack( ehos.vm.Vm ):
           None    
         """
 
-        log = server_log( id )
+        log = self.server_log( id )
         logger.debug("Spooling server log for id:{}".format( id ))
         
         results = []
@@ -258,7 +258,7 @@ class Openstack( ehos.vm.Vm ):
         logger.info("Waiting for log entry  id:{} --> entry:{}".format( id, match ))
 
         while( True ):
-            matches = server_log_search( id, match)
+            matches = self.server_log_search( id, match)
 
             if matches is not None and matches != []:
                 return matches
@@ -313,7 +313,7 @@ class Openstack( ehos.vm.Vm ):
         """
 
 
-        check_connection()
+        self.check_connection()
         logger.info("Stopping server id{} ".format( id ))
         
         server = self._connection.compute.get_server( id )
@@ -333,7 +333,7 @@ class Openstack( ehos.vm.Vm ):
         logger.info("Server stopped id:{} ".format( id ))
 
 
-    def _wait_for_image_creation( image_name:str, timeout:int=200):
+    def _wait_for_image_creation(self, image_name:str, timeout:int=200):
         """ Wait for a single image with the given name exists and them return the id of it
 
         Args:
@@ -391,11 +391,11 @@ class Openstack( ehos.vm.Vm ):
 
 
         logger.info("Creating an image from server id{}, image_name:{} ".format( id, image_name ))
-        server_stop( id )
+        self.server_stop( id )
         # rotation == 1 will only keep one version of this name, not sure about backup type
         self._connection.compute.backup_server( id, image_name, backup_type='', rotation=1 )
         
-        return _wait_for_image_creation( image_name )
+        return self._wait_for_image_creation( image_name )
 
 
     
