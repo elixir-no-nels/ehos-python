@@ -30,7 +30,7 @@ setup(name='ehos',
                                    'configs/base.yaml',
                                    'configs/master.yaml',
                                    'configs/submit.yaml',
-                                   'configs/execute.yaml'])
+                                   'configs/execute.yaml']),
                   ('/etc/systemd/system/',['ehos.service'])],
       include_package_data=True,
       zip_safe=False)
