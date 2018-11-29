@@ -433,6 +433,60 @@ def create_images( config:Munch,config_file:str):
     return images
 
 
+def create_master_node( config:Munch,master_file:str):
+    """ Create a number of images to be used later to create nodes
+
+    Args:
+       config: config settings
+       master_file: config file for master node
+       execute_file: config file for execute nodes
+
+    Returns:
+      the master_id (uuid)
+    
+    Raises:
+      RuntimeError if unknown node-allocation method
+    """
+
+    clouds = list(instances.get_clouds().keys())
+
+    if len (clouds ) == 1:
+        logger.info( "only one cloud configured, will use that for the master node regardless of configuration")
+        config.ehos_daemon.master_cloud = clouds[ 0 ]
+        
+    if 'master_cloud' not in config.ehos_daemon or config.ehos_daemon == 'None':
+        logger.fatal( "Cloud instance that shall host the master node is not specified in the config file")
+        sys.exit( 2 )
+    
+    cloud_name = config.ehos_daemon.master_cloud
+
+    if ( cloud_name not in clouds):
+        print( "Unknown cloud instance {}, it is not found in the config file".format( cloud_name ))
+
+    cloud = instances.get_cloud( cloud_name )
+
+    master_name = make_node_name(config.ehos.project_prefix, "master")
+        
+    master_id = cloud.server_create( name=master_name,
+                                     userdata_file=master_file,
+                                     **config.ehos )
+
+        
+    logger.info("Created master node, waiting for it to come online")
+
+    
+    # Wait for the server to come online and everything have been configured.    
+    cloud.wait_for_log_entry(master_id, "The EHOS vm is up after ")
+    logger.info("Master node is now online")
+
+    logger.info( "Master IP addresse is {}".format( cloud.server_ip( master_id )))
+    
+
+    return master_id, cloud.server_ip( master_id )
+
+
+
+
 # ===================== Low level generic function =====================
 
 

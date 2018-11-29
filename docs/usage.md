@@ -105,6 +105,11 @@ must be done for each region/project. All command line examples shown
 assumes that you have successfully installed and configured 
 OpenStack CLI
 
+**Important note:** CLI reads and reacts to shell variables, so if you
+have sourced your keystone file this might break the EHOS scripts in
+odd ways.
+
+
 
 
 #### Firewall rules
@@ -182,11 +187,14 @@ ehos.yaml file with the id for the created image(s).
 ### Automatic creation of the images
 
 This automates the process of creating the image(s) on all
-region(s)/project(s) specified in your ehos.yaml file.
+region(s)/project(s) specified in your ehos.yaml file, this script
+will also create a EHOS wide password if not already set.
 
 ```bash
 # Create base VMs and update the ehos.yaml file with the ids
-ehos_build_images.py -B share/base.yaml etc/ehos.yaml
+# The more -v you add the more loggin will you get.
+# -B base.yaml specify what base.yaml file to use, otherwise it find one.
+ehos_build_images.py -v -v -v etc/ehos.yaml
 ```
 
 ### Manual creation of the image(s)
@@ -321,8 +329,3 @@ ehos_sleep_jobs.py -n 10 -r 30,50
 # Submit 10 jobs, sleeping 20 seconds
 ehos_sleep_jobs.py -n 10 -s 20
 ```
-
-
-
-
-
