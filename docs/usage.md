@@ -2,28 +2,27 @@
 
 ### Installing EHOS on the deployment computer.
 
-EHOS does not need to be installed on the computer used for deploying
-EHOS.
+EHOS does not need to be installed system wide on the computer used
+for deploying EHOS. The deployment computer however needs to have
+python 3.4 (or later) installed if you want to benefit from the
+deployment scripts.
 
-EHOS requires python 3.4 or later installed on the system running the
-deployment system if you want to benefit from the automated image
-creation scripts.
-
-The example below creates a virtual environment to not break anything
-on the deployment computer.
+The example below creates a virtual environment with EHOS in it on the
+deployment computer.
 
 ```bash
 # create a python virtual environment, download EHOS and install the EHOS requirements.
-```bash
-#create and activate your ehos python virtualenv
 virtualenv ehos
+#create and activate your ehos python virtualenv
 cd ehos
+
 # for bash
 source path-of-virtual-environment/bin/activate
+
 # for (t)csh
 source path-of-virtual-environment/bin/activate.csh
 
-#download ehos. (require wget)
+#download ehos. (requires wget)
 wget https://github.com/elixir-no-nels/ehos-python/archive/v0.1.0-snapshot.tar.gz
 tar zxvf v1.0.0-rc1.tar.gz --strip 1
 
@@ -34,20 +33,21 @@ pip install -r requirements.txt
 deactivate
 ```
 
-As an alternative you can install EHOS on the deployment system, if
-this is the case ehos needs to be installed in /usr/local. Note EHOS
-is installed with pip3.
+If you want to install EHOS on the deployment system, EHOS needs to be
+installed in /usr/local. Note EHOS is installed with pip3.
 
 ```bash
 # Install latest stable ehos version & dependencies in /usr/local:
 pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git
 ```
 
-The documentation below referring to the EHOS configuration files
-assumes you have downloaded ehos into the virtualenv. If you have
-installed EHOS in /usr/local the location of the files are not in
-share and etc but /usr/local/share/ehos and /usr/local/etc/ehos
-respectively.
+The documentation below referring to the EHOS configuration files and
+scripts assumes you have downloaded ehos into the virtualenv. If you
+have installed EHOS in /usr/local the location of the configuration
+files are not in share/ and etc/ but /usr/local/share/ehos and
+/usr/local/etc/ehos respectively. Furthermore, the scripts should be
+available system wide so ./bin/ehos_build_images.py should be
+ehos_build_images.py instead.
 
 
 ### Configuration files:
@@ -64,30 +64,31 @@ Most configuration files contains mark-up tags (looks like this:
 system specific information into. Do not alter these unless you fully
 understand the system.
 
-#### EHOS behaviour configuration file
+#### EHOS daemon connection and behaviour configuration file
 
-There is an example ehos.yaml.example file provided. You will need to
-fill in is the cloud details, eg: username, password, vm-image
-etc. The remainder of the file regards the behaviour of the ehos
-daemon, like the max number of nodes to create etc, and htcondor
-specific customisation. The template-file, with its comments, should
-be self explanatory. In the HTCondor section it is important to change
-the password to something unique as this restricts what nodes are
-allowed to connect to the EHOS instance.
+There is an example etc/ehos.yaml.example file provided. This will
+needed to be renamed to etc/ehos.yaml and credentials for openstack
+connection filled in, eg: username, password, vm-image etc. The
+remainder of the file regards the behaviour of the ehos daemon, like
+the max number of nodes to create etc, and htcondor specific
+customisation. The template-file, with its comments, should be self
+explanatory. In the HTCondor section it is important to change the
+password to something unique as this restricts what nodes are allowed
+to connect to the EHOS instance.
 
 
 #### VM creation files
 
-The configuration files are all cloud-init files in yaml format. These
-configuration files can either be used as is or as templates for
-tweaking the system. Notice that all the files have been created to
-centos 7 systems, so some alterations might be required if your system
-differs from this. 
+The configuration files for VM creation are all cloud-init files in
+yaml format. These configuration files can either be used as is or as
+templates for tweaking the system. Notice that all the files have been
+created for centos 7 systems, so alterations might be required if your
+system differs from this.
 
 
 ### Configure OpenStack 
 
-EHOS is using OpenStack to provide the virtual servers used for the
+EHOS uses OpenStack to provide the virtual machines (VM) used for the
 compute environment. Most of the initial configuration of the
 OpenStack service can be done either by using the OpenStack dashboard
 or the OpenStack command line interface (CLI). The CLI is installed as
@@ -165,11 +166,11 @@ openstack keypair create --public-key ~/.ssh/id_rsa.pub [KEYNAME]
 In order to speed up the creation of new nodes and also ensure a
 uniform environment across all compute nodes EHOS is utilising VM
 images, one in each region/project. The EHOS installation contains a
-image cloud-init sample configuration file:
-/usr/local/share/ehos/base.yaml for a centos 7 system. This is a good
-start for creating a EHOS image. Please note that this script installs
-some crucial pieces of software that is required for EHOS to work, so
-don't delete entries from it.
+image cloud-init sample configuration file: share/base.yaml for a
+centos 7 system. This is a good start for creating the EHOS
+image. Please note that this script installs some crucial pieces of
+software that is required for EHOS to work, so don't delete entries
+from it, but feel free to add aditional software if needed.
 
 The creation of image(s) can either be done manually using either the
 OpenStack CLI or dashboard, or through an EHOS script that is provided
@@ -185,14 +186,14 @@ region(s)/project(s) specified in your ehos.yaml file.
 
 ```bash
 # Create base VMs and update the ehos.yaml file with the ids
-ehos_build_images.py -B /usr/local/share/ehos/base.yaml /usr/local/etc/ehos/ehos.yaml
+ehos_build_images.py -B share/base.yaml etc/ehos.yaml
 ```
 
 ### Manual creation of the image(s)
 
-One thing to be aware if doing this manually is that the initial run
-of the cloud-init script takes a few minutes to run, so be sure that
-the VM is fully up and running before progressing to creating the
+One thing to be aware of iis that the initial run of the cloud-init
+script takes a few minutes to complete, so be sure that the VM is
+fully up and running before progressing to creating the
 backup/image. Please notice that it is important to spin down the VM
 prior to making the image, as the VM might otherwise get corrupted.
 
@@ -203,7 +204,7 @@ The CLI commands for creating an image  are:
 # Create base VM
 openstack server create --flavor <FLAVOR> --image <IMAGE> --nic net-id=<NETID> --security-group <SECURITYGROUP> --key-name <KEYNAME> --user-data /usr/local/share/ehos/base.yaml   <VM_NAME>
 
-# Notice the vm ID as this is needed below ( it is uuid string)
+# Notice the vm ID as this is needed later ( it is uuid string)
 
 #Check the status of the booting of the VM, will normally take 1-2 minuttes: 
 openstack console log show <VM_ID>
@@ -220,9 +221,9 @@ entry in the ehos.yaml file.
 
 
 
-## Create the master node & run EHOSD
+## Create the master node & run the EHOS daemon
 
-** important:** note that these install instructions differ from the
+**Important:** note that these install instructions differ from the
 ones for the deployment computer!
 
 
@@ -232,17 +233,17 @@ If you are using an OpenStack VM to act as the EHOS master it is
 recommended that you use the provided bin/ehosd_deployment.py script to
 create and configure the master node. 
 
-It is important that you have preformed any modified config files have
-been moved into the etc directory as these will then automatically be
-copied across to the master node, including the ehos.yaml file.
+It is important that you have moved any modified config files into the
+etc directory as these will then automatically be copied across to the
+master node, along with the ehos.yaml file.
 
-This will install EHOS on the masternode and run the ehos-daemon
+This script will install EHOS on the masternode and run the ehos-daemon
 (ehosd) as a service under systemd, and all ehosd logs can be seen with
 the journalctl command.
 
 
 ```bash
-# This assumes the virtualenv installation scenario:
+# create VM, install software, start EHOS
 ./bin/ehosd_deploy.py ehos.yaml
 
 ```
@@ -254,13 +255,13 @@ the journalctl command.
 The master node is normally run within the openstack environment. If
 this is the case the easiest way to deploy the master node is to use
 the image created above and use the provided master.yaml file when
-creating the master. This can be either done through the openstack
+creating the master. This can be either be done through the openstack
 dashboard, or on the command line. If using the command line execute
 the following
 
 
 ```bash
-# Create base VM (assumes virtualenv installations of EHOS)
+# Create master VM (assumes virtualenv installations of EHOS)
 openstack server create --flavor <FLAVOR> --image <IMAGE_ID> --nic net-id=<NETID> --security-group <SECURITYGROUP> --key-name <KEYNAME> --user-data share/master.yaml <VM_MASTER_NAME>
 
 ```
@@ -268,10 +269,10 @@ openstack server create --flavor <FLAVOR> --image <IMAGE_ID> --nic net-id=<NETID
 
 #### Manual Installation:
 
-A minimal master node can be setup using the provided
-**share/master.sh** shell script. Please note that this has been
-created for centos 7, and might need some alterations if your system
-differ from this.
+A minimal master compute can be setup using the provided
+**share/master.sh** shell script. Please note that this script has
+been created for centos 7, and might need some alterations if your
+system differ from this.
 
 As root (or sudo ) run this script and the necessary software and
 configuration files should be installed and configured.
@@ -280,7 +281,7 @@ configuration files should be installed and configured.
 ### Starting the daemon
 
 A few steps is remaining before the system is up and running, you will
-need to edit the ehos.yaml file with your openstack information and
+need to edit the ehos.yaml file with your openstack credentials and
 tweak the expected behaviour of the system. Eg: the max number of
 nodes running etc.
 
@@ -303,5 +304,25 @@ systemctl enable ehos.service
 systemctl start ehos.service
 
 ```
+## Testing the installation
+
+The EHOS package installs a script that is suitable for testing the
+EHOS installation. The script submits a set of jobs to the HTCondor
+queue that executes a sleep command on the execution nodes. Running
+the command without any parameters and you will get the full list of
+possible modifications as number of jobs, sleep intervals etc.
+
+Note that this should be run on the master node
+
+```bash
+# Submit 10 jobs, sleeping randomly between 30 and 50 seconds 
+ehos_sleep_jobs.py -n 10 -r 30,50
+
+# Submit 10 jobs, sleeping 20 seconds
+ehos_sleep_jobs.py -n 10 -s 20
+```
+
+
+
 
 
