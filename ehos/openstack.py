@@ -792,3 +792,195 @@ class Openstack( ehos.vm.Vm ):
 
         return volumes_detached;
         
+
+
+    def security_groups(self):
+        """ fetches the security groups from a openstack 
+
+        Args:
+          None
+
+        Returns 
+          id:name dict
+
+        Raises:
+          None
+        """
+
+
+        security_groups = self._connection.network.security_groups()
+
+        res = {}
+        
+        for security_group in security_groups:
+#            res[ security_group.id ] = {'name' : security_group.name,
+#                                        'rules': []}
+
+            res[ security_group.name ] = {'id' : security_group.id,
+                                          'rules': []}
+
+
+
+            
+            for rule in security_group.security_group_rules:
+
+                details = {}
+                
+
+                
+                details[ 'direction'        ] =  rule[ 'direction' ]
+                details[ 'protocol'         ] =  rule[ 'protocol' ]
+                details[ 'ports'            ] = (rule[ 'port_range_min' ], rule[ 'port_range_max' ])
+                details[ 'remote_group_id'  ] =  rule[ 'remote_group_id' ]
+                details[ 'remote_ip_range'  ] =  rule[ 'remote_ip_prefix' ]
+                details[ 'ethernet_version' ] =  rule[ 'ethertype' ]
+
+                res[ security_group.name ]['rules'].append( details )
+
+                
+        return res
+
+
+    
+    def security_group_create(self, name:str):
+        """ creates a security group for a given connectiona
+    
+        Args:
+          name: the name of the security groupd
+        
+        Returns:
+          id (str) of the security group
+        
+        Raises:
+          RuntimeError if a groupd with this name already exists.
+        """
+
+
+        groups = self.security_groups()
+
+        if name in groups:
+            raise RuntimeError("Openstack security group {} already exist".format( name ))
+        
+        
+        security_group_id = self._connection.network.create_security_group( name=name)
+
+        return security_group_id
+
+    def security_group_add_rule(self, id:str, direction:str, port:int, protocol:str, remote_group_id:str=None, remote_ip_range:str=None ):
+        """ adds a firewall rule for a security group 
+    
+        Args:
+          id of the security_group
+          direction either ingress or egress
+          port to open for
+          protocol, we like tcp and udp so far
+          remote_group: if intranet communication between nodes in this security group
+          remote_ip_range: ip range filtering.
+        
+        Returns:
+          None
+        
+        Raises:
+          None
+          RuntimeError if a groupd with this name already exists.
+        """
+
+        print("\nRule  details",
+              id,
+              direction,
+              port,
+              port,
+              protocol,
+              remote_group_id,
+              remote_ip_range,"\n")
+
+        
+        self._connection.network.create_security_group_rule(security_group_id=id,
+                                                            direction=direction,
+                                                            port_range_min=port,
+                                                            port_range_max=port,
+                                                            protocol=protocol,
+                                                            remote_group_id=remote_group_id,
+                                                            remote_ip_prefix=remote_ip_range)
+
+
+
+
+
+    def firewall_add_incoming_rule(self, name:str, port:int, protocol:str, remote_group:str=None, remote_ip_range:str=None ):
+        """ adds an incoming firewall rule for a security group 
+    
+        Args:
+          name of the security_group
+          port to open for
+          protocol, we like tcp and udp so far
+          remote_group: if intranet communication between nodes in this security group
+          remote_ip_range: ip range filtering.
+        
+        Returns:
+          None
+        
+        Raises:
+          None
+          RuntimeError if a groupd with this name already exists.
+        """
+
+        groups = self.security_groups()
+
+        if name not in groups:
+            raise RuntimeError("Unknown security group {} tp update".format( name ))
+
+        remote_group_id = None
+        if remote_group is not None:
+            if remote_group not in groups:
+                raise RuntimeError("Unknown remote security group '{}'".format( name ))
+            else:
+                remote_group_id = groups[remote_group]['id']
+
+        if 'rules' in groups[ name ]:
+            for rule in groups[ name ][ 'rules' ]:
+                
+                if ( rule['ports']      == (port,port) and
+                     rule['protocol']  == protocol and
+                     rule['direction']  == 'ingress' and 
+                     rule['remote_group_id']  == remote_group_id and
+                     rule['remote_ip_range']  == remote_ip_range):
+                    
+                    logger.info('firewall rule already exists, skipping it')
+                    return
+                 
+            
+                
+        self.security_group_add_rule(id=groups[name]['id'],
+                                     direction='ingress',
+                                     port=port,
+                                     protocol=protocol,
+                                     remote_group_id=remote_group_id,
+                                     remote_ip_range=remote_ip_range)
+
+
+    def firewall_add_incoming_rules(self, name:str, rules:list ):
+        """ adds an incoming firewall rule for a security group 
+    
+        Args:
+          name of the security_group
+          rules is a list of dicts all containing:
+            port to open for
+            protocol, we like tcp and udp so far
+            remote_group: if intranet communication between nodes in this security group
+            remote_ip_range: ip range filtering.
+        
+        Returns:
+          None
+        
+        Raises:
+          None
+          RuntimeError if a groupd with this name already exists.
+        """
+
+        for rule in rules:
+            self.firewall_add_incoming_rule( name=name, **rule )
+        
+
+        
+
