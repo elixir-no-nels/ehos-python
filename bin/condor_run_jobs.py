@@ -5,9 +5,8 @@
 import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
-import time
-import pprint as pp
-pp = pprint.PrettyPrinter(indent=4)
+
+import argparse
 
 import random
 import socket
@@ -21,31 +20,41 @@ import htcondor
 def main():
 
 
-parser = argparse.ArgumentParser(description='deploy_ehos: Deploy ehos onto a openstack server ')
+    parser = argparse.ArgumentParser(description='deploy_ehos: Deploy ehos onto a openstack server ')
 
     # magically sets default config files
-    parser.add_argument('-m', '--master-yaml',   help="yaml config file to create master image from", default=ehos.find_config_file('master.yaml'))
-    parser.add_argument('-e', '--execute-yaml',  help="yaml config file for execute node from",       required=False, default=ehos.find_config_file('execute.yaml'))
-    parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
+    parser.add_argument('-n', '--number-of-jobs', help="Number of jobs to submit", default=15)
+    parser.add_argument('-s', '--sleeptime',      help="fixed sleep time (all jobs sleep the same amount )", default=30)
+    parser.add_argument('-r', '--range',          help="sleep will be a randon number in this range, eg: 20,30",       required=False)
 
-    parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
     args = parser.parse_args()
 
 
-
-collector = htcondor.Collector()
-schedd = htcondor.Schedd()
-
-for i in range(0,12):
+    min_sleep = args.sleeptime
+    max_sleep = args.sleeptime
     
-    sub = htcondor.Submit()
-    sub['executable'] = '/bin/sleep'
-#    sub['arguments'] = "{}s".format( random.randint(40,90))
-    sub['arguments'] = "{}s".format( random.randint(20,40))
-    with schedd.transaction() as txn:
-        sub.queue(txn)
+    if args.range is not None:
+        try:
+            min_sleep, max_sleep = map( int, args.range.split(","))
+        except:
+            print( "Range needs to be in the following format 20,50 not {}".format(args.range))
+            sys.exit(10)
+
+    if ( min_sleep > max_sleep):
+        min_sleep, max_sleep = max_sleep, min_sleep
+            
+    collector = htcondor.Collector()
+    schedd = htcondor.Schedd()
+
+    for i in range(0,12):
+    
+        sub = htcondor.Submit()
+        sub['executable'] = '/bin/sleep'
+        sub['arguments'] = "{}s".format( random.randint(min_sleep,max_sleep))
+
+        with schedd.transaction() as txn:
+            sub.queue( txn )
 
 
 
