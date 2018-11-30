@@ -19,7 +19,6 @@ from munch import Munch
 
 import ehos.vm
 import ehos.htcondor
-import records
 
 
 class Instances(object):
