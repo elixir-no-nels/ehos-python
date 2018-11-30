@@ -20,13 +20,6 @@ import logging
 logger = logging.getLogger('ehosd')
 
 
-logging.getLogger('urllib3').setLevel(logging.CRITICAL)
-logging.getLogger('keystoneauth').setLevel(logging.CRITICAL)
-logging.getLogger('stevedore').setLevel(logging.CRITICAL)
-logging.getLogger('concurrent').setLevel(logging.CRITICAL)
-logging.getLogger('openstack').setLevel(logging.CRITICAL)
-logging.getLogger('dogpile').setLevel(logging.CRITICAL)
-
 
 # python3+ is broken on centos 7, so add the /usr/local/paths by hand
 sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
@@ -106,7 +99,7 @@ def htcondor_setup_config_file( ):
     
 
 
-def run_daemon( config_file:str="/usr/local/etc/ehos_master.yaml" ):
+def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
                
     The confirguration file is continously read so it is possible to tweak the behaviour of the system
@@ -231,7 +224,7 @@ def main():
     parser = argparse.ArgumentParser(description='ehosd: the ehos daemon to be run on the master node ')
 
     parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs='?',    help="yaml formatted config file", default=[ehos.find_config_file('ehos.yaml')])
+    parser.add_argument('config_file', metavar='config-file', nargs='?',    help="yaml formatted config file", default=ehos.find_config_file('ehos.yaml'))
 
 
     args = parser.parse_args()
