@@ -23,7 +23,7 @@ setup(name='ehos',
         'Programming Language :: Python :: 3.4'
         ],      
       scripts=['bin/ehosd.py',
-               'bin/ehosd_deployment.py.py',
+               'bin/ehosd_deployment.py',
                'bin/ehos_build_images.py',
                'bin/condor_run_jobs.py',
            ],
