@@ -29,6 +29,42 @@ if os.path.isfile("{}/../ehos/ehos.py".format( script_dir)):
 import ehos
 
 
+def set_firewall_rules(config:Munch, group_name:str, internal=False):
+
+    print("setting up firewall rules under the security group: '{}'".format( group_name))
+    
+    for cloud in config.clouds:
+    
+        
+        cloud = ehos.get_cloud_connector( cloud )
+        groups = cloud.security_groups()
+
+        if ( group_name not in groups):
+            
+            group = cloud.security_group_create(group_name)
+            groups = cloud.security_groups()
+
+
+
+        if ( internal  ):
+    
+            cloud.firewall_add_incoming_rules(name=group_name, rules=[{'port': 22,   'protocol': 'tcp', 'remote_group': group_name},
+                                                                      {'port': 9618, 'protocol': 'tcp', 'remote_group': group_name},                                                                  
+                                                                      {'port': 9618, 'protocol': 'udp', 'remote_group': group_name}, ] )
+        else:
+
+            cloud.firewall_add_incoming_rules(name=group_name, rules=[{'port': 22,   'protocol': 'tcp', 'remote_ip_range': '0.0.0.0/0'},
+                                                                      {'port': 9618, 'protocol': 'tcp', 'remote_ip_range': '0.0.0.0/0'},                                                                  
+                                                                      {'port': 9618, 'protocol': 'udp', 'remote_ip_range': '0.0.0.0/0'}, ] )
+
+def upload_ssh_key(config, keypath:str, name:str='ehos'):
+
+    print("setting up ssh keys")
+    for cloud in config.clouds:
+        cloud = ehos.get_cloud_connector( cloud )
+        cloud.upload_key( public_key=keypath, name=name)
+            
+    
 
 
 def main():
@@ -50,46 +86,81 @@ def main():
     # magically sets default config files
 
     parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
+
     parser.add_argument('-B', '--base-yaml',     help="yaml config file to create base image from",   default=ehos.find_config_file('base.yaml'))
+    parser.add_argument('-c', '--create-images', action='store_true',     help="Create images, one in each cloud in the configuration file")
+
+    parser.add_argument('-s', '--ssh-key',     help="ssh-key to upload")
+    parser.add_argument('-S', '--ssh-key-name',     help="Name of ssh key",   default="ehos")
+    
+    parser.add_argument('-i', '--internal-cloud', default=False, action='store_true',    help="Configure firewall rules for an internal setup (within single cloud)")
+    parser.add_argument('-e', '--external-cloud', default=False, action='store_true',    help="Configure firewall rules for an external setup (open to the world)")
+    parser.add_argument('-f', '--firewall-name',     help="Name of firewall (security-group)", default='ehos')
+
+    
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
     args = parser.parse_args()
 
-    # as this is an array, and we will ever only get one file set it
-    config_file = args.config_file[ 0 ]
-
     # set the leve of what to print.
     ehos.log_level( args.verbose )
-
     ehos.init(condor_init=False)
-    
-    logger.debug("Parsed arguments")
 
+    # as this is an array, and we will ever only get one file set it
+    config_file = args.config_file[ 0 ]
     # readin the config file in as a Munch object
     config = ehos.readin_config_file( config_file )
-
     # Make some images, one for each cloud
     ehos.connect_to_clouds( config )
-    images = ehos.create_images( config, args.base_yaml)
+
+    logger.debug("Parsed arguments")
+
+    changed_config = False
     
 
-    # Add the image name to the config object.
-    for cloud in images:
-        config.clouds[ cloud ].image = images[ cloud ]
-        
+    if args.ssh_key is not None:
+        upload_ssh_key(config, keypath=args.ssh_key, name=args.ssh_key_name)
+        config.ehos.key = args.ssh_key_name
+        changed_config = True
+
+    if ( args.internal_cloud ):
+        set_firewall_rules(config, group_name=args.firewall_name, internal=True)
+        config.ehos.security_groups = args.firewall_name
+        changed_config = True
+
+    elif ( args.external_cloud ):
+        set_firewall_rules(config, group_name=args.firewall_name, internal=False)
+        config.ehos.security_groups = args.firewall_name
+        changed_config = True
+
+    if ( args.create_images):
+        print("Creating images")
+        images = ehos.create_images( config, args.base_yaml)
+    
+
+        # Add the image name to the config object.
+        for cloud in images:
+            config.clouds[ cloud ].image = images[ cloud ]
+            changed_config = True
 
     # add a password to the config file if not already set:
     if 'password' not in config.condor or config.condor.password == 'None':
+        print("Setting a password in the config file")
         config.condor.password = ehos.random_string(25)
+        changed_config = True
 
     # make a backup of the original config_file, and write a new one
     # Rename original yaml file
-    os.rename(config_file, "{}.backup".format( config_file ))
 
-    fh = open( config_file, 'w')
-    config_text =  Munch.toYAML( config )
-    fh.write(  config_text )
-    fh.close()
+    if ( changed_config ):
+    
+        print("Overwriting config file with new information")
+        os.rename(config_file, "{}.backup".format( config_file ))
+
+        fh = open( config_file, 'w')
+        config_text =  Munch.toYAML( config )
+        fh.write(  config_text )
+        fh.close()
  
     
         

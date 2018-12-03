@@ -24,7 +24,7 @@ setup(name='ehos',
         ],      
       scripts=['bin/ehosd.py',
                'bin/ehosd_deployment.py',
-               'bin/ehos_build_images.py',
+               'bin/ehos_setup.py',
                'bin/condor_run_jobs.py',
            ],
       # install our config files into an ehos share.
