@@ -122,6 +122,22 @@ def connect_to_clouds(config:Munch) -> None:
     return None
 
 
+def get_cloud_connector( name:str):
+    """ returns the connector for the cloud, mainly used for debugging 
+
+    Args:
+      name of cloud to return connector for
+
+    Returns:
+      connector object for cloud
+
+    Raises:
+      None
+    """
+
+    return instances.get_cloud( name )
+
+
 def update_node_states( max_heard_from_time:int=300 ):
     """ Update the status of nodes.
 
@@ -466,7 +482,9 @@ def create_master_node( config:Munch,master_file:str):
     cloud = instances.get_cloud( cloud_name )
 
     master_name = make_node_name(config.ehos.project_prefix, "master")
-        
+
+    config.ehos.image = config.clouds[ cloud_name ].image
+    
     master_id = cloud.server_create( name=master_name,
                                      userdata_file=master_file,
                                      **config.ehos )
@@ -665,7 +683,7 @@ def readin_config_file(config_file:str) -> Munch:
       config_file: yaml formatted config files
     
     Returns:
-      config (munch )
+      config ( munch )
     
     Raises:
       None
