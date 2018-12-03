@@ -522,7 +522,6 @@ class Instances(object):
 
         self._nodes[ node_id][ 'state'] = state
         
-        self._update_node( node_id, state=state)
 
         
     def get_status(self, node_id:str):
@@ -572,7 +571,6 @@ class Instances(object):
         logger.info("Node {}/{} status changed from {} to {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'status' ], status))
 
         self._nodes[ node_id][ 'status'] = status
-        self._update_node( node_id, status=status)
 
         
 
