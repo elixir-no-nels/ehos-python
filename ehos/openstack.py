@@ -8,6 +8,7 @@
 """
 
 import sys
+import os
 import re
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -980,7 +981,63 @@ class Openstack( ehos.vm.Vm ):
 
         for rule in rules:
             self.firewall_add_incoming_rule( name=name, **rule )
+
+
+
+    def upload_key(self, public_key:str, name:str='ehos'):
+        """ Uploads a public key to the openstack server
+
+        Args:
+          public_key key to upload
+          name of key, default ehos
+        Returns
+          None
+
+        Raises:
+          None
+
+        """
+
+
+
+        for keypair in self.get_keys():
+            if ( keypair['name' ] == name ):
+                logger.info( "Key already exist in cloud, skipping it")
+                return
+
+            pub_key = open(os.path.expanduser(public_key)).read()
+            
+        self._connection.compute.create_keypair(name=name, public_key=pub_key)
+
+                
+    def get_keys(self):
+        """ Get list of keys, mainly used to ensure a key name is not already used.
+
+
+        Args:
+          None
+
+        Returns:
+          dict of keys
         
+        Raises:
+          None
+ 
+        """
+
+
+        keys = []
+
+        for entry in self._connection.compute.keypairs():
+            key = {}
+            key['name']        =  entry.name
+            key['public_key']  =  entry.public_key
+            key['fingerprint'] =  entry.fingerprint
+
+            
+            keys.append( key )
+
+        return keys
 
         
 
