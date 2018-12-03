@@ -203,8 +203,8 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         else:
             logger.info("The number of execute nodes are running seem appropriate, nothing to change.")
 
-        logger.info("Napping for {} second(s).".format(config.ehos_daemon.sleep_min))
-        time.sleep( config.ehos_daemon.sleep_min)
+        logger.info("Napping for {} second(s).".format(config.ehos_daemon.sleep))
+        time.sleep( config.ehos_daemon.sleep)
 
 
         
