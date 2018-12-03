@@ -71,10 +71,7 @@ runcmd:
   - yum install -y vim  nano wget lvm2 squashfs-tools python34 python34-pip python-pip autofs
   - yum install -y  python-devel libarchive-devel yum-utils device-mapper-persistent-data 
 
-  - pip install openstacksdk
-  - pip install python-openstackclient
-#  - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git
-#  - ehos_setup.sh /usr/local/etc/ehos_master.yaml
+  - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git@v1.0.0-rc1
 #  - systemctl enable ehos
 #  - systemctl start  ehos
 
