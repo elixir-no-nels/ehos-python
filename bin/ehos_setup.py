@@ -31,7 +31,7 @@ import ehos
 
 def set_firewall_rules(config:Munch, group_name:str, internal=False):
 
-    print("setting up firewall rules under the security group: '{}'".format( group_name))
+    print("Setting up firewall rules under the security group: '{}'".format( group_name))
     
     for cloud in config.clouds:
     
@@ -48,7 +48,7 @@ def set_firewall_rules(config:Munch, group_name:str, internal=False):
 
         if ( internal  ):
     
-            cloud.firewall_add_incoming_rules(name=group_name, rules=[{'port': 22,   'protocol': 'tcp', 'remote_group': group_name},
+            cloud.firewall_add_incoming_rules(name=group_name, rules=[{'port': 22,   'protocol': 'tcp', 'remote_ip_range': '0.0.0.0/0'},
                                                                       {'port': 9618, 'protocol': 'tcp', 'remote_group': group_name},                                                                  
                                                                       {'port': 9618, 'protocol': 'udp', 'remote_group': group_name}, ] )
         else:
@@ -59,12 +59,23 @@ def set_firewall_rules(config:Munch, group_name:str, internal=False):
 
 def upload_ssh_key(config, keypath:str, name:str='ehos'):
 
-    print("setting up ssh keys")
+    print("Setting up ssh keys")
     for cloud in config.clouds:
         cloud = ehos.get_cloud_connector( cloud )
         cloud.upload_key( public_key=keypath, name=name)
             
-    
+
+def write_config( config:Munch, config_file:str):
+
+    print("Overwriting config file with new information")
+    os.rename(config_file, "{}.backup".format( config_file ))
+
+    fh = open( config_file, 'w')
+    config_text =  Munch.toYAML( config )
+    fh.write(  config_text )
+    fh.close()
+
+        
 
 
 def main():
@@ -133,6 +144,17 @@ def main():
         config.ehos.security_groups = args.firewall_name
         changed_config = True
 
+    # add a password to the config file if not already set:
+    if 'password' not in config.condor or config.condor.password == 'None':
+        print("Setting a password in the config file")
+        config.condor.password = ehos.random_string(25)
+        changed_config = True
+
+        
+    if ( changed_config ):
+        write_config( config, config_file)
+        changed_config = False
+        
     if ( args.create_images):
         print("Creating images")
         images = ehos.create_images( config, args.base_yaml)
@@ -143,25 +165,10 @@ def main():
             config.clouds[ cloud ].image = images[ cloud ]
             changed_config = True
 
-    # add a password to the config file if not already set:
-    if 'password' not in config.condor or config.condor.password == 'None':
-        print("Setting a password in the config file")
-        config.condor.password = ehos.random_string(25)
-        changed_config = True
 
-    # make a backup of the original config_file, and write a new one
-    # Rename original yaml file
 
     if ( changed_config ):
-    
-        print("Overwriting config file with new information")
-        os.rename(config_file, "{}.backup".format( config_file ))
-
-        fh = open( config_file, 'w')
-        config_text =  Munch.toYAML( config )
-        fh.write(  config_text )
-        fh.close()
- 
+        write_config( config, config_file)
     
         
 if __name__ == '__main__':
