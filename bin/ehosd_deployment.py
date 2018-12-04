@@ -170,7 +170,9 @@ def main():
     logger.debug("Written tmp config file to: {}".format( tmp_master_config_file))
     
 
-    master_id = ehos.create_master_node(config, tmp_master_config_file)
+    master_id, master_ip = ehos.create_master_node(config, tmp_master_config_file)
+
+    print(" Master node created IP: {} ID: {}".format( master_ip, master_id))
 
     
 
