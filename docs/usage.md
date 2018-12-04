@@ -2,7 +2,7 @@
 
 These are the instructions for automatically configuring and deploying
 EHOS on a virtual machine (VM) in an OpenStack environment in three
-easy steps as outlined here: [Installation flow](ehos_simple_install_flow.png)
+easy steps as outlined here: ![Installation flow](ehos_simple_install_flow.png)
 
 1) Install ehos and dependencies on the deployment computer
 2) run script that configures the openstack firewall, uploads ssh keys and creates the necessary VM images
