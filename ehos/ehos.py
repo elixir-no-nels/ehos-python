@@ -738,10 +738,12 @@ def find_config_file( filename:str, dirs:List[str]=None) -> str:
                     '/usr/local/etc/ehos',
                     "{}/../etc".format( script_dir ),
                     'etc/',
+                    'etc/ehos',
                     '/usr/share/ehos/',
                     '/usr/local/share/ehos/',
                     "{}/../share".format( script_dir ),
                     'share/',
+                    'share/ehos',
                     './']
 
     
