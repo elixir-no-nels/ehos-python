@@ -96,7 +96,7 @@ def main():
 
     # magically sets default config files
 
-    parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
+    parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
 
     parser.add_argument('-B', '--base-yaml',     help="yaml config file to create base image from",   default=ehos.find_config_file('base.yaml'))
     parser.add_argument('-c', '--create-images', action='store_true',     help="Create images, one in each cloud in the configuration file")
@@ -111,8 +111,14 @@ def main():
     
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
+    
     args = parser.parse_args()
 
+    print( args.verbose )
+    sys.exit()
+
+
+    
     # set the leve of what to print.
     ehos.log_level( args.verbose )
     ehos.init(condor_init=False)

@@ -143,7 +143,7 @@ def main():
     parser.add_argument('-e', '--execute-yaml',  help="yaml config file for execute node from",       required=False, default=ehos.find_config_file('execute.yaml'))
     parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
 
-    parser.add_argument('-v', '--verbose', default=1, action="count",  help="Increase the verbosity of logging output")
+    parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
     args = parser.parse_args()

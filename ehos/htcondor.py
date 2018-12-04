@@ -148,7 +148,7 @@ class Condor( object ):
 
             # When was the last time we heard from this node? Assume lost of longer than max_head_from_time
             if ( timestamp - node.get('LastHeardFrom') > max_heard_from_time):
-#                logger.info( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')))
+                logger.debug( "Seems to have lost the connection to {} (last seen {} secs ago)".format( name, timestamp - node.get('LastHeardFrom')))
                 node_states[ name ] = 'lost'
                 continue
 

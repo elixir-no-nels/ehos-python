@@ -108,7 +108,7 @@ def connect_to_clouds(config:Munch) -> None:
             
 
             instances.add_cloud( cloud_name, cloud )
-            logger.info("Successfully connected to the {} openStack service".format( cloud_name ))
+            logger.debug("Successfully connected to the {} openStack service".format( cloud_name ))
 
 
 #            cloud.get_resources()
@@ -259,7 +259,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
     # We have already tagged the number of nodes to be deleted so be
     # conservative and see if we still need to do this later on
     if ( nr <= 0 ):
-        logger.info( 'A suitable amount of nodes are already being killed')
+        logger.debug( 'A suitable amount of nodes are already being killed')
         return
     
     # loop through the nodes that are deletable
@@ -274,7 +274,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
         
 #        print( node )
         if ( node[ 'status' ] == 'idle' and node['state'] in ['active', 'booting']):
-            logger.info("Killing node {}".format( node_name ))
+            logger.debug("Killing node {}".format( node_name ))
             
             condor.turn_off_fast( node_name )
             cloud = instances.get_cloud( node['cloud'])
@@ -296,7 +296,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
             if ( nr <= 0 ):
                 return
         else:
-            logger.info("Cannot kill node {} it is {}/{}".format( node_name, node['status'],node['state'] ))
+            logger.debug("Cannot kill node {} it is {}/{}".format( node_name, node['status'],node['state'] ))
 
             
 
@@ -389,11 +389,11 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                 cloud.attach_volume( node_id, volume_id=volume_id)
 
             instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting', state='booting')
-            logger.info("Execute server {}/{} is booting".format( node_id, node_name))
+            logger.debug("Execute server {}/{} is booting".format( node_id, node_name))
                 
         except Exception as e:
             logger.warning("Could not create execute server")
-            logger.info("Error: {}".format(e))
+            logger.debug("Error: {}".format(e))
 
                             
 

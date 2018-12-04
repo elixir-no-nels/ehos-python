@@ -518,7 +518,7 @@ class Instances(object):
 #        if ( self._nodes[ node_id][ 'state'] == state ):
 #            return
 
-        logger.info("Node {}/{} state changed to {} from {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'state' ], state))
+        logger.debug("Node {}/{} state changed to {} from {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'state' ], state))
 
         self._nodes[ node_id][ 'state'] = state
         
@@ -568,7 +568,7 @@ class Instances(object):
             raise RuntimeError("Illegal status {}".format( status ))
         
         
-        logger.info("Node {}/{} status changed from {} to {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'status' ], status))
+        logger.debug("Node {}/{} status changed from {} to {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'status' ], status))
 
         self._nodes[ node_id][ 'status'] = status
 

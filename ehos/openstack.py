@@ -94,7 +94,7 @@ class Openstack( ehos.vm.Vm ):
             
         )
         self._name = cloud_name
-        logger.info("Connected to openstack server")
+        logger.debug("Connected to openstack server {}".format( cloud_name ))
         
 
     def server_create(self, name:str, image:str, flavor:str, network:str, key:str, security_groups:str, userdata_file:str=None, **kwargs): 
@@ -197,7 +197,7 @@ class Openstack( ehos.vm.Vm ):
 
 
         self._connection.delete_server( id )
-        logger.info("Deleted server id:{}".format( id ))
+        logger.debug("Deleted server id:{}".format( id ))
 
 
     def server_log(self, id:str):
@@ -315,7 +315,7 @@ class Openstack( ehos.vm.Vm ):
 
 
         self.check_connection()
-        logger.info("Stopping server id{} ".format( id ))
+        logger.debug("Stopping server id{} ".format( id ))
         
         server = self._connection.compute.get_server( id )
         self._connection.compute.stop_server( server )
@@ -500,14 +500,12 @@ class Openstack( ehos.vm.Vm ):
 
         if ( self._volume_exists( id ) == False ):
             logger.debug("Volume {} does not exist, cannot delete it".format( id ))
-            import sys
-            sys.exit()
             return
         
         
         if ( id is not None):
             self._connection.delete_volume( id )
-            logger.info("Deleted volume id:{}".format( id ))
+            logger.debug("Deleted volume id:{}".format( id ))
             if ( wait ):
                 self._wait_for_volume_deletion( id )
 
@@ -551,12 +549,12 @@ class Openstack( ehos.vm.Vm ):
           RuntimeError if volume not deleted within the timeout time
         """
 
-        logger.info("Waiting for volume {} being deleted".format( id ))
+        logger.debug("Waiting for volume {} being deleted".format( id ))
 
         
         while( True ):
             if ( self._volume_exists( id ) == False ):
-                logger.info("Volume {} has been successfully deleted".format( id ))
+                logger.debug("Volume {} has been successfully deleted".format( id ))
                 return
 
             time.sleep( sleep_time )
