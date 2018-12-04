@@ -256,7 +256,7 @@ class Openstack( ehos.vm.Vm ):
         TimeoutError if entry not found before timeout is 
         """
 
-        logger.info("Waiting for log entry  id:{} --> entry:{}".format( id, match ))
+        logger.debug("Waiting for log entry  id:{} --> entry:{}".format( id, match ))
 
         while( True ):
             matches = self.server_log_search( id, match)
@@ -947,7 +947,7 @@ class Openstack( ehos.vm.Vm ):
                      rule['remote_group_id']  == remote_group_id and
                      rule['remote_ip_range']  == remote_ip_range):
                     
-                    logger.info('firewall rule already exists, skipping it')
+                    logger.debug('firewall rule already exists, skipping it')
                     return
                  
             
@@ -1002,7 +1002,7 @@ class Openstack( ehos.vm.Vm ):
 
         for keypair in self.get_keys():
             if ( keypair['name' ] == name ):
-                logger.info( "Key already exist in cloud, skipping it")
+                logger.debug( "Key already exist in cloud, skipping it")
                 return
 
             pub_key = open(os.path.expanduser(public_key)).read()

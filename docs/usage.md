@@ -57,25 +57,22 @@ virtualenv -p python3 ehos
 cd ehos
 
 # for bash
-source path-of-virtual-environment/bin/activate
+source bin/activate
 
 # for (t)csh
-source path-of-virtual-environment/bin/activate.csh
+source bin/activate.csh
 
 # install ehos v1.0.0-rc1 along with various requirements:
 pip install git+https://github.com/elixir-no-nels/ehos-python/@v1.0.0-rc1
 
-# install requirements:
-pip install -r requirements.txt
 
 # copy config template to etc/ directory:
-cp share/ehos.yaml.example etc/ehos.yaml
+cp etc/ehos/ehos.yaml.example etc/ehos/ehos.yaml
 
 # add openstack connection credentials & alter ehos behaviour if needed.
-vim etc/ehos.yaml
+vim etc/ehos/ehos.yaml
 
 #If needed for some reason:
-
 #To deactivate virtualenv:
 deactivate
 ```
@@ -99,12 +96,13 @@ the master/execution node(s).
 # run ./bin/ehos_setup.py -h for all options
 # The more -v's you add the more loggin will you get.
 
+# Please be aware that this will take a few minuttes for each cloud to be initialised 
 
 # for a single region/private ehos:
-./bin/ehos_setup.py -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -i -f ehos_firewall etc/ehos.yaml
+./bin/ehos_setup.py -v -v -v -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -i -f ehos_firewall etc/ehos/ehos.yaml
 
 # for a multi region/public ehos:
-./bin/ehos_setup.py -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -i -f ehos_firewall etc/ehos.yaml
+./bin/ehos_setup.py -v -v -v  -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -e -f ehos_firewall etc/ehos/ehos.yaml
 
 ```
 
@@ -121,10 +119,14 @@ run ehos-daemon on the commandline or as a systemd service is provided.
 
 
 ```bash
-# create VM, install software, start EHOS
-./bin/ehosd_deploy.py -v -v -v ehos.yaml
-# This will print the IP address for the master node. 
+# create VM, install software, start EHOS. Again this will take a few minuttes so be patient.
+./bin/ehos_deployment.py -v -v -v etc/ehos/ehos.yaml
+# This will print the IP address and ID for the master node. 
 # Please note this down as you will need to connect to the master
+
+
+#Deactivate virtualenv:
+deactivate
 
 # logon to the master node
 ssh [MASTER-NODE-IP]
