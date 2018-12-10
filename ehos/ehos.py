@@ -483,7 +483,7 @@ def create_master_node( config:Munch,master_file:str):
 
     master_name = make_node_name(config.ehos.project_prefix, "master")
 
-    config.ehos.image = config.clouds[ cloud_name ].image
+#    config.ehos.image = config.clouds[ cloud_name ].image
     
     master_id = cloud.server_create( name=master_name,
                                      userdata_file=master_file,
