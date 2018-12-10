@@ -224,3 +224,25 @@ class Condor( object ):
         ehos.system_call("condor_off -fast {}".format(name))
 
 
+
+
+    def set_pool_password(self, password:str) -> None:
+        """ sets the pool password for condor
+
+        Args:
+          password to set
+
+        Returns:
+          None
+
+        Raises:
+          None
+
+        """
+
+        ehos.system_call( "condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
+        htcondor.reload_config()
+
+
+        
+#        self._security.setPoolPassword( password )

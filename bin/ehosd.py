@@ -127,7 +127,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
     uid_domain = ehos.make_uid_domain_name(5)
 
-#    htcondor_security.setPoolPassword( config.condor.password )
+    condor.set_pool_password( config.condor.password )
 
     execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
 

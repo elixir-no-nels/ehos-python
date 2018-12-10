@@ -155,10 +155,10 @@ Note that this should be run on the master node
 
 ```bash
 # Submit 10 jobs, sleeping randomly between 30 and 50 seconds 
-ehos_sleep_jobs.py -n 10 -r 30,50
+condor_run_jobs.py -n 10 -r 30,50
 
 # Submit 10 jobs, each sleeping for 20 seconds
-ehos_sleep_jobs.py -n 10 -s 20
+condor_run_jobs.py -n 10 -s 20
 
 # expected output:
 
