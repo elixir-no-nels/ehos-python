@@ -273,7 +273,7 @@ the following
 
 ```bash
 # Create master VM (assumes virtualenv installations of EHOS)
-openstack server create --flavor <FLAVOR> --image <IMAGE_ID> --nic net-id=<NETID> --security-group <SECURITYGROUP> --key-name <KEYNAME> --user-data share/master.yaml <VM_MASTER_NAME>
+openstack server create --flavor <FLAVOR> --image <IMAGE_ID> --nic net-id=<NETID> --security-group <SECURITYGROUP> --key-name <KEYNAME> --user-data share/ehos/master.yaml <VM_MASTER_NAME>
 
 ```
 

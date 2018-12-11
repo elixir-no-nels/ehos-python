@@ -94,7 +94,7 @@ def htcondor_setup_config_file( ):
          os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
          # re-read configuration file
-         htcondor.reload_config()
+         condor.reload_config()
 
     
 

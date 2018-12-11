@@ -99,10 +99,10 @@ the master/execution node(s).
 # Please be aware that this will take a few minuttes for each cloud to be initialised 
 
 # for a single region/private ehos:
-./bin/ehos_setup.py -v -v -v -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -i -f ehos_firewall etc/ehos/ehos.yaml
+./bin/ehos_setup.py -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -i -f ehos_firewall etc/ehos/ehos.yaml
 
 # for a multi region/public ehos:
-./bin/ehos_setup.py -v -v -v  -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -e -f ehos_firewall etc/ehos/ehos.yaml
+./bin/ehos_setup.py  -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -e -f ehos_firewall etc/ehos/ehos.yaml
 
 ```
 
@@ -120,7 +120,7 @@ run ehos-daemon on the commandline or as a systemd service is provided.
 
 ```bash
 # create VM, install software, start EHOS. Again this will take a few minuttes so be patient.
-./bin/ehos_deployment.py -v -v -v etc/ehos/ehos.yaml
+./bin/ehos_deployment.py etc/ehos/ehos.yaml
 # This will print the IP address and ID for the master node. 
 # Please note this down as you will need to connect to the master
 
@@ -151,7 +151,8 @@ queue that executes a sleep command on the execution nodes. Running
 the command without any parameters and you will get the full list of
 possible modifications as number of jobs, sleep intervals etc.
 
-Note that this should be run on the master node
+Note that this should be run on the master node, and cannot be done
+with a sudo (or if you became root with sudo -s).
 
 ```bash
 # Submit 10 jobs, sleeping randomly between 30 and 50 seconds 
@@ -161,5 +162,21 @@ condor_run_jobs.py -n 10 -r 30,50
 condor_run_jobs.py -n 10 -s 20
 
 # expected output:
+INFO:ehosd:Nr of jobs 12 (12 are queueing)
+INFO:ehosd:We got stuff to do, creating some additional nodes...
+WARNING:ehos:Could not create execute server
+INFO:ehosd:Napping for 10 second(s).
+INFO:ehosd:Nr of nodes 2 (0 are idle)
+INFO:ehosd:Nr of jobs 12 (10 are queueing)
+INFO:ehosd:We got stuff to do, creating some additional nodes...
+WARNING:ehos:Could not create execute server
+INFO:ehosd:Napping for 10 second(s).
+INFO:ehosd:Nr of nodes 3 (0 are idle)
+INFO:ehosd:Nr of jobs 10 (8 are queueing)
+INFO:ehosd:We got stuff to do, creating some additional nodes...
+WARNING:ehos:Could not create execute server
+INFO:ehosd:Napping for 10 second(s).
+INFO:ehosd:Nr of nodes 3 (0 are idle)
+INFO:ehosd:Nr of jobs 8 (5 are queueing)
 
 ```
