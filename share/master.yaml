@@ -29,6 +29,7 @@ write_files:
         ##  The list is a comma or space separated list of subsystem names
         
         DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD
+
         
         FLOCK_TO = $(CONDOR_HOST)
         ALLOW_NEGOTIATOR = $(FLOCK_TO)
