@@ -2,7 +2,7 @@
 # vim: syntax=yaml
 #
 # Run yum upgrade
-package_upgrade: true
+#package_upgrade: true
 
 groups:
   - ehos
@@ -13,9 +13,6 @@ users:
     primary_group: ehos
     system: true
     lock_passwd: false
-
-# Run yum upgrade
-package_upgrade: true
 
 # Create custom condor configuration file to create an execute node
 write_files:
@@ -64,17 +61,15 @@ write_files:
 
 
 runcmd:
-  - yum install -y epel-release 
-
-  - yum -y groupinstall "development tools"
-
+  #- yum install -y epel-release 
+  #- yum -y groupinstall "development tools"
   ## some editors and tools we need
-  - yum install -y vim  nano wget lvm2 squashfs-tools python34 python34-pip python-pip autofs
-  - yum install -y  python-devel libarchive-devel yum-utils device-mapper-persistent-data 
+  #- yum install -y vim  nano wget lvm2 squashfs-tools python34 python34-pip python-pip autofs
+  #- yum install -y  python-devel libarchive-devel yum-utils device-mapper-persistent-data 
 
   - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git@v1.0.0-rc1
-#  - systemctl enable ehos
-#  - systemctl start  ehos
+  #  - systemctl enable ehos
+  #  - systemctl start  ehos
 
 
 final_message: "The EHOS vm is up after $UPTIME seconds"
