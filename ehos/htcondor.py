@@ -241,8 +241,20 @@ class Condor( object ):
         """
 
         ehos.system_call( "condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
-        htcondor.reload_config()
+        self.reload_config()
 
+
+#        self._security.setPoolPassword( password )
+
+
+    def reload_config(self) -> None:
+        """ seems the lib is slightly broken, so doing this on the command line
 
         
-#        self._security.setPoolPassword( password )
+        """
+
+        ehos.system_call("condor_reconfig")
+        
+
+
+
