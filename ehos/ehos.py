@@ -525,6 +525,20 @@ def get_host_ip() -> str:
     return socket.gethostbyname(socket.getfqdn()) 
 
 
+def get_host_name() -> str:
+    """ gets the host name
+
+    Args:
+      None
+
+    Returns:
+      full host name
+
+    Raises:
+      None
+    """
+    return socket.getfqdn()
+
 
 def timestamp() -> int:
     """ gets a sec since 1.1.1970

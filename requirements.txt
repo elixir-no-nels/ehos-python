@@ -2,3 +2,4 @@ htcondor
 typing
 munch
 openstacksdk
+#python-openstackclient

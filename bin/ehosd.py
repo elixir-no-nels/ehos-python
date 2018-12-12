@@ -83,12 +83,14 @@ def htcondor_setup_config_file( ):
     """
 
     
-    host_ip    = ehos.get_host_ip()
 
-    uid_domain = ehos.make_uid_domain_name(5)
 
     # first time running this master, so tweak the personal configureation file
     if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
+
+         uid_domain = ehos.make_uid_domain_name(5)
+         host_ip    = ehos.get_host_ip()
+         host_name = ehos.get_host_name()
 
          ehos.alter_file(filename='/etc/condor/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
                                                                                      (r'{uid_domain}',uid_domain)])
@@ -97,7 +99,7 @@ def htcondor_setup_config_file( ):
 
          # re-read configuration file
          condor.reload_config()
-
+         condor.turn_off_fast( host_name, 'startd')
     
 
 

@@ -206,13 +206,14 @@ class Condor( object ):
 
 
 
-    def turn_off_fast(self, name:str):
-        """ Turns off a startd daemon as defined by name
+    def turn_off_fast(self, name:str, daemon:str=None):
+        """ Turns off all daemons, unless defined by name
 
         Ideally this should be done by an API call but this "feature" is undocumented
 
         Args:
           name: name of node to turn off
+          daemon: name of daemon, othewise all of them
 
         Returns:
           None
@@ -221,7 +222,11 @@ class Condor( object ):
           None
 
         """
-        ehos.system_call("condor_off -fast {}".format(name))
+
+        if daemon is not None:
+            ehos.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
+        else:
+            ehos.system_call("condor_off -fast {}".format(name))
 
 
 
