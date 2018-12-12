@@ -75,5 +75,7 @@ write_files:
     permissions: '0644'
 
 runcmd:
-- condor_store_cred -p {password} -f /var/lock/condor/pool_password
-- condor_reconfig
+  - systemctl enable condor
+  - systemctl start  condor
+  - condor_store_cred -p {password} -f /var/lock/condor/pool_password
+  - condor_reconfig

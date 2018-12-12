@@ -18,14 +18,14 @@ runcmd:
   - yum install -y  python-devel libarchive-devel yum-utils device-mapper-persistent-data 
 
   # docker install 
-  # - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  # - yum install -y docker-ce
+  - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  - yum install -y docker-ce
 
   ## Enable condor to run docker
-  # - usermod -aG docker condor
+  #- usermod -aG docker condor
 
   ## Enable rootless use of docker
-  # - usermod -aG docker centos
+  #- usermod -aG docker centos
 
   # htcondor install
   - wget -P /etc/yum.repos.d https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
@@ -44,7 +44,7 @@ runcmd:
   #  - systemctl enable docker
 
   # Start condor and enable it on start
-  - service condor start
-  - systemctl enable condor
+  #- service condor start
+  #- systemctl enable condor
   
 final_message: "The EHOS vm is up after $UPTIME seconds"

@@ -61,6 +61,10 @@ write_files:
 
 
 runcmd:
+
+  - systemctl enable condor
+  - systemctl start condor
+
   #- yum install -y epel-release 
   #- yum -y groupinstall "development tools"
   ## some editors and tools we need
