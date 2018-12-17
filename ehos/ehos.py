@@ -384,10 +384,15 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
             if ( 'scratch_size' in config.ehos and
                  config.ehos.scratch_size is not None and
                  config.ehos.scratch_size != 'None'):
-            
-                volume_id = cloud.volume_create(size=config.ehos.scratch_size, name=node_name)
-                cloud.attach_volume( node_id, volume_id=volume_id)
 
+                try:
+                    volume_id = cloud.volume_create(size=config.ehos.scratch_size, name=node_name)
+                    cloud.attach_volume( node_id, volume_id=volume_id)
+                except:
+                    logger.warning("Could not create execute server, not enough disk available, deleting the instance.")
+                    cloud.server_delete( node_id )
+
+                    
             instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting', state='booting')
             logger.debug("Execute server {}/{} is booting".format( node_id, node_name))
                 

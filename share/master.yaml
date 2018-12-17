@@ -62,6 +62,7 @@ write_files:
 
 runcmd:
 
+  - dhclient # because the DNS server at uh-cloud is sometimes broken...
   - systemctl enable condor
   - systemctl start condor
 
