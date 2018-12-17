@@ -180,3 +180,9 @@ INFO:ehosd:Nr of nodes 3 (0 are idle)
 INFO:ehosd:Nr of jobs 8 (5 are queueing)
 
 ```
+
+
+## Cleaning up after the test
+
+The system will leave some images, servers, firewall setting and
+keypairs behind after the test, these needs to be manually deleted.

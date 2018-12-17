@@ -3,8 +3,8 @@
 
 ## Sections:
 
-* [Installation](installation.md)
-* [Usage](usage.md)
+* [Quick start](quick_start.md)
+* [Detailed installation instructions](installation.md)
 * [Requirements](requirements.md)
 * [Design notes](design.md)
 
