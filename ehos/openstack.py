@@ -459,6 +459,84 @@ class Openstack( ehos.vm.Vm ):
                 'ram'       : raw_res['total_ram'] - raw_res['total_ram_used']}
         
 
+
+    def get_images( self, active:bool=True, name=None ):
+        """ get the images currently available on the cloud
+
+        Args:        
+          active, returns only active images
+          name to filter on. Match is case in-sensitive
+        
+        Return
+          list of dict of image info ( includes id, name, min-requirements, etc)
+
+        Raises:
+          None
+        """
+
+        images = []
+        for image in self._connection.image.images():
+            if active and image.status!="active":
+                continue
+
+            if (name is not None and
+                name.lower() not in image.name.lower()):
+               continue
+                
+            
+            image_info = { 'id': image.id,
+                           'min_disk': image.min_disk,
+                           'name': image.name,
+			   'tags': image.tags,
+			   'min_ram': image.min_ram,
+			   'status': image.status}
+                           
+            
+            images.append( image_info )
+
+        return images
+
+
+    def get_flavours( self ):
+        """ get the flavours currently available on the cloud
+
+        Only returns flavours that are active and public
+
+        Args:
+          None
+        
+        Return
+          dict list of flavours (including, id, cpus, ram and name)
+
+        Raises:
+          None
+        """
+
+        flavours = []
+        for flavour in self._connection.compute.flavors():
+
+            if flavour.is_public != True:
+                continue
+
+            
+            if flavour.is_disabled != False:
+                continue
+
+            flavour_info = { 'id': flavour.id,
+                             'name': flavour.name,
+                             'ram': flavour.ram,
+                             'cpus': flavour.vcpus,
+                             'disk': flavour.disk }
+            
+
+            
+            
+            flavours.append( flavour_info )
+
+        return flavours
+    
+        
+    
     def volume_create(self, size:int, name:str=None, **kwargs) -> str:
         """ Create a volume
 

@@ -92,11 +92,10 @@ def connect_to_clouds(config:Munch) -> None:
 
     for cloud_name in config.clouds:
 
-        # Use bergen instance for now.
-#        if cloud_name != 'uh_bgn':
-#            continue
+#        config.clouds[ cloud_name ].backend = 'openstack'
         
-        if ( config.clouds[ cloud_name ].backend == 'openstack'):
+        # Ignore the backend setting, as we only support openstack right now.
+        if ( 1 or config.clouds[ cloud_name ].backend == 'openstack'):
 
             cloud_config = config.clouds[ cloud_name ]
 
@@ -104,16 +103,8 @@ def connect_to_clouds(config:Munch) -> None:
             cloud.connect( cloud_name=cloud_name,
                            **cloud_config)
 
-
-            
-
             instances.add_cloud( cloud_name, cloud )
             logger.debug("Successfully connected to the {} openStack service".format( cloud_name ))
-
-
-#            cloud.get_resources()
-#            sys.exit()
-            
 
         else:
             logger.critical( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))

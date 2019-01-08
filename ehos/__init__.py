@@ -1,4 +1,4 @@
-__version__ = "1.0.0-rc1"
+__version__ = "1.0.0-rc2"
 
 # By default we import everything from ehos as this will be the default/normal senario
 
