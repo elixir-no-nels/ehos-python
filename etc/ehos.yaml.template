@@ -1,0 +1,37 @@
+#cloud-init
+# vim: syntax=yaml
+
+# Openstack cloud parameters these should match your keystone file
+
+clouds:
+  default:
+    region_name: <REGION_NAME>
+    project_domain_name: <DOMAIN_NAME>
+    user_domain_name: <DOMAIN_NAME>
+    username: <USERNAME>
+    password: <PASSWORD>
+    project_name: <PROJECT_NAME>
+    auth_url: <URL>
+
+ehos:
+# default prefix for creating servers and storage
+  project_prefix: ehos_v1
+  network: dualStack # Not sure about this one, might have to be set between opstack instances
+
+
+# for tweaking the ehos demon behaviour
+ehos_daemon:
+
+    master_cloud: default # Which cloud to create the master node in, if only using 1 cloud will default to that one
+    min_cores: 1
+    min_instances: 2
+    min_ram: 4
+    node_allocation: round-robin
+
+    nodes_max: 6
+    nodes_min: 2
+    nodes_spare: 2
+    sleep: 30
+
+condor:
+    password: ChangeMe
