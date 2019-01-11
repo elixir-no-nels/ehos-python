@@ -14,5 +14,7 @@ openstack implementation at: uh-iaas.no, it is recommended to look at
 their documentation regarding basic openstack operations and usage as
 it will not be covered by this document (http://docs.uh-iaas.no/en/latest/).
 
-Please read the [full documentation](docs/index.md) for more details
-regarding installation and running the system.
+Read the [quick start ](docs/quick_start.md) to try ehos, or dive into
+the [full documentation](docs/index.md) for more details regarding
+architecture, installation, and running the system in a production
+environment.
