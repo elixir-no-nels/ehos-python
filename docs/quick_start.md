@@ -63,7 +63,7 @@ source bin/activate
 # for (t)csh
 source bin/activate.csh
 
-# install ehos v1.0.0-rc1 along with various requirements:
+# install ehos v1.0.0-rc2 along with various requirements:
 pip install git+https://github.com/elixir-no-nels/ehos-python/@v1.0.0-rc2
 
 # Create a config file based on an existing openstack keystone file

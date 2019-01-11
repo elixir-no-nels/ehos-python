@@ -92,7 +92,7 @@ def connect_to_clouds(config:Munch) -> None:
 
     for cloud_name in config.clouds:
 
-#        config.clouds[ cloud_name ].backend = 'openstack'
+        config.clouds[ cloud_name ].backend = 'openstack'
         
         # Ignore the backend setting, as we only support openstack right now.
         if ( 1 or config.clouds[ cloud_name ].backend == 'openstack'):
