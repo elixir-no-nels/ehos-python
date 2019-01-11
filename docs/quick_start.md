@@ -72,9 +72,6 @@ pip install git+https://github.com/elixir-no-nels/ehos-python/@v1.0.0-rc2
 ```
 
 
-## setup openstack firewall, upload ssh key and create image(s)
-
-
 ## Creating the ehos image(s)
 
 This script configure and makes the openstack environment ready to run EHOS.
