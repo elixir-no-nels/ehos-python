@@ -490,7 +490,7 @@ def create_master_node( config:Munch,master_file:str):
                                      **config.ehos )
 
         
-    logger.info("Created master node, waiting for it to come online, could take upto 10 minutes")
+    logger.info("Created master node, waiting for it to come online. This can take upto 15 minutes")
 
     
     # Wait for the server to come online and everything have been configured.    
