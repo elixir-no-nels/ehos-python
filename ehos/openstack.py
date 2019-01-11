@@ -1080,7 +1080,7 @@ class Openstack( ehos.vm.Vm ):
                 logger.debug( "Key already exist in cloud, skipping it")
                 return
 
-            pub_key = open(os.path.expanduser(public_key)).read()
+        pub_key = open(os.path.expanduser(public_key)).read()
             
         self._connection.compute.create_keypair(name=name, public_key=pub_key)
 
