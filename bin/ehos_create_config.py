@@ -16,7 +16,7 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 import logging
-logger = logging.getLogger('deploy_ehos')
+logger = logging.getLogger('ehos_create_config')
 
 
 from munch import Munch
@@ -40,6 +40,9 @@ def get_keystone_info(filename:str):
             continue
         
         _,  key, value = re.split(r'[ =]', line)
+	# strip out ' at the beginning and end of fields
+        value = re.sub(r"^'(.*)'$", r"\1", value )
+        value = re.sub(r'^"(.*)"$', r"\1", value )
         res[ key ] = value
 
     return res
@@ -94,10 +97,13 @@ def main():
     parser = argparse.ArgumentParser(description='make_ehos_config_file.py: make a ehos.yaml config file from an existing keystone file ')
 
     # magically sets default config files
+    parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
+    parser.add_argument('-o', '--out-file',     help="filt to write yaml config file to",   default='etc/ehos/ehos.yaml')
     parser.add_argument('config_template', metavar='config-template', nargs=1, help="yaml config template", default=ehos.find_config_file('ehos.yaml.template'))
     parser.add_argument('keystone_file', metavar='keystone-file', nargs=1,   help="openstack keystone file")
 
     args = parser.parse_args()
+    ehos.log_level( args.verbose )
 
     # as this is an array, and we will ever only get one file set it
     args.config_template = args.config_template[ 0 ]
@@ -107,10 +113,9 @@ def main():
     logger.debug("Parsed arguments")
 
     # readin the config file in as a Munch object
+    logger.debug("Reading config and template files")
     template = ehos.readin_config_file( args.config_template )
-
     keystone  = get_keystone_info( args.keystone_file )
-#    pp.pprint( keystone )
                          
     template['clouds'][ 'default' ][ 'auth_url'] = keystone[ 'OS_AUTH_URL' ]
     template['clouds'][ 'default' ][ 'password'] = keystone[ 'OS_PASSWORD']
@@ -124,13 +129,16 @@ def main():
 
 
 #    pp.pprint( template )
+#    sys.exit()
     
     ehos.init(condor_init=False)
     ehos.connect_to_clouds( template )
     
     default = ehos.get_cloud_connector( 'default' )
 
+    logger.debug("Finding image")
     image = find_suitable_image( default, ['centos7', 'centos 7' ])
+    logger.debug("Finding flavour")
     flavour = find_suitable_flavour( default,
                                      min_ram=template.ehos_daemon.min_ram*1024,
                                      min_cpus=template.ehos_daemon.min_cores)
@@ -146,11 +154,13 @@ def main():
     template.condor.password = ehos.random_string(25)
         
 
+    logger.info("writing config file to {}".format( args.out_file ))
 
-    print( Munch.toYAML( template ))
-
+    config_text =  Munch.toYAML( template )
+    fh = open( args.out_file, 'w')
+    fh.write( config_text)
+    fh.close()
         
-    sys.exit( -1 )
         
 if __name__ == '__main__':
     main()

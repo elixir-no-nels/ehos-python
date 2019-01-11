@@ -160,8 +160,8 @@ def main():
         changed_config = False
         
     if ( args.create_images):
-        print("Creating images")
-        images = ehos.create_images( config, args.base_yaml)
+        print("Creating image(s)")
+        images = ehos.create_images( config, args.base_yaml, delete_original=True)
     
 
         # Add the image name to the config object.

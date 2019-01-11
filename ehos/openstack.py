@@ -63,7 +63,7 @@ class Openstack( ehos.vm.Vm ):
             raise ConnectionError
 
 
-    def connect(self, cloud_name:str, auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, no_cache:str, **kwargs  ):
+    def connect(self, cloud_name:str, auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, **kwargs  ):
         """ Connects to a openstack cloud
 
         Args:
@@ -89,10 +89,9 @@ class Openstack( ehos.vm.Vm ):
             password=password,
             region_name=region_name,
             user_domain_name=user_domain_name,
-            project_domain_name=project_domain_name,
-            no_cache=no_cache
-            
+            project_domain_name=project_domain_name
         )
+
         self._name = cloud_name
         logger.debug("Connected to openstack server {}".format( cloud_name ))
         
@@ -347,7 +346,7 @@ class Openstack( ehos.vm.Vm ):
         None
         """
 
-        logger.info("Waiting for image creationimage_name:{} ".format( image_name ))
+        logger.info("Waiting for image creation image_name:{} ".format( image_name ))
         while ( True ):
 
             nr_images = 0

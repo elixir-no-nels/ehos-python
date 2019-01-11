@@ -398,12 +398,13 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
 
 
 
-def create_images( config:Munch,config_file:str):
+def create_images( config:Munch,config_file:str, delete_original:bool=False):
     """ Create a number of images to be used later to create nodes
 
     Args:
        config: config settings
        config_file: config file for base system
+       delete_original, delete the server after image creation
 
     Returns:
       dict of cloud-name : image-id
@@ -419,29 +420,32 @@ def create_images( config:Munch,config_file:str):
     for cloud_name in clouds:
         cloud = instances.get_cloud( cloud_name )
 
-        logger.info("Creating base server in {}".format( cloud_name ))
+        logger.info("Creating base server in cloud '{}'".format( cloud_name ))
 
         node_name = make_node_name(config.ehos.project_prefix, "base")
         
-        base_id = cloud.server_create( name=node_name,
+        vm_id = cloud.server_create( name=node_name,
                                        userdata_file=config_file,
                                        **config.ehos )
 
         
-        logger.info("Created base server, waiting for it to come online")
+        logger.info("Created vm server, waiting for it to come online")
 
 
         # Wait for the server to come online and everything have been configured.    
-        cloud.wait_for_log_entry(base_id, "The EHOS vm is up after ")
-        logger.info("Base server is now online")
+        cloud.wait_for_log_entry(vm_id, "The EHOS vm is up after ")
+        logger.info("VM server is now online")
             
         image_name = make_node_name(config.ehos.project_prefix, "image")
-        image_id = cloud.make_image_from_server( base_id,  image_name )
+        image_id = cloud.make_image_from_server( vm_id,  image_name )
 
         logger.info("Created image {} from {}".format( image_name, node_name ))
 
         images[ cloud_name ] = image_id
 
+        if ( delete_original):
+            cloud.server_delete( vm_id )
+        
     return images
 
 
@@ -463,11 +467,11 @@ def create_master_node( config:Munch,master_file:str):
     clouds = list(instances.get_clouds().keys())
 
     if len (clouds ) == 1:
-        logger.info( "only one cloud configured, will use that for the master node regardless of configuration")
+        logger.debug( "only one cloud configured, will use that for the master node regardless of configuration")
         config.ehos_daemon.master_cloud = clouds[ 0 ]
         
     if 'master_cloud' not in config.ehos_daemon or config.ehos_daemon == 'None':
-        logger.fatal( "Cloud instance that shall host the master node is not specified in the config file")
+        logger.fatal( "Cloud instance for hosting the master node is not specified in the config file")
         sys.exit( 2 )
     
     cloud_name = config.ehos_daemon.master_cloud
@@ -486,11 +490,11 @@ def create_master_node( config:Munch,master_file:str):
                                      **config.ehos )
 
         
-    logger.info("Created master node, waiting for it to come online")
+    logger.info("Created master node, waiting for it to come online, could take upto 10 minutes")
 
     
     # Wait for the server to come online and everything have been configured.    
-    cloud.wait_for_log_entry(master_id, "The EHOS vm is up after ")
+    cloud.wait_for_log_entry(master_id, "The EHOS vm is up after ", timeout=1300)
     logger.info("Master node is now online")
 
     logger.info( "Master IP addresse is {}".format( cloud.server_ip( master_id )))

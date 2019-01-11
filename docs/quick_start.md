@@ -5,7 +5,8 @@ EHOS on a virtual machine (VM) in an OpenStack environment in three
 easy steps as outlined here: ![Installation flow](ehos_simple_install_flow.png)
 
 1) Install ehos and dependencies on the deployment computer
-2) run script that configures the openstack firewall, uploads ssh keys and creates the necessary VM images
+2) create a config file,
+3) configures the openstack firewall, uploads ssh keys and creates the necessary VM images
 3) deployment of the ehos daemon on a newly created VM
 
 The full installation documents can be found here
@@ -63,18 +64,11 @@ source bin/activate
 source bin/activate.csh
 
 # install ehos v1.0.0-rc1 along with various requirements:
-pip install git+https://github.com/elixir-no-nels/ehos-python/@v1.0.0-rc1
+pip install git+https://github.com/elixir-no-nels/ehos-python/@v1.0.0-rc2
 
+# Create a config file based on an existing openstack keystone file
+./bin/ehos_create_config.py etc/ehos.yaml.template ~/[KEYSTONE-FILE] 
 
-# copy config template to etc/ directory:
-cp etc/ehos/ehos.yaml.example etc/ehos/ehos.yaml
-
-# add openstack connection credentials & alter ehos behaviour if needed.
-vim etc/ehos/ehos.yaml
-
-#If needed for some reason:
-#To deactivate virtualenv:
-deactivate
 ```
 
 
@@ -101,8 +95,6 @@ the master/execution node(s).
 # for a single region/private ehos:
 ./bin/ehos_setup.py -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -i -f ehos_firewall etc/ehos/ehos.yaml
 
-# for a multi region/public ehos:
-./bin/ehos_setup.py  -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -e -f ehos_firewall etc/ehos/ehos.yaml
 
 ```
 
@@ -128,8 +120,11 @@ run ehos-daemon on the commandline or as a systemd service is provided.
 #Deactivate virtualenv:
 deactivate
 
-# logon to the master node
-ssh [MASTER-NODE-IP]
+# logon to the master node, Note this might differ on your system!
+ssh centos@[MASTER-NODE-IP]
+
+# The ehos deamon needs to be run as root, so change to root with sudo
+sudo -s
 
 # start ehos-daemon manually:
 # Start up the ehos sever, adding some -v will increase the logging amount:
@@ -151,8 +146,7 @@ queue that executes a sleep command on the execution nodes. Running
 the command without any parameters and you will get the full list of
 possible modifications as number of jobs, sleep intervals etc.
 
-Note that this should be run on the master node, and cannot be done
-with a sudo (or if you became root with sudo -s).
+Note that this should be run on the master node
 
 ```bash
 # Submit 10 jobs, sleeping randomly between 30 and 50 seconds 
@@ -184,5 +178,6 @@ INFO:ehosd:Nr of jobs 8 (5 are queueing)
 
 ## Cleaning up after the test
 
-The system will leave some images, servers, firewall setting and
-keypairs behind after the test, these needs to be manually deleted.
+The system will leave some the image, some VM servers, firewall
+setting and keypairs behind after the test, these needs to be manually
+deleted.

@@ -15,7 +15,7 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 import logging
-logger = logging.getLogger('deploy_ehos')
+logger = logging.getLogger('ehos_deployment')
 
 
 from munch import Munch
