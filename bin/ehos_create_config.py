@@ -45,6 +45,24 @@ def get_keystone_info(filename:str):
         value = re.sub(r'^"(.*)"$', r"\1", value )
         res[ key ] = value
 
+
+#    pp.pprint( res )
+        
+
+    mandatory_keys = [ 'OS_AUTH_URL', 
+                       'OS_PASSWORD',
+                       'OS_USERNAME',
+                       'OS_PROJECT_DOMAIN_NAME',
+                       'OS_USER_DOMAIN_NAME',
+                       'OS_PROJECT_NAME',
+                       'OS_REGION_NAME' ]
+    
+    for key in mandatory_keys:
+        if key not in res:
+            raise RuntimeError( "The '{}' variable is not present in the keystone file".format( key ))
+        
+            
+        
     return res
 
 
