@@ -18,7 +18,7 @@ logger = logging.getLogger('ehos.htcondor')
 
 
 from munch import Munch
-import htcondor
+import  warnings
 
 import ehos
 
@@ -65,6 +65,7 @@ class Condor( object ):
         Raises:
           None
         """
+        import htcondor
 
         # get some handles into condor, should perhaps wrap them in a module later on
         self._collector = htcondor.Collector()
