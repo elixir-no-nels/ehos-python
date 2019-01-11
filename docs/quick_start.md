@@ -67,7 +67,7 @@ source bin/activate.csh
 pip install git+https://github.com/elixir-no-nels/ehos-python/@v1.0.0-rc2
 
 # Create a config file based on an existing openstack keystone file
-./bin/ehos_create_config.py etc/ehos.yaml.template ~/[KEYSTONE-FILE] 
+./bin/ehos_create_config.py etc/ehos/ehos.yaml.template ~/[KEYSTONE-FILE] 
 
 ```
 
@@ -111,7 +111,7 @@ run ehos-daemon on the commandline or as a systemd service is provided.
 
 
 ```bash
-# create VM, install software, start EHOS. Again this will take a few minuttes so be patient.
+# create VM, install software, start EHOS. Again this will take upto 15 minuttes so be patient.
 ./bin/ehos_deployment.py etc/ehos/ehos.yaml
 # This will print the IP address and ID for the master node. 
 # Please note this down as you will need to connect to the master
