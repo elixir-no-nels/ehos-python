@@ -60,7 +60,7 @@ def wait_for_running( max_timeout=60):
     
 
 
-def set_pool_password(self, password:str) -> None:
+def set_pool_password(password:str) -> None:
     """ sets the pool password for condor
     
     Args:
@@ -77,7 +77,7 @@ def set_pool_password(self, password:str) -> None:
     ehos.system_call( "condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
 
     
-def reload_config(self) -> None:
+def reload_config() -> None:
     """ seems the lib is slightly broken, so doing this on the command line
     
     
