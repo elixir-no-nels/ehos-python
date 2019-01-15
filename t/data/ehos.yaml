@@ -1,0 +1,57 @@
+#cloud-init
+# vim: syntax=yaml
+
+# vm parameters
+
+clouds:
+  os_cph:
+    backend: openstack
+    region_name: cph
+    project_domain_name: banana-port
+    user_domain_name: banana-port
+    no_cache: 1
+    auth:
+      username: 'mandrill@bananalab.com'
+      password: 'old-world'
+      project_name: 'mermaid'
+      auth_url: 'https://cloud.no:5000/v3'
+
+  os_bgn:
+    backend: openstack
+    region_name: bgo
+    project_domain_name: banana-port
+    user_domain_name: banana-port
+    no_cache: 1
+    auth:
+      username: 'marmoset@bananalab.com'
+      password: 'new-world'
+      project_name: 'raindance'
+      auth_url: 'https://cloud.dk:5000/v3'
+
+
+# Ehost spefic configuration
+ehos:
+# creating servers etc
+  project_prefix: ehos-v2
+  flavor: m1.medium 
+  base_image_id: '{basename}'
+  base_image: GOLD CentOS 7
+  network: dualStack
+  key: banana-key
+  security_groups: banana
+  
+
+  # for tweaking the ehos demon
+  submission_nodes: 1 # masternode countes as one node.
+  nodes_max: 4
+  nodes_min: 2
+  nodes_spare: 2
+  sleep_min: 10
+  sleep_max: 60
+
+  
+
+# Condor settings
+condor:
+  host_ip: None
+  password: None

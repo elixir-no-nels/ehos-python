@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # 
 # 
 # 
@@ -20,75 +20,37 @@ import shutil
 import shlex
 from typing import List, Tuple
 import subprocess
+import socket
+import random
 
-import openstack
+from munch import Munch
 
-connection = None
-level = 1
-
-
-FATAL = 1
-ERROR = 2
-WARN  = 3
-INFO  = 4
-DEBUG = 5
+import logging
+logger = logging.getLogger('ehos')
 
 
-_server_cache = {}
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+logging.getLogger('keystoneauth').setLevel(logging.CRITICAL)
+logging.getLogger('stevedore').setLevel(logging.CRITICAL)
+logging.getLogger('concurrent').setLevel(logging.CRITICAL)
+logging.getLogger('openstack').setLevel(logging.CRITICAL)
+logging.getLogger('dogpile').setLevel(logging.CRITICAL)
 
 
-def check_connection():
-    """ Checks that there is a connection to the openstack, otherwise will raise an exception
-
-    Args:
-      None
-    
-    Returns:
-      None
-
-    Raises:
-      ConnectionError if not connected
-    """
-
-    if connection is None:
-        verbose_print("No connection to openstack server", FATAL)
-        raise ConnectionError
-
-def connect_yaml( cloud_name:str ):
-    """ connect to openstack server using the cloud.yaml config file, openstack default.
-
-      Args: 
-       cloud_name: name of cloud to connect to
 
 
-      Returns:
-        None
-
-      Raises:
-        None
-    """
-
-    try:
-        global connection
-        connection = openstack.connect( cloud=cloud_name )
-    except Exception as e:
-        print( "Unexpected error:", sys.exc_info()[0])
-        print( e )
-        raise e
+global condor
+condor    = None
+global instances
+instances = None
 
 
-def connect(auth_url:str, project_name:str, username:str, password:str, region_name:str, user_domain_name:str, project_domain_name:str, no_cache:str,   ):
-    """ Connects to a openstack cloud
+def init(condor_init:bool=True):
+    """ init function for the module, connects to the htcondor server and sets up the instance tracking module
 
     Args:
-      auth_url: authentication url
-      project_name: name of project to connect to
-      username: name of the user
-      password: password for the user
-      region_name:
+      condor_init: wether to init the condor module or not.
     
-    global connection
-
     Returns:
       None
     
@@ -96,384 +58,499 @@ def connect(auth_url:str, project_name:str, username:str, password:str, region_n
       None
     """
 
-    global connection
-    connection = openstack.connect(
-        auth_url=auth_url,
-        project_name=project_name,
-        username=username,
-        password=password,
-        region_name=region_name,
-        user_domain_name=user_domain_name,
-        project_domain_name=project_domain_name,
-        no_cache=no_cache
+    # Some odd bug as the name space gets polluted when I install the module multiple times
+    import ehos.instances as I
+
+    global condor
+    global instances
+
+
+    if ( condor_init ):
+        import ehos.htcondor 
+        condor  = ehos.htcondor.Condor()
+
+    instances = I.Instances()
+
+
+    
+def connect_to_clouds(config:Munch) -> None:
+    """ Connects to the clouds spefified in the config file
+
+    Args:
+      config: from the yaml input file
+    
+    Returns:
+      connection names (list)
+
+    Raises:
+      RuntimeError if unknown backend
+    """
+
+    global instances
+
+    import ehos.openstack
+
+    for cloud_name in config.clouds:
+
+        config.clouds[ cloud_name ].backend = 'openstack'
         
-    )
-    verbose_print("Connected to openstack server", INFO)
+        # Ignore the backend setting, as we only support openstack right now.
+        if ( 1 or config.clouds[ cloud_name ].backend == 'openstack'):
 
+            cloud_config = config.clouds[ cloud_name ]
 
+            cloud = ehos.openstack.Openstack()
+            cloud.connect( cloud_name=cloud_name,
+                           **cloud_config)
 
-    
+            instances.add_cloud( cloud_name, cloud )
+            logger.debug("Successfully connected to the {} openStack service".format( cloud_name ))
 
-
-def server_create(name:str, image:str, flavor:str, network:str, key:str, security_groups:str, userdata_file:str=None): 
-    """ creates and spins up a server
-    
-    Args:
-      name: the name of the server
-      image: what image to use
-      flavor: the type of vm to use
-      network: type of network to use
-      security_groups: External access, ensure the group can connect to other server in the same group
-      userdata_file
-
-    Returns:
-      id (str) of the server
-
-    Raises:
-      None
-    """
-
-    
-    check_connection()
-
-    
-    try:
-        user_data_fh = None
-        if ( userdata_file is not None):
-            user_data_fh = open( userdata_file, 'r')
-        server = connection.create_server(name,
-                                          image=image,
-                                          flavor=flavor,
-                                          network=network,
-                                          key_name=key,
-                                          security_groups=security_groups,
-                                          # Kind of breaks with the documentation, plus needs a filehandle, not commands or a filename.
-                                          # though the code looks like it should work with just a string of command(s).
-                                          # Cannot be bothered to get to the bottom of this right now.
-                                          userdata=user_data_fh,
-                                          wait=True,
-                                          auto_ip=True)
-        
-
-        verbose_print("Created server id:{} ip:{}".format( server.id, server_ip(server.id)), DEBUG)
-        
-        global _server_cache
-        _server_cache[ server.id ] = server
-
-        return server.id
-
-    except Exception as e:
-        raise e
-
-
-def server_list():
-    """ gets a list of servers on the openstack cluster
-
-    Args:
-      None
-
-    Returns:
-      server dict ( name -> id )
-
-    Raises:
-      None
-    """
-
-    servers = {}
-    
-    for server in connection.compute.servers():
-        servers[ server.name ] = {'id':server.id, 'status':server.status}
-        servers[ server.id ]  = {'name':server.id, 'status':server.status}
-    
-        # htcondor changes the name slightly, so make sure we can find them gtain
-        server.name = server.name.lower()
-        server.name = re.sub('_','-', server.name)
-        servers[ server.name ] = {'id':server.id, 'status':server.status}
-        
-    return servers
-
-    
-def server_delete(id:str):
-    """ Deletes a server instance
-
-    Args:
-      id: name/id of a server
-
-    Returns:
-      None
-
-    Raises:
-      None
-    """
-
-
-    if ("." in id):
-        id = re.sub(r'\..*', '', id)
-
-    servers = server_list()
-#    pp.pprint( servers )
-    
-    if id not in servers.keys():
-        verbose_print("Unknown server to delete id:{}".format( id ), ehos.DEBUG)
-        raise RuntimeError( "Unknown server {}".format( id ))
-    
-    if ( 'id' in servers[ id ]):
-        id = servers[ id ]['id']
-
-    
-    connection.delete_server( id )
-    verbose_print("Deleted server id:{}".format( id ), INFO)
-    
-def servers():
-    print("List Servers:")
-
-    for server in connection.compute.servers():
-        print("\t".join(map(str, [server.id, server.name, server.status])))
-
-
-def server_log(id:str):
-    """ streams the dmesg? log from a server
-    
-    Args:
-      id: id/name of server
-    
-    Returns:
-      ?
-
-    Raises:
-      None
-    """
-
-    return( connection.compute.get_server_console_output( id )['output'])
-
-def server_log_search( id:str, match:str):
-    """ get a server log and searches for a match 
-
-    Args:
-      id: id/name of the server 
-      match: regex/str of log entry to look for
-    
-    Returns:
-      matches found in log, if none found returns an empty list
-
-    Raises:
-      None    
-    """
-
-    log = server_log( id )
-    verbose_print("Spooling server log for id:{}".format( id ), DEBUG)
-    
-    results = []
-    
-    for line in log.split("\n"):
-        if ( re.search( match, line)):
-            results.append( line )
-
-    return results
-
-def wait_for_log_entry(id:str, match:str, timeout:int=200):
-    """ continually checks a server log until a string match is found
-
-    Args:
-      id: id/name of the server 
-      match: regex/str of log entry to look for
-      timeout: max time to check logs for in seconds
-    
-    Returns:
-      matches found in log, if none found returns an empty list
-
-    Raises:
-      TimeoutError if entry not found before timeout is 
-    """
-
-    verbose_print("Waiting for log entry  id:{} --> entry:{}".format( id, match ), INFO)
-
-    while( True ):
-        matches = server_log_search( id, match)
-
-        if matches is not None and matches != []:
-            return matches
-
-        timeout -= 1
-        if ( not timeout):
-            raise TimeoutError
-
-#        print(". {}".format( timeout))
-        time.sleep( 1 )        
-        verbose_print("sleeping in wait_for_log_entry TO:{}".format( timeout ), DEBUG)
-
-    
-    
-        
-def server_ip(id:str, ipv:int=4):
-    """ returns the ip address of a server
-    
-    Args:
-      id: name/id of server
-      ipv: return IP4 or IP6 address. IPV4 is default
-
-    Returns:
-      IP address (str), if not found (wrong IPV) returns None
-
-    Raises:
-      None
-    """
-
-    server = connection.compute.get_server( id )
-
-    for nic in server.addresses['dualStack']:
-        if ( nic['version'] == ipv):
-            return nic['addr']
+        else:
+            logger.critical( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
+            raise RuntimeError( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
+                   
     return None
 
 
+def get_cloud_connector( name:str):
+    """ returns the connector for the cloud, mainly used for debugging 
 
-def server_stop(id:str, timeout:int=200): 
-    """ stops a server
-    
     Args:
-      id: the name of the server
-      timeout: max time (s) to wait for the server to shotdown
+      name of cloud to return connector for
 
+    Returns:
+      connector object for cloud
+
+    Raises:
+      None
+    """
+
+    return instances.get_cloud( name )
+
+
+def update_node_states( max_heard_from_time:int=300 ):
+    """ Update the status of nodes.
+
+    This will update the nodes object based on information from HTcondor and the vm backends.
+
+    Args:
+      max_heard_from_time: if we have not heard from a node this long, we expect it is dead (~30 min is default)
+    
     Returns:
       None
 
     Raises:
-      TimeoutError: if the server is not in shutdown status within the timeout time
-    """
-
-    
-    check_connection()
-    verbose_print("Stopping server id{} ".format( id ), INFO)
-
-    server = connection.compute.get_server( id )
-    connection.compute.stop_server( server )
-    while ( True ):
-        server = connection.compute.get_server( id )
-        if ( server.status.lower() == 'shutoff'):
-            return
-
-        timeout -= 1
-        if ( not timeout ):
-            raise TimeoutError
-
-        verbose_print("sleeping in server stop TO:{} status:{}".format( timeout, server.status ), DEBUG)
-        time.sleep(1)
-    
-    verbose_print("Server stopped id:{} ".format( id ), INFO)
-
-    
-def make_image_from_server( id:str, image_name:str, timeout:int=200):
-    """ creates an image from a server. Due to some bug in the openstack we spin it down before doing the backup
-
-    The function has a timeout variable to ensure we dont end up in an infinite loop
-
-    Args:
-      id: server name/id
-      image_name: the name of the backup to create
-      timeout: how long to wait for the image to be created.
-
-    Returns:
       None
-    
-    Raises:
-      TimeoutError: if the image is not created within the timeout time
-
     """
 
-    def _wait_for_image_creation( image_name:str, timeout:int=200):
-        """ Wait for a single image with the given name exists and them return the id of it
+    global instances
 
-        Args:
-          image_name: name of the image
-          timeout: how long to wait for the image to be created.
+    # Get a list of servers running on the VMs
+    cloud_servers = {}
+    cloud_server_name_to_id = {}
+    cloud_servers_to_cloud = {}
+    for cloud_name, connector in instances.get_clouds().items():
+        server_list = connector.server_list()
 
-        Returns:
-          image id (str)
-        
-        Raises:
-          None
-        """
+        for server_id in server_list:
+            server = server_list[ server_id ]
 
-        verbose_print("Waiting for image creationimage_name:{} ".format( image_name ), INFO)
-        while ( True ):
-        
-            nr_images = 0
-            image_id = None
-            image_status = None
-            for image in connection.image.images():
-                if image.name == image_name:
-                    nr_images += 1
-                    image_id = image.id
-                    image_status = image.status.lower()
+            cloud_servers[ server_id ] = server[ 'status']
+            cloud_server_name_to_id[  server['name'] ] = server[ 'id']
 
-            # Only one image with our name exist, so return its id
-            if nr_images == 1 and image_status == 'active':
-                verbose_print("Created image from server id{}, image_id:{} ".format( id, image_id ), INFO)
-                return image_id
-
-            # decrease the timeout counter, if hits 0 raise an exception, otherwise sleep a bit
-            timeout -= 1
-            if ( not timeout ):
-                raise TimeoutError
-            time.sleep(1)
-
-            verbose_print("sleeping in wait_for_image_creation TO:{} NR:{} status:{}".format( timeout, nr_images, image_status ), DEBUG)
-
-
-    verbose_print("Creating an image from server id{}, image_name:{} ".format( id, image_name ), INFO)
-    server_stop( id )
-    # rotation == 1 will only keep one version of this name, not sure about backup type
-    connection.compute.backup_server( id, image_name, backup_type='', rotation=1 )
-
-    return _wait_for_image_creation( image_name )
-    
-    
-    
-
-def make_uid_domain_name(length:int=3):
-    """ Makes a uid domain name
-
-    Args:
-      length: domain length
-    
-    Returns:
-      uid domain name (str)
-
-    Raises:
-      RuntimeError if length is longer than our word list
-
-    """
-
-
-    quote = "Piglet was so excited at the idea of being Useful that he forgot to be frightened any more, and when Rabbit went on to say that Kangas were only Fierce during the winter months, being at other times of an Affectionate Disposition, he could hardly sit still, he was so eager to begin being useful at once"
-
-#    quote = "The more he looked inside the more Piglet wasnt there"
-    quote = re.sub(",", "", quote);
-
-    words = list(set( quote.lower().split(" ")))
-
-    if (len(words) < length):
-        raise RuntimeError( 'length required is longer than dictonary used')
-        
-
-    
-    choices = []
-    while( True ):
-        word = random.choice(words)
-
-        if word in choices:
-            continue
+            cloud_servers_to_cloud[ server_id ] = cloud_name
             
-        choices.append( word )
 
-        if (len( choices ) == length):
-            break
+    node_count = {'idle' : 0,
+                  'busy' : 0,
+                  'total': 0}
+
+    # The list of nodes known to htcondor        
+    condor_nodes = condor.nodes()
+    # Add the nodes known to condor if they are not already registered in the instances class
+    for condor_node in condor_nodes:
+
+        # This can happen if the server is restarted and condor
+        # retains information about old nodes that have since been
+        # deleted from the cloud(s)
+        if ( condor_node not in cloud_server_name_to_id ):
+            continue
+
+
+        server_id  = cloud_server_name_to_id[ condor_node ]
+
+        # the node is unknown to our instances, so add it
+        if ( instances.find( name = condor_node ) is None):
+#            print( server_id, condor_node, cloud_servers_to_cloud[ server_id ], cloud_servers[ server_id], condor_nodes[condor_node] )
+            instances.add_node( id=server_id, name=condor_node, cloud=cloud_servers_to_cloud[ server_id ] , state=cloud_servers[ server_id], status=condor_nodes[condor_node] )
+
+
+        instances.set_status( node_id= server_id, status=condor_nodes[condor_node])
+
+#    for node in instances.get_nodes(state=['booting', 'active', 'stopping', 'unknown']):
+    for node in instances.get_nodes():
+
+#        print( node )
+
+        # Not known in the clouds or status != active, set is as deleted.
+        if node['id'] not in cloud_servers or cloud_servers[ node['id']] != 'active':
+            instances.set_state( node['id'], state='deleted')
+            instances.set_status( node['id'], status='lost')
+
+        # these are in states that are not helpful for us, so ignore them for now
+        elif node['state' ] in ['suspended', 'killing', 'retiring', 'lost']:
+            if ( instances.find( name = condor_node ) is not None ):
+                instances.set_state( node_id=server_id, state='deleted' )
+                instances.set_status( node['id'], status='lost')
+            continue
+
+        elif node[ 'state' ] == 'booting':
+            # often htcondor knows about the server before it is fully booted up
+            if node['name'] in condor_nodes:
+                instances.set_state( node['id'], 'active')
+#            else:
+                # Looking for the "server is running" keywords in the server log
+#                node_status = clouds[ node['cloud']].server_log_search()
+#                if (node_status is not None and node_status != []):
+#                    instances.set_status( node['id'], status='running')
+        else:
+            instances.set_state( node['id'], 'active')
+            
+            
         
-    return('.'.join(choices))
+
+        
+
+    return instances.node_state_counts()
+    
     
 
-def timestamp():
+def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
+    """ Delete idle nodes, by default one node is deleted
+
+    Args:
+      nr: nr of nodes to delete (if possible)
+      max_heard_from_time: if we have not heard from a node this long, we expect it is dead
+
+    Returns:
+      None
+
+    Raises:
+      None
+    """
+
+    global instances
+    
+    condor_nodes = condor.nodes( max_heard_from_time )
+
+    # Subtract the ones that are currently stopping
+    nr -= len( instances.get_nodes( state=['stopping']))
+
+    # We have already tagged the number of nodes to be deleted so be
+    # conservative and see if we still need to do this later on
+    if ( nr <= 0 ):
+        logger.debug( 'A suitable amount of nodes are already being killed')
+        return
+    
+    # loop through the nodes that are deletable
+    for node_name in condor_nodes:
+        
+        node = instances.find( name = node_name )
+        if node is None:
+            continue
+
+#        if node_name != 'ehos-v1-execute-20181107t071902':
+#            continue
+        
+#        print( node )
+        if ( node[ 'status' ] == 'idle' and node['state'] in ['active', 'booting']):
+            logger.debug("Killing node {}".format( node_name ))
+            
+            condor.turn_off_fast( node_name )
+            cloud = instances.get_cloud( node['cloud'])
+            
+            volumes = cloud.volumes_attached_to_server(node['id'])
+            cloud.detach_volumes_from_server(node['id'])
+
+            for volume in volumes:
+            
+                cloud.volume_delete( volume )
+            
+            
+            cloud.server_delete( node['id'] )
+
+            instances.set_state( node['id'], 'stopping')
+            instances.set_status( node['id'], 'retiring')
+
+            nr -= 1
+            if ( nr <= 0 ):
+                return
+        else:
+            logger.debug("Cannot kill node {} it is {}/{}".format( node_name, node['status'],node['state'] ))
+
+            
+
+    return
+
+
+def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
+    """ Create a number of execute nodes
+
+    Args:
+       config: config settings
+       config_file: config file for node
+       nr: nr of nodes to spin up (default 1)
+
+    Returns:
+      None
+    
+    Raises:
+      RuntimeError if unknown node-allocation method
+      None
+    """
+
+    global nodes
+
+    nr = 1
+    
+
+    for i in range(0, nr ):
+
+        cloud_name = None
+        clouds = list(instances.get_clouds().keys())
+
+        clouds_usable = []
+        
+        for cloud_name in clouds:
+            cloud = instances.get_cloud( cloud_name )
+            resources = cloud.get_resources_available()
+            if ( resources['ram'] > config.ehos_daemon.min_ram*1024 and
+                 resources['cores'] > config.ehos_daemon.min_cores and
+                 resources['instances'] > config.ehos_daemon.min_instances ):
+                clouds_usable.append( cloud_name )
+
+        clouds = clouds_usable
+                
+        if ( clouds == []):
+            logger.warn('No resources available to make a new node')
+            
+                
+
+        
+        # for round-robin
+        ### find the next cloud name
+        if ( config.ehos_daemon.node_allocation == 'round-robin'):
+
+            nodes_created = len( instances.get_nodes())
+
+            if nodes_created == 0:
+                cloud_name = clouds[ 0 ]
+            else:
+                cloud_name = clouds[ nodes_created%len( clouds )]
+            
+            node_name = make_node_name(config.ehos.project_prefix, "execute")
+
+        elif ( config.ehos.deamon.node_allocation == 'random'):
+            cloud_name = random.choice( clouds )
+        elif (  config.ehos.deamon.node_allocation == 'fill first'):
+            cloud_name = clouds[ 0 ]
+
+        else:
+            logger.critical("Unknown node allocation method ({})".format( config.ehos-daemon.node_allocation ))
+            raise RuntimeError("Unknown node allocation method ({})".format( config.ehos-daemon.node_allocation ))
+
+
+        cloud = instances.get_cloud( cloud_name )
+
+        logger.debug( "Using image {}".format( config.clouds[ cloud_name ].image ))
+        
+        try:
+            config.ehos.image= config.clouds[ cloud_name ].image
+            
+            node_id = cloud.server_create( name=node_name,
+                                           userdata_file=execute_config_file,
+                                           **config.ehos )
+
+            if ( 'scratch_size' in config.ehos and
+                 config.ehos.scratch_size is not None and
+                 config.ehos.scratch_size != 'None'):
+
+                try:
+                    volume_id = cloud.volume_create(size=config.ehos.scratch_size, name=node_name)
+                    cloud.attach_volume( node_id, volume_id=volume_id)
+                except:
+                    logger.warning("Could not create execute server, not enough disk available, deleting the instance.")
+                    cloud.server_delete( node_id )
+
+                    
+            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting', state='booting')
+            logger.debug("Execute server {}/{} is booting".format( node_id, node_name))
+                
+        except Exception as e:
+            logger.warning("Could not create execute server")
+            logger.debug("Error: {}".format(e))
+
+                            
+
+    return
+
+
+
+
+def create_images( config:Munch,config_file:str, delete_original:bool=False):
+    """ Create a number of images to be used later to create nodes
+
+    Args:
+       config: config settings
+       config_file: config file for base system
+       delete_original, delete the server after image creation
+
+    Returns:
+      dict of cloud-name : image-id
+    
+    Raises:
+      RuntimeError if unknown node-allocation method
+    """
+
+    clouds = list(instances.get_clouds().keys())
+
+    images = {}
+    
+    for cloud_name in clouds:
+        cloud = instances.get_cloud( cloud_name )
+
+        logger.info("Creating base server in cloud '{}'".format( cloud_name ))
+
+        node_name = make_node_name(config.ehos.project_prefix, "base")
+
+
+        resources = cloud.get_resources_available()
+        if ( resources['ram'] > config.ehos_daemon.min_ram*1024 and
+             resources['cores'] > config.ehos_daemon.min_cores and
+             resources['instances'] > config.ehos_daemon.min_instances ):
+
+            vm_id = cloud.server_create( name=node_name,
+                                         userdata_file=config_file,
+                                         **config.ehos )
+
+        
+            logger.info("Created vm server, waiting for it to come online")
+
+
+            # Wait for the server to come online and everything have been configured.    
+            cloud.wait_for_log_entry(vm_id, "The EHOS vm is up after ")
+            logger.info("VM server is now online")
+            
+            image_name = make_node_name(config.ehos.project_prefix, "image")
+            image_id = cloud.make_image_from_server( vm_id,  image_name )
+            
+            logger.info("Created image {} from {}".format( image_name, node_name ))
+            
+            images[ cloud_name ] = image_id
+
+            if ( delete_original):
+                cloud.server_delete( vm_id )
+        else:
+            logger.warn("Not enough resources available in '{}'  to create VM".format( cloud_name))
+            images[ cloud_name ] = None
+
+                
+    return images
+
+
+def create_master_node( config:Munch,master_file:str):
+    """ Create a number of images to be used later to create nodes
+
+    Args:
+       config: config settings
+       master_file: config file for master node
+       execute_file: config file for execute nodes
+
+    Returns:
+      the master_id (uuid)
+    
+    Raises:
+      RuntimeError if unknown node-allocation method
+    """
+
+    clouds = list(instances.get_clouds().keys())
+
+    if len (clouds ) == 1:
+        logger.debug( "only one cloud configured, will use that for the master node regardless of configuration")
+        config.ehos_daemon.master_cloud = clouds[ 0 ]
+        
+    if 'master_cloud' not in config.ehos_daemon or config.ehos_daemon == 'None':
+        logger.fatal( "Cloud instance for hosting the master node is not specified in the config file")
+        sys.exit( 2 )
+    
+    cloud_name = config.ehos_daemon.master_cloud
+
+    if ( cloud_name not in clouds):
+        print( "Unknown cloud instance {}, it is not found in the config file".format( cloud_name ))
+
+    cloud = instances.get_cloud( cloud_name )
+
+    master_name = make_node_name(config.ehos.project_prefix, "master")
+
+    config.ehos.image = config.clouds[ cloud_name ].image
+    
+    master_id = cloud.server_create( name=master_name,
+                                     userdata_file=master_file,
+                                     **config.ehos )
+
+        
+    logger.info("Created master node, waiting for it to come online. This can take upto 15 minutes")
+
+    
+    # Wait for the server to come online and everything have been configured.    
+    cloud.wait_for_log_entry(master_id, "The EHOS vm is up after ", timeout=1300)
+    logger.info("Master node is now online")
+
+    logger.info( "Master IP addresse is {}".format( cloud.server_ip( master_id )))
+    
+
+    return master_id, cloud.server_ip( master_id )
+
+
+
+
+# ===================== Low level generic function =====================
+
+
+def get_host_ip() -> str:
+    """ gets the host ip address
+
+    Args:
+      None
+
+    returns:
+      Host Ip 4 address
+
+    Raises:
+      None
+    """
+
+    
+    return socket.gethostbyname(socket.getfqdn()) 
+
+
+def get_host_name() -> str:
+    """ gets the host name
+
+    Args:
+      None
+
+    Returns:
+      full host name
+
+    Raises:
+      None
+    """
+    return socket.getfqdn()
+
+
+def timestamp() -> int:
     """ gets a sec since 1.1.1970
 
     "Args:
@@ -489,7 +566,7 @@ def timestamp():
     return int(time.time())
 
 
-def datetimestamp():
+def datetimestamp() -> str:
     """ Creates a timestamp so we can make unique server names
 
     Args:
@@ -530,30 +607,120 @@ def random_string(N:int=10) -> str:
     return res
         
 
-def get_node_id():
+def make_node_name(prefix="ehos", name='node') -> str:
+    """ makes a nodename with a timestamp in it, eg: prefix-name-datetime    
+
+    Furthermore, ensures the name will correspond to a hostname, eg making _ to -, and lowercase letters
+
+    Args:
+      prefix: prefix for name
+      name: type of node, eg executer
+
+    Returns:
+      name generated
+
+    Raises:
+      None
+    """
+
+    node_name = "{}-{}-{}".format(prefix, name, datetimestamp())
+    node_name = re.sub("_","-",node_name)
+    node_name = node_name.lower()
+
+    return node_name
+    
+
+def get_node_id(filename:str='/var/lib/cloud/data/instance-id') -> str:
     """ Cloud init stores the node id on disk so it possible to use this for us to get host information that way
 
     Ideally this would have been done using the cloud_init library, but that is python2 only, so this is a bit of a hack
 
     Args:
-      None
+      filename: should only be changed when testing the function
 
     Returns:
       node id (string)
     
     Raises:
-      None
+      if the instance not found raise a RuntimeError
     """
 
+    
+    if ( not os.path.isfile( filename )):
+      raise RuntimeError("instance file ({}) does not exists".format( filename))
+    
 
-    fh = open('/var/lib/cloud/data/instance-id', 'r')
+    fh = open(filename, 'r')
     id  = fh.readline().rstrip("\n")
     fh.close()
 
     return id
 
+def check_config_file(config:Munch) -> bool:
+    """ Check the integrity of the config file and make sure the values are valid
 
-def readin_whole_file(filename:str):
+    The function will set defaults if values are missing and adjust incorrect values, eg spare-nodes > min-nodes
+
+    Args:
+      config: the read in config file
+
+    Returns:
+      config (Munch)
+
+    Raises:
+      Runtime error on faulty or missing settings
+    """
+    
+    for value in ['flavor', 'base_image_id', 'network', 'key', 'security_groups']:
+        
+        if value not in config.ehos or config.ehos[ value ] == 'None':
+            logger.fatal("{} not set or set to 'None' in the configuration file".format(value))
+            raise RuntimeError("{} not set or set to 'None' in the configuration file".format(value))
+
+
+    
+    defaults = {'submission_nodes': 1,
+                'project_prefix': 'EHOS',
+                'nodes_max': 4,
+                'nodes_min': 2,
+                'nodes_spare': 2,
+                'sleep_min': 10,
+                'sleep_max': 60}
+
+    for value in defaults.keys():
+        
+        if value not in config.ehos:
+            logger.warning("{} not set in configuration file, setting it to {}".format(value, defaults[ value ]))
+            config.ehos[ value ] = defaults[ value ]
+
+
+    if ( config.ehos.nodes_min < config.ehos.nodes_spare):
+            logger.warm("configuration min-nodes smaller than spare nodes, changing min-nodes to {}".format(config.ehos.nodes_min))
+            config.ehos.nodes_min = config.ehos.nodes_spare
+
+    return True
+
+def readin_config_file(config_file:str) -> Munch:
+    """ reads in and checks the config file 
+
+    Args:
+      config_file: yaml formatted config files
+    
+    Returns:
+      config ( munch )
+    
+    Raises:
+      None
+    """
+
+    with open(config_file, 'r') as stream:
+        config = Munch.fromYAML(stream)
+        stream.close()
+
+    return config
+
+
+def readin_whole_file(filename:str) -> str:
     """ reads in a whole file as a single string
 
     Args:
@@ -573,7 +740,7 @@ def readin_whole_file(filename:str):
     return lines
 
     
-def find_config_file( filename:str, dirs:List[str]=None):
+def find_config_file( filename:str, dirs:List[str]=None) -> str:
     """ Depending on the setup the location of config files might change. This helps with this, first hit wins!
 
     The following location are used by default: /etc/ehos/, /usr/local/etc/ehos, /usr/share/ehos/, configs/
@@ -593,14 +760,15 @@ def find_config_file( filename:str, dirs:List[str]=None):
 
     default_dirs = ['/etc/ehos/',
                     '/usr/local/etc/ehos',
+                    "{}/../etc".format( script_dir ),
+                    'etc/',
+                    'etc/ehos',
                     '/usr/share/ehos/',
                     '/usr/local/share/ehos/',
-                    "{}/../configs".format( script_dir ),
-                    'configs',
+                    "{}/../share".format( script_dir ),
+                    'share/',
+                    'share/ehos',
                     './']
-
-
-    
 
     
     if dirs is not None:
@@ -615,9 +783,6 @@ def find_config_file( filename:str, dirs:List[str]=None):
 
     raise RuntimeError("File {} not found".format( filename ))
 
-        
-
-
 def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[ str, str]]=None, outfile:str=None):
     """ Alter a file by searching for a pattern (str or regex) and replace it
 
@@ -629,6 +794,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
       replace: what to replace the pattern with
       patterns: a list of replacements to be done
       outfile: alternative file to write to, will not create a backup of the original file
+
     Returns:
       None
 
@@ -670,7 +836,7 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
         patterns = [ (pattern, replace) ]
 
     for pattern, replace in patterns:
-        print( pattern, " ---> ", replace )
+#        print( pattern, " ---> ", replace )
         # replace the pattern with the replacement string
         lines = re.sub(pattern, replace, lines)
 
@@ -685,15 +851,11 @@ def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ 
             fh.close()
         
 
-    
 
-        
+def log_level(new_level:int) -> int:
+    """ Set the log level, value is forced with in the [1-5] range
 
-
-def verbose_level(new_level:int):
-    """ Set the verbosity level, value is forced with in the [1-5] range
-
-    levels correspond to: DEBUG=5,  INFO=4 WARN=3, ERROR=2 and FATAL=1
+    levels correspond to: DEBUG=5,  INFO=4 WARN=3, ERROR=2 and CRITICAL=1
 
     Args:
       level: when to report
@@ -709,39 +871,22 @@ def verbose_level(new_level:int):
         new_level = 1
     elif new_level > 5:
         new_level = 5
-        
-    global level
-    level = new_level
-    
 
-        
-def verbose_print( message:str, report_level:int=1):
-    """ If level is equal or above limit print message
-
-    Args:
-      message: what to print
-      level: when to report
-
-    Returns:
-      None
-
-    Raises:
-      None
-
-    """
-
-    levels = {FATAL: 'FATAL',
-              ERROR: 'ERROR',
-              WARN:  'WARN',
-              INFO:  'INFO',
-              DEBUG: 'DEBUG' }
-
-    
-    if ( report_level <= level):
-        print( "{}: {}".format(levels[report_level], message ))
+    if new_level   == 1:
+        logging.basicConfig(level=logging.CRITICAL)
+    elif new_level == 2:
+        logging.basicConfig(level=logging.ERROR)
+    elif new_level == 3:
+        logging.basicConfig(level=logging.WARNING)
+    elif new_level == 4:
+        logging.basicConfig(level=logging.INFO)
+    elif new_level == 5:
+        logging.basicConfig(level=logging.DEBUG)
         
 
-def system_call(command:str):
+    return new_level
+        
+def system_call(command:str) -> int:
     """ runs a system command
 
     Args:
@@ -755,6 +900,47 @@ def system_call(command:str):
     
     """
 
-    subprocess.call(shlex.split( command ), shell=False)
+    return(subprocess.call(shlex.split( command ), shell=False))
         
         
+
+def make_uid_domain_name(length:int=3):
+    """ Makes a 'random' uid domain name
+
+    Args:
+      length: domain length
+    
+    Returns:
+      uid domain name (str)
+
+    Raises:
+      RuntimeError if length is longer than our word list
+
+    """
+
+    quote = "Piglet was so excited at the idea of being Useful that he forgot to be frightened any more, and when Rabbit went on to say that Kangas were only Fierce during the winter months, being at other times of an Affectionate Disposition, he could hardly sit still, he was so eager to begin being useful at once"
+
+#    quote = "The more he looked inside the more Piglet wasnt there"
+    quote = re.sub(",", "", quote);
+
+    words = list(set( quote.lower().split(" ")))
+
+    if (len(words) < length):
+        raise RuntimeError( 'length required is longer than dictonary used')
+        
+    choices = []
+    while( True ):
+        word = random.choice(words)
+
+        if word in choices:
+            continue
+            
+        choices.append( word )
+
+        if (len( choices ) == length):
+            break
+        
+    return('.'.join(choices))
+
+
+

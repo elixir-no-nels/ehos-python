@@ -1,7 +1,7 @@
 #cloud-config
 
 # Run yum upgrade
-package_upgrade: true
+#package_upgrade: true
 
 groups:
   - docker
@@ -17,20 +17,19 @@ runcmd:
   - yum install -y vim  nano wget lvm2 squashfs-tools python34 python34-pip python-pip autofs
   - yum install -y  python-devel libarchive-devel yum-utils device-mapper-persistent-data 
 
-# docker install 
-
+  # docker install 
   - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
   - yum install -y docker-ce
 
   ## Enable condor to run docker
-  - usermod -aG docker condor
+  #- usermod -aG docker condor
 
   ## Enable rootless use of docker
-  - usermod -aG docker centos
+  #- usermod -aG docker centos
 
-# htcondor install
-
-  - wget -P /etc/yum.repos.d https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
+  # htcondor install
+  #- wget -P /etc/yum.repos.d https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
+  - wget -P /etc/yum.repos.d https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-previous-rhel7.repo
 
   - wget -P /tmp/ http://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
   - rpm --import /tmp/RPM-GPG-KEY-HTCondor
@@ -39,18 +38,14 @@ runcmd:
   ## Enable condor to run docker
   - usermod -aG docker condor
 
-# startup services
-
-## Start autofs and enable automatic start at boot
-  - service autofs start
-  - systemctl enable autofs
+  # startup services
 
   ## Start docker and enable automatic start at boot
-  - service docker start
-  - systemctl enable docker
+  #  - service docker start
+  #  - systemctl enable docker
 
-# Start condor and enable it on start
-  - service condor start
-  - systemctl enable condor
+  # Start condor and enable it on start
+  #- service condor start
+  #- systemctl enable condor
   
-final_message: "The EHOS base system is up after $UPTIME seconds"
+final_message: "The EHOS vm is up after $UPTIME seconds"

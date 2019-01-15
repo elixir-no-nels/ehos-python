@@ -10,7 +10,7 @@
 # Run yum upgrade
 #package_upgrade: true
 
-final_message: "The EHOS execute node is up after $UPTIME seconds"
+final_message: "The EHOS vm is up after $UPTIME seconds"
 
 # Create custom condor configuration file to create an execute node
 write_files:
@@ -59,21 +59,20 @@ write_files:
 
         SEC_PASSWORD_FILE = $(LOCK)/pool_password
         SEC_DEFAULT_AUTHENTICATION = REQUIRED
-        SEC_DEFAULT_AUTHENTICATION_METHODS = PASSWORD
-        SEC_ADVERTISE_STARTD_AUTHENTICATION = REQUIRED
-        SEC_ADVERTISE_STARTD_INTEGRITY = REQUIRED
-        SEC_ADVERTISE_STARTD_AUTHENTICATION_METHODS = PASSWORD
-        SEC_CLIENT_AUTHENTICATION_METHODS = FS, PASSWORD, KERBEROS, GSI
-        #        ALLOW_ADVERTISE_STARTD = condor_pool@$(UID_DOMAIN)
+        SEC_DEFAULT_AUTHENTICATION_METHODS = FS, PASSWORD
+        #ALLOW_ADVERTISE_STARTD = condor_pool@$(UID_DOMAIN)
 
         NUM_SLOTS = 1
         NUM_SLOTS_TYPE_1 = 1
         SLOT_TYPE_1 = cpus=100%
-        SLOT_TYPE_1_PARTITIONABLE = false
+        SLOT_TYPE_1_PARTITIONABLE = true
     owner: root:root
     path: /etc/condor/config.d/00personal_condor.config
     permissions: '0644'
 
 runcmd:
-- condor_store_cred -p {password} -f /var/lock/condor/pool_password
-- condor_reconfig
+  - dhclient # because the DNS server at uh-cloud is sometimes broken...
+  - systemctl enable condor
+  - systemctl start  condor
+  - condor_store_cred -p {password} -f /var/lock/condor/pool_password
+  - condor_reconfig

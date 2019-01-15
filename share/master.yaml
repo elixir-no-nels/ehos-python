@@ -2,10 +2,11 @@
 # vim: syntax=yaml
 #
 # Run yum upgrade
-package_upgrade: true
+#package_upgrade: true
 
 groups:
   - ehos
+  - docker
 
 users:
   - name: ehos
@@ -25,47 +26,48 @@ write_files:
         ##  The list is a comma or space separated list of subsystem names
         
         DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD
+
         
         FLOCK_TO = $(CONDOR_HOST)
         ALLOW_NEGOTIATOR = $(FLOCK_TO)
-#        ALLOW_WRITE = {ip_range}
+        #ALLOW_WRITE = {ip_range}
         ALLOW_WRITE  = *
         ALLOW_READ = $(ALLOW_WRITE)
         UID_DOMAIN = {uid_domain}
         STARTER_ALLOW_RUNAS_OWNER = TRUE
         TRUST_UID_DOMAIN=TRUE
         SOFT_UID_DOMAIN = TRUE
-        
 
 
         SEC_PASSWORD_FILE = $(LOCK)/pool_password
         SEC_DEFAULT_AUTHENTICATION = REQUIRED
-        SEC_DEFAULT_AUTHENTICATION_METHODS = PASSWORD
-        #SEC_DAEMON_AUTHENTICATION = REQUIRED
-        #SEC_DAEMON_INTEGRITY = REQUIRED
-        #SEC_DAEMON_AUTHENTICATION_METHODS = PASSWORD
-
-        #SEC_NEGOTIATOR_AUTHENTICATION = REQUIRED
-        #SEC_NEGOTIATOR_INTEGRITY = REQUIRED
-        #SEC_NEGOTIATOR_AUTHENTICATION_METHODS = PASSWORD
-	#SEC_CLIENT_AUTHENTICATION = REQUIRED
-        SEC_CLIENT_AUTHENTICATION_METHODS = FS, PASSWORD, KERBEROS, GSI
-#        ALLOW_DAEMON = condor_pool@$(UID_DOMAIN),   condor@$(UID_DOMAIN)/$(IP_ADDRESS)
+        SEC_DEFAULT_AUTHENTICATION_METHODS = FS, PASSWORD
+        #ALLOW_DAEMON = condor_pool@$(UID_DOMAIN)
 
         NEGOTIATOR_INTERVAL = 5
     owner: root:root
     path: /etc/condor/00personal_condor.config
     permissions: '0644'
-{write_files}
+#{write_files}
+
 
 runcmd:
-  - pip install openstacksdk
-  - pip install python-openstackclient
-  - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git
-  #- ehos_setup.sh /usr/local/etc/ehos_master.yaml
-  - systemctl enable ehos
-  - systemctl start  ehos
-  
-final_message: "The EHOS master is up after $UPTIME seconds"
+
+  - dhclient # because the DNS server at uh-cloud is sometimes broken...
+  - systemctl enable condor
+  #- systemctl start condor
+
+  #- yum install -y epel-release 
+  #- yum -y groupinstall "development tools"
+  ## some editors and tools we need
+  #- yum install -y vim  nano wget lvm2 squashfs-tools python34 python34-pip python-pip autofs
+  #- yum install -y  python-devel libarchive-devel yum-utils device-mapper-persistent-data 
+
+  - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git@v1.0.0-rc2
+  #  - systemctl enable ehos
+  #  - systemctl start  ehos
+
+
+final_message: "The EHOS vm is up after $UPTIME seconds"
 
 
