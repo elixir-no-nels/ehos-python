@@ -66,7 +66,6 @@ def init(condor_init:bool=True):
 
 
     if ( condor_init ):
-        warnings.simplefilter("ignore")
         import ehos.htcondor 
         condor  = ehos.htcondor.Condor()
 

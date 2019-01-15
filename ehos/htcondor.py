@@ -42,6 +42,7 @@ def wait_for_running( max_timeout=60):
 
     
     while( max_timeout >= 0 ):
+        print("waiting for the condor daemon ...")
         try:
             import htcondor
 
@@ -57,6 +58,33 @@ def wait_for_running( max_timeout=60):
     return False
             
     
+
+
+def set_pool_password(self, password:str) -> None:
+    """ sets the pool password for condor
+    
+    Args:
+    password to set
+    
+    Returns:
+    None
+    
+    Raises:
+    None
+    
+    """
+
+    ehos.system_call( "condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
+
+    
+def reload_config(self) -> None:
+    """ seems the lib is slightly broken, so doing this on the command line
+    
+    
+    """
+    
+    ehos.system_call("condor_reconfig")
+
 
 
 class Job_status( IntEnum ):
@@ -88,6 +116,7 @@ class Condor( object ):
     _schedd    = None
     _security  = None
 
+    import htcondor
 
     def __init__(self):
         """ Init the htcondor connections on this node
@@ -101,7 +130,6 @@ class Condor( object ):
         Raises:
           None
         """
-        import htcondor
 
         # get some handles into condor, should perhaps wrap them in a module later on
         self._collector = htcondor.Collector()
@@ -267,35 +295,6 @@ class Condor( object ):
 
 
 
-
-    def set_pool_password(self, password:str) -> None:
-        """ sets the pool password for condor
-
-        Args:
-          password to set
-
-        Returns:
-          None
-
-        Raises:
-          None
-
-        """
-
-        ehos.system_call( "condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
-        self.reload_config()
-
-
-#        self._security.setPoolPassword( password )
-
-
-    def reload_config(self) -> None:
-        """ seems the lib is slightly broken, so doing this on the command line
-
-        
-        """
-
-        ehos.system_call("condor_reconfig")
         
 
 

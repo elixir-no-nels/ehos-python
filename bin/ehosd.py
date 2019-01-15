@@ -35,7 +35,7 @@ import ehos.htcondor
 
 
 
-condor = ehos.htcondor.Condor()
+#condor = ehos.htcondor.Condor()
 
 
 def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outfile:str='/usr/local/etc/ehos/execute.yaml', execute_config:str=None):
@@ -100,9 +100,6 @@ def htcondor_setup_config_file( uid_domain  ):
 
          ehos.system_call( "systemctl start condor" )
          ehos.htcondor.wait_for_running()
-         # re-read configuration file
-#         condor.reload_config()
-#         condor.turn_off_fast( host_name, 'startd')
     
 
 
@@ -128,7 +125,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     host_ip    = ehos.get_host_ip( )
 
     uid_domain = ehos.make_uid_domain_name(5)
-    condor.set_pool_password( config.condor.password )
+    ehos.htcondor.set_pool_password( config.condor.password )
 
     htcondor_setup_config_file( uid_domain=uid_domain )
     
