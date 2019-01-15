@@ -34,6 +34,8 @@ import ehos
 import ehos.htcondor
 
 
+condor = None
+
 
 #condor = ehos.htcondor.Condor()
 
@@ -132,6 +134,8 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
 
     ehos.init()
+    global condor
+    condor = ehos.htcondor.Condor()
     ehos.connect_to_clouds( config )
     
     while ( True ):

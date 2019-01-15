@@ -51,7 +51,8 @@ def wait_for_running( max_timeout=60):
             self._security  = htcondor.SecMan()
 
             return True
-        except:
+        except e:
+            print( e )
             time.sleep( 5 )
             max_timeout -= 5
 
