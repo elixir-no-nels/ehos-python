@@ -40,8 +40,8 @@ def wait_for_running( max_timeout=60):
     """
 
     
+    logger.info("waiting for the condor daemon ...")
     while( max_timeout >= 0 ):
-        logger.info("waiting for the condor daemon ...")
         try:
             import htcondor
 

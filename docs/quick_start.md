@@ -145,7 +145,8 @@ queue that executes a sleep command on the execution nodes. Running
 the command without any parameters and you will get the full list of
 possible modifications as number of jobs, sleep intervals etc.
 
-Note that this should be run on the master node
+Note that this should be run on the master node, and cannot be run as
+root.
 
 ```bash
 # Submit 10 jobs, sleeping randomly between 30 and 50 seconds 
