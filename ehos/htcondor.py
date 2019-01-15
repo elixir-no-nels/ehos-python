@@ -41,7 +41,7 @@ def wait_for_running( max_timeout=60):
 
     
     while( max_timeout >= 0 ):
-        print("waiting for the condor daemon ...")
+        logger.info("waiting for the condor daemon ...")
         try:
             import htcondor
 
@@ -50,8 +50,8 @@ def wait_for_running( max_timeout=60):
             self._security  = htcondor.SecMan()
 
             return True
-        except e:
-            print( e )
+        except:
+            logger.debug("still waiting for the condor daemon to come online")
             time.sleep( 5 )
             max_timeout -= 5
 
