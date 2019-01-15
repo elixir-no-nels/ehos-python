@@ -102,11 +102,10 @@ def main():
     parser.add_argument('-c', '--create-images', action='store_true',     help="Create images, one in each cloud in the configuration file")
 
     parser.add_argument('-s', '--ssh-key',     help="ssh-key to upload")
-    parser.add_argument('-S', '--ssh-key-name',     help="Name of ssh key",   default="ehos")
+    parser.add_argument('-S', '--ssh-key-name',     help="Name of ssh key",   default="ehos_key")
     
-    parser.add_argument('-i', '--internal-cloud', default=False, action='store_true',    help="Configure firewall rules for an internal setup (within single cloud)")
-    parser.add_argument('-e', '--external-cloud', default=False, action='store_true',    help="Configure firewall rules for an external setup (open to the world)")
-    parser.add_argument('-f', '--firewall-name',     help="Name of firewall (security-group)", default='ehos')
+    parser.add_argument('-e', '--external-cloud', default=False, action='store_true',   help="Configure firewall rules for an external setup (open to the world)")
+    parser.add_argument('-f', '--firewall-name',     help="Name of firewall (security-group)", default='ehos_firewall')
 
     
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
@@ -138,16 +137,16 @@ def main():
         config.ehos.key = args.ssh_key_name
         changed_config = True
 
-    if ( args.internal_cloud ):
-        set_firewall_rules(config, group_name=args.firewall_name, internal=True)
-        config.ehos.security_groups = args.firewall_name
-        changed_config = True
-
-    elif ( args.external_cloud ):
+    if ( args.external_cloud ):
         set_firewall_rules(config, group_name=args.firewall_name, internal=False)
         config.ehos.security_groups = args.firewall_name
         changed_config = True
 
+    else:
+        set_firewall_rules(config, group_name=args.firewall_name, internal=True)
+        config.ehos.security_groups = args.firewall_name
+        changed_config = True
+    
     # add a password to the config file if not already set:
     if 'password' not in config.condor or config.condor.password == 'None':
         print("Setting a password in the config file")
@@ -166,6 +165,9 @@ def main():
 
         # Add the image name to the config object.
         for cloud in images:
+            if images[ cloud ] is None:
+                print( "No image created for cloud '{}', fix this before progressing".format( cloud ))
+                sys.exit(1)
             config.clouds[ cloud ].image = images[ cloud ]
             changed_config = True
 

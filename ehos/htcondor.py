@@ -13,6 +13,8 @@ pp = pprint.PrettyPrinter(indent=4)
 
 from enum import IntEnum
 
+import time
+
 import logging
 logger = logging.getLogger('ehos.htcondor')
 
@@ -21,6 +23,40 @@ from munch import Munch
 import  warnings
 
 import ehos
+
+
+
+def wait_for_running( max_timeout=60):
+    """ wait for htcondor to be running 
+
+    Args:
+      max_timeout: max time to wait
+
+    Returns:
+      boolean, true for success
+    
+    Raises:
+      RuntimeError if the daemon is not up before the timeout
+
+    """
+
+    
+    while( max_timeout >= 0 ):
+        try:
+            import htcondor
+
+            self._collector = htcondor.Collector()
+            self._schedd    = htcondor.Schedd()
+            self._security  = htcondor.SecMan()
+
+            return True
+        except:
+            time.sleep( 5 )
+            max_timeout -= 5
+
+    return False
+            
+    
 
 
 class Job_status( IntEnum ):

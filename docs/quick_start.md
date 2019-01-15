@@ -4,9 +4,8 @@ These are the instructions for automatically configuring and deploying
 EHOS on a virtual machine (VM) in an OpenStack environment in three
 easy steps as outlined here: ![Installation flow](ehos_simple_install_flow.png)
 
-1) Install ehos and dependencies on the deployment computer
-2) create a config file,
-3) configures the openstack firewall, uploads ssh keys and creates the necessary VM images
+1) Installation of ehos
+2) configures the openstack firewall, uploads ssh keys and creates the necessary VM images
 3) deployment of the ehos daemon on a newly created VM
 
 The full installation documents can be found here
@@ -15,8 +14,8 @@ workings of, and how to deploy, ehos in various environments.
 
 ## Installing EHOS on the deployment computer.
 
-The deployment computer needs to have python 3.4 (or later) and wget installed
-to be able to use the setup & deployment scripts
+The deployment computer needs to have python 3.4 (or later) and
+virtualenv installed to be able to use the EHOS setup & deployment scripts
 
 ### Configuration files:
 
@@ -49,7 +48,7 @@ templates for tweaking the system. Notice that all the files have been
 created for centos 7 systems, so alterations might be required if your
 system differs from this.
 
-## Installation of  EHOS 
+## 1) Installation of  EHOS 
 
 ```bash
 # create a python 3.X virtual environment, download EHOS and install the EHOS requirements.
@@ -72,7 +71,7 @@ pip install git+https://github.com/elixir-no-nels/ehos-python/@v1.0.0-rc2
 ```
 
 
-## Creating the ehos image(s)
+## 2) Creation of the ehos image(s)
 
 This script configure and makes the openstack environment ready to run EHOS.
 The following steps are (or can be) preformed by the ehos_setup.py script: 
@@ -89,15 +88,18 @@ the master/execution node(s).
 
 # Please be aware that this will take a few minuttes for each cloud to be initialised 
 
+# If you dont have an ssh key it is easy to generate:
+ssh-keygen
+
 # for a single region/private ehos:
-./bin/ehos_setup.py -c -s ~/.ssh/id_rsa.pub -S ehos_ssh  -i -f ehos_firewall etc/ehos/ehos.yaml
+./bin/ehos_setup.py --create-images --ssh-key ~/.ssh/id_rsa.pub etc/ehos/ehos.yaml
 
 
 ```
 
 
 
-## Create the master node & run the EHOS daemon
+## 3) Create the master node & run the EHOS daemon
 
 It is important that you have moved any modified config files into the
 etc directory as these will then automatically be copied across to the
@@ -125,7 +127,7 @@ sudo -s
 
 # start ehos-daemon manually:
 # Start up the ehos sever, adding some -v will increase the logging amount:
-/usr/local/bin/ehosd.py -v -v -v /usr/local/etc/ehos/ehos.yaml
+/usr/local/bin/ehosd.py /usr/local/etc/ehos/ehos.yaml
 
 To run is as a systemd service:
 

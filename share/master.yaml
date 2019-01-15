@@ -42,16 +42,7 @@ write_files:
         SEC_PASSWORD_FILE = $(LOCK)/pool_password
         SEC_DEFAULT_AUTHENTICATION = REQUIRED
         SEC_DEFAULT_AUTHENTICATION_METHODS = FS, PASSWORD
-        #SEC_DAEMON_AUTHENTICATION = REQUIRED
-        #SEC_DAEMON_INTEGRITY = REQUIRED
-        #SEC_DAEMON_AUTHENTICATION_METHODS = PASSWORD
-
-        #SEC_NEGOTIATOR_AUTHENTICATION = REQUIRED
-        #SEC_NEGOTIATOR_INTEGRITY = REQUIRED
-        #SEC_NEGOTIATOR_AUTHENTICATION_METHODS = PASSWORD
-        SEC_CLIENT_AUTHENTICATION = REQUIRED
-        SEC_CLIENT_AUTHENTICATION_METHODS = FS, PASSWORD
-        #ALLOW_DAEMON = condor_pool@$(UID_DOMAIN),   condor@$(UID_DOMAIN)/$(IP_ADDRESS)
+        #ALLOW_DAEMON = condor_pool@$(UID_DOMAIN)
 
         NEGOTIATOR_INTERVAL = 5
     owner: root:root
@@ -64,7 +55,7 @@ runcmd:
 
   - dhclient # because the DNS server at uh-cloud is sometimes broken...
   - systemctl enable condor
-  - systemctl start condor
+  #- systemctl start condor
 
   #- yum install -y epel-release 
   #- yum -y groupinstall "development tools"

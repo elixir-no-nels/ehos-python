@@ -66,6 +66,7 @@ def init(condor_init:bool=True):
 
 
     if ( condor_init ):
+        warnings.simplefilter("ignore")
         import ehos.htcondor 
         condor  = ehos.htcondor.Condor()
 
@@ -325,7 +326,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
         for cloud_name in clouds:
             cloud = instances.get_cloud( cloud_name )
             resources = cloud.get_resources_available()
-            if ( resources['ram'] > config.ehos_daemon.min_ram/1000 and
+            if ( resources['ram'] > config.ehos_daemon.min_ram*1024 and
                  resources['cores'] > config.ehos_daemon.min_cores and
                  resources['instances'] > config.ehos_daemon.min_instances ):
                 clouds_usable.append( cloud_name )
@@ -423,29 +424,39 @@ def create_images( config:Munch,config_file:str, delete_original:bool=False):
         logger.info("Creating base server in cloud '{}'".format( cloud_name ))
 
         node_name = make_node_name(config.ehos.project_prefix, "base")
-        
-        vm_id = cloud.server_create( name=node_name,
-                                       userdata_file=config_file,
-                                       **config.ehos )
+
+
+        resources = cloud.get_resources_available()
+        if ( resources['ram'] > config.ehos_daemon.min_ram*1024 and
+             resources['cores'] > config.ehos_daemon.min_cores and
+             resources['instances'] > config.ehos_daemon.min_instances ):
+
+            vm_id = cloud.server_create( name=node_name,
+                                         userdata_file=config_file,
+                                         **config.ehos )
 
         
-        logger.info("Created vm server, waiting for it to come online")
+            logger.info("Created vm server, waiting for it to come online")
 
 
-        # Wait for the server to come online and everything have been configured.    
-        cloud.wait_for_log_entry(vm_id, "The EHOS vm is up after ")
-        logger.info("VM server is now online")
+            # Wait for the server to come online and everything have been configured.    
+            cloud.wait_for_log_entry(vm_id, "The EHOS vm is up after ")
+            logger.info("VM server is now online")
             
-        image_name = make_node_name(config.ehos.project_prefix, "image")
-        image_id = cloud.make_image_from_server( vm_id,  image_name )
+            image_name = make_node_name(config.ehos.project_prefix, "image")
+            image_id = cloud.make_image_from_server( vm_id,  image_name )
+            
+            logger.info("Created image {} from {}".format( image_name, node_name ))
+            
+            images[ cloud_name ] = image_id
 
-        logger.info("Created image {} from {}".format( image_name, node_name ))
+            if ( delete_original):
+                cloud.server_delete( vm_id )
+        else:
+            logger.warn("Not enough resources available in '{}'  to create VM".format( cloud_name))
+            images[ cloud_name ] = None
 
-        images[ cloud_name ] = image_id
-
-        if ( delete_original):
-            cloud.server_delete( vm_id )
-        
+                
     return images
 
 

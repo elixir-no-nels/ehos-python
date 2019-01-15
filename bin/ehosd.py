@@ -69,7 +69,7 @@ def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outf
                     
 
 
-def htcondor_setup_config_file( ):
+def htcondor_setup_config_file( uid_domain  ):
     """ checks if this is a new instance of the ehosdm if it is tweak the htcondor config file and reload it
 
     Args:
@@ -88,7 +88,8 @@ def htcondor_setup_config_file( ):
     # first time running this master, so tweak the personal configureation file
     if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
 
-         uid_domain = ehos.make_uid_domain_name(5)
+         ehos.system_call( "systemctl stop condor" )
+#         uid_domain = ehos.make_uid_domain_name(5)
          host_ip    = ehos.get_host_ip()
          host_name = ehos.get_host_name()
 
@@ -97,9 +98,11 @@ def htcondor_setup_config_file( ):
 
          os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
+         ehos.system_call( "systemctl start condor" )
+         ehos.htcondor.wait_for_running()
          # re-read configuration file
-         condor.reload_config()
-         condor.turn_off_fast( host_name, 'startd')
+#         condor.reload_config()
+#         condor.turn_off_fast( host_name, 'startd')
     
 
 
@@ -121,21 +124,19 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
     config = ehos.readin_config_file( config_file )
 
-    ehos.init()
-    ehos.connect_to_clouds( config )
-    
-
-    htcondor_setup_config_file()
     
     host_ip    = ehos.get_host_ip( )
 
     uid_domain = ehos.make_uid_domain_name(5)
-
     condor.set_pool_password( config.condor.password )
 
+    htcondor_setup_config_file( uid_domain=uid_domain )
+    
     execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
 
-
+    ehos.init()
+    ehos.connect_to_clouds( config )
+    
     while ( True ):
 
         config = ehos.readin_config_file( config_file )
