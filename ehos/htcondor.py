@@ -20,7 +20,6 @@ logger = logging.getLogger('ehos.htcondor')
 
 
 from munch import Munch
-import  warnings
 
 import ehos
 
@@ -117,7 +116,6 @@ class Condor( object ):
     _schedd    = None
     _security  = None
 
-    import htcondor
 
     def __init__(self):
         """ Init the htcondor connections on this node
@@ -132,10 +130,11 @@ class Condor( object ):
           None
         """
 
+        import htcondor as HTC
         # get some handles into condor, should perhaps wrap them in a module later on
-        self._collector = htcondor.Collector()
-        self._schedd    = htcondor.Schedd()
-        self._security  = htcondor.SecMan()
+        self._collector = HTC.Collector()
+        self._schedd    = HTC.Schedd()
+        self._security  = HTC.SecMan()
 
 
 
@@ -193,8 +192,9 @@ class Condor( object ):
         timestamp = ehos.timestamp()
 
         node_states = {}
+        import htcondor as HTC
         
-        for node in self._collector.query( htcondor.AdTypes.Startd, projection=['Name', 'State', 'Activity', 'LastHeardFRom'] ):
+        for node in self._collector.query( HTC.AdTypes.Startd, projection=['Name', 'State', 'Activity', 'LastHeardFRom'] ):
 #            print( type( node ))
 #            print(  node)
 
