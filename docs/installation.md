@@ -26,8 +26,8 @@ source path-of-virtual-environment/bin/activate
 source path-of-virtual-environment/bin/activate.csh
 
 #download ehos. (requires wget)
-wget https://github.com/elixir-no-nels/ehos-python/archive/v0.1.0-rc2.tar.gz
-tar zxvf v1.0.0-rc2.tar.gz --strip 1
+wget https://github.com/elixir-no-nels/ehos-python/archive/v1.0.0.tar.gz
+tar zxvf v1.0.0.tar.gz --strip 1
 
 # install requirements:
 pip install -r requirements.txt
