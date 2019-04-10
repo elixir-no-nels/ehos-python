@@ -15,10 +15,10 @@ import argparse
 import re
 import tempfile
 import traceback
+import requests
 
 import logging
 logger = logging.getLogger('ehosd')
-
 
 
 
@@ -137,6 +137,11 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     global condor
     condor = ehos.htcondor.Condor()
     ehos.connect_to_clouds( config )
+
+    if 'influxdb' in config.ehos_daemon:
+        print( "sending startup log to influxdb")
+        requests.post(config.ehos_daemon.influxdb, data="ehos,daemon=event starting_daemon=1")
+
     
     while ( True ):
 
@@ -148,9 +153,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         nodes  = ehos.update_node_states()
         jobs   = condor.job_counts()
 
-
-
-
                 
         # just care about the overall number of nodes, not how many in each cloud
         nodes = Munch(nodes[ 'all' ])
@@ -160,6 +162,13 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
         logger.info("Nr of nodes {} ({} are idle)".format( nodes.total, nodes.idle))
         logger.info("Nr of jobs {} ({} are queueing)".format( jobs.total, jobs.idle))
+
+
+        if 'influxdb' in config.ehos_daemon:
+        
+            requests.post(config.ehos_daemon.influxdb, data="ehos,node=stats nodes_busy={},nodes_idle={}".format(nodes.busy, nodes.idle))
+            requests.post(config.ehos_daemon.influxdb, data="ehos,jobs=stats nodes_busy={},nodes_idle={}".format(jobs.running,  jobs.idle))
+
         
         # Below the min number of nodes needed for our setup
         if ( nodes.total < config.ehos_daemon.nodes_min ):
