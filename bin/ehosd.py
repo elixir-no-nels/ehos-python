@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # 
 # 
 # 
@@ -18,13 +18,10 @@ import traceback
 import requests
 
 import logging
-logger = logging.getLogger('ehosd')
-
-
 
 # python3+ is broken on centos 7, so add the /usr/local/paths by hand
-sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
-sys.path.append("/usr/local/lib64/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+#sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
+#sys.path.append("/usr/local/lib64/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
 
 
 
@@ -222,6 +219,8 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         time.sleep( config.ehos_daemon.sleep)
 
 
+
+
         
 def main():
     """ main loop
@@ -238,6 +237,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='ehosd: the ehos daemon to be run on the master node ')
 
+    parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('config_file', metavar='config-file', nargs='?',    help="yaml formatted config file", default=ehos.find_config_file('ehos.yaml'))
 
@@ -247,14 +247,13 @@ def main():
     # as this is an array, and we will ever only get one file set it
 #    args.config_file = args.config_file[ 0 ]
 
-    ehos.log_level( args.verbose )
+
+    ehos.setup_logger(args.verbose, args.logfile )
+    logger = logging.getLogger('ehosd')
+
     logger.info("Running with config file: {}".format( args.config_file))
 
-
-    if ( args.config_file):
-        run_daemon( args.config_file )
-    else:
-        run_daemon(  )
+    run_daemon( args.config_file )
 
 
 
