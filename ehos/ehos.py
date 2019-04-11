@@ -68,7 +68,6 @@ def init(condor_init:bool=True):
 
     instances = I.Instances()
 
-
     
 def connect_to_clouds(config:Munch) -> None:
     """ Connects to the clouds spefified in the config file

@@ -112,6 +112,8 @@ def log_nodes( names:list) -> None:
     for name in names:
        log_fh.write("{}\n".format(name))
 
+    sys.stdout.flush()
+
 
 
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
@@ -158,10 +160,16 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     condor = ehos.htcondor.Condor()
     ehos.connect_to_clouds( config )
 
-    global log_fh
-    log_fh = open(config.ehos_daemon.node_log, 'a', buffering=0)
+    if 'node_log' in config.ehos_daemon:
+        global log_fh
+        log_fh = open(config.ehos_daemon.node_log, 'a')
 
-    
+    if 'database' in config.ehos_daemon:
+        ehos.instances.connect( config.ehos_daemon.database )
+
+
+
+
     while ( True ):
 
         config = ehos.readin_config_file( config_file )
