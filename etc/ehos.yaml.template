@@ -33,6 +33,7 @@ ehos_daemon:
     nodes_min: 2
     nodes_spare: 2
     sleep: 30
+    database: postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
 
 condor:
     password: ChangeMe
