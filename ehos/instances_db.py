@@ -23,7 +23,7 @@ class InstancesDB(object):
         """
 
         self._db.do("insert into {table} (name) VALUES ('{name}');".format(table=table, name=name))
-        return self._get_name_id( table, name )
+        return self.get_name_id( table, name )
 
 
 
@@ -49,7 +49,7 @@ class InstancesDB(object):
             return rows[ 0 ]['id']
 
         else:
-            return self._add_name( table, name )
+            return self.add_name( table, name )
 
 
 
@@ -66,7 +66,7 @@ class InstancesDB(object):
           None
         """
 
-        return self._get_name_id('node_state', state)
+        return self.get_name_id('node_state', state)
 
 
     def get_status_id(self,  status:str ) -> int:
@@ -82,7 +82,7 @@ class InstancesDB(object):
           None
         """
 
-        return self._get_name_id('node_status', status)
+        return self.get_name_id('node_status', status)
 
 
     def get_cloud_id(self,  name:str ) -> int:
@@ -98,7 +98,7 @@ class InstancesDB(object):
           None
         """
 
-        return self._get_name_id('cloud', name)
+        return self.get_name_id('cloud', name)
 
 
     def get_node_id(self, id:str) -> int:
@@ -128,7 +128,7 @@ class InstancesDB(object):
 
 
 
-    def add_node_to_db( self, id:str, name:str, cloud:str, state:str='booting', status='starting')-> None:
+    def add_node(self, id:str, name:str, cloud:str, state:str= 'booting', status='starting')-> None:
         """ Adds a node to the class
 
         Args:
@@ -146,12 +146,12 @@ class InstancesDB(object):
         """
 
 
-        node_state_id  = self._get_state_id( state )
-        node_status_id = self._get_status_id( status )
-        cloud_id       = self._get_cloud_id( cloud )
+        node_state_id  = self.get_state_id( state )
+        node_status_id = self.get_status_id( status )
+        cloud_id       = self.get_cloud_id( cloud )
 
 
-        node_id = self._get_node_id(id)
+        node_id = self.get_node_id(id)
 
         if ( node_id is None):
 
@@ -163,7 +163,7 @@ class InstancesDB(object):
                                      node_status_id=node_status_id,
                                      node_state_id=node_state_id))
         else:
-            self._update_node( id, state=state, status=status)
+            self.update_node( id, state=state, status=status)
 
 
     def update_node(self, uuid:str, state:str=None, status=None)-> None:
@@ -183,7 +183,7 @@ class InstancesDB(object):
 
 
         if ( state is not None):
-            node_state_id  = self._get_state_id( state )
+            node_state_id  = self.get_state_id( state )
 
             query = "update node set node_state_id={node_state_id} where uuid='{uuid}';"
 
@@ -195,7 +195,7 @@ class InstancesDB(object):
                                      node_state_id=node_state_id))
 
         if ( status is not None):
-            node_status_id  = self._get_status_id( status )
+            node_status_id  = self.get_status_id( status )
 
             query = "update node set node_status_id={node_status_id} where uuid='{uuid}';"
 

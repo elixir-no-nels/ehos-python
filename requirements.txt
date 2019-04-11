@@ -1,5 +1,7 @@
 htcondor
-typing
+#typing
 munch
 openstacksdk
 #python-openstackclient
+records
+psycopg2

@@ -22,11 +22,11 @@ def test_add_cloud():
     i = I.InstancesDB( url )
 
 
-    a = i._get_cloud_id('cloud_1')
-    b = i._get_cloud_id('cloud_2')
+    a = i.get_cloud_id('cloud_1')
+    b = i.get_cloud_id('cloud_2')
 
-    assert a == i._get_cloud_id('cloud_1')
-    assert b == i._get_cloud_id('cloud_2')
+    assert a == i.get_cloud_id('cloud_1')
+    assert b == i.get_cloud_id('cloud_2')
     
 
     
@@ -36,11 +36,11 @@ def test_add_state():
     i = I.InstancesDB( url )
 
 
-    a = i._get_state_id('state_1')
-    b = i._get_state_id('state_2')
+    a = i.get_state_id('state_1')
+    b = i.get_state_id('state_2')
 
-    assert a == i._get_state_id('state_1')
-    assert b == i._get_state_id('state_2')
+    assert a == i.get_state_id('state_1')
+    assert b == i.get_state_id('state_2')
     
 
 def test_add_status():
@@ -48,11 +48,11 @@ def test_add_status():
     i = I.InstancesDB( url )
 
 
-    a = i._get_status_id('status_1')
-    b = i._get_status_id('status_2')
+    a = i.get_status_id('status_1')
+    b = i.get_status_id('status_2')
 
-    assert a == i._get_status_id('status_1')
-    assert b == i._get_status_id('status_2')
+    assert a == i.get_status_id('status_1')
+    assert b == i.get_status_id('status_2')
 
     
     
@@ -62,7 +62,7 @@ def test_add_node():
     i = I.InstancesDB( url )
 
 
-    i._add_node_to_db(id='id1', name='name1', cloud='uh1', state='booting', status='starting')
+    i.add_node(id='id1', name='name1', cloud='uh1', state='booting', status='starting')
 
 
     
@@ -72,8 +72,8 @@ def test_update_node():
     i = I.InstancesDB( url )
 
 
-    i._add_node_to_db(id='id2', name='name2', cloud='uh1', state='booting', status='starting')
+    i.add_node(id='id2', name='name2', cloud='uh1', state='booting', status='starting')
 
-    i._update_node(uuid='id2', state='changed_state')
-    i._update_node(uuid='id2', status='changed_status')
+    i.update_node(uuid='id2', state='changed_state')
+    i.update_node(uuid='id2', status='changed_status')
     

@@ -183,7 +183,7 @@ class Instances(object):
         self._name_to_id[ name ] = id
 
         if ( self._db is not None ):
-            self._add_node_to_db( id, name, cloud, state, status)
+            self._db.add_node( id, name, cloud, state, status)
 
 
 
