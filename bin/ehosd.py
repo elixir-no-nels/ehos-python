@@ -29,10 +29,11 @@ from munch import Munch
 import ehos
 import ehos.htcondor
 import ehos.log_utils as logger
+import ehos.tick_utils as Tick
 
 
 condor = None
-
+tick   = None
 
 #condor = ehos.htcondor.Condor()
 
@@ -135,9 +136,16 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     condor = ehos.htcondor.Condor()
     ehos.connect_to_clouds( config )
 
+
+
     if 'influxdb' in config.ehos_daemon:
         print( "sending startup log to influxdb")
-        requests.post(config.ehos_daemon.influxdb, data="ehos,daemon=event starting_daemon=1")
+        global tick
+        tick = Tick.Tick(url = config.influx.url, database='ehos',
+                         user=config.influx.user, passwd=config.influx.password)
+        tick.write_points({"measurement": 'ehos',
+                           "tags": {'host':'ehos-master'},
+                           "fields": {'starting_daemon': 1 }})
 
     
     while ( True ):
@@ -162,9 +170,12 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
 
         if 'influxdb' in config.ehos_daemon:
-        
-            requests.post(config.ehos_daemon.influxdb, data="ehos,node=stats nodes_busy={},nodes_idle={}".format(nodes.busy, nodes.idle))
-            requests.post(config.ehos_daemon.influxdb, data="ehos,jobs=stats nodes_busy={},nodes_idle={}".format(jobs.running,  jobs.idle))
+            tick.write_points({"measurement": 'ehos',
+                               "tags": {'host':'ehos-master'},
+                               "fields": {'nodes_busy': nodes.busy,
+                                          'nodes_idle':nodes.idle,
+                                          'jobs_running': jobs.running,
+                                          'jobs_idle': jobs.idle,}})
 
         
         # Below the min number of nodes needed for our setup
