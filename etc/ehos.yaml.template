@@ -27,6 +27,7 @@ ehos_daemon:
     min_instances: 2
     min_ram: 4
     node_allocation: round-robin
+    node_log: nodes.log
 
     nodes_max: 6
     nodes_min: 2
@@ -35,3 +36,9 @@ ehos_daemon:
 
 condor:
     password: ChangeMe
+
+influxdb:
+    db: <DB>
+    username: <USERNAME>
+    password: <PASSWORD>
+    url: https://localhost:8088/

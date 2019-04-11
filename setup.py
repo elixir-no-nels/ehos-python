@@ -4,7 +4,7 @@ def readme():
         return f.read()
 
 setup(name='ehos',
-      version='1.0.0',
+      version='1.2.0',
       description='Elastic HTCondor OpenStack Scaling',
       url='https://github.com/elixir-no-nels/ehos-python/',
       author='Kim Brugger',

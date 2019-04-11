@@ -34,6 +34,7 @@ import ehos.tick_utils as Tick
 
 condor = None
 tick   = None
+log_fh = None
 
 #condor = ehos.htcondor.Condor()
 
@@ -102,6 +103,16 @@ def htcondor_setup_config_file( uid_domain  ):
          ehos.htcondor.wait_for_running()
     
 
+def log_nodes( names:list) -> None:
+
+    if log_fh is None:
+        return
+
+
+    for name in names:
+       log_fh.write(name)
+
+
 
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
@@ -148,7 +159,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     ehos.connect_to_clouds( config )
 
 
-
+    log_fh = open(config.node_log, 'a')
 
     
     while ( True ):
@@ -185,7 +196,8 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         if ( nodes.total < config.ehos_daemon.nodes_min ):
             logger.info("We are below the min number of nodes, creating {} nodes".format( config.ehos_daemon.nodes_min - nodes.total))
 
-            ehos.create_execute_nodes(config, execute_config_file, config.ehos_daemon.nodes_min - nodes.total)
+            node_names = ehos.create_execute_nodes(config, execute_config_file, config.ehos_daemon.nodes_min - nodes.total)
+            log_nodes( node_names )
 
         ### there are jobs queuing, let see what we should do
 

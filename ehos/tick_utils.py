@@ -90,14 +90,14 @@ class Tick(object):
         if self.user is not None and self.passwd is not None:
             res = requests.post(url, auth=(self.user, self.passwd), data=data)
 
-            print(res)
+#            print(res)
             if res.status_code != 204:
                 return False
 
         else:
             res = requests.post(url, auth=(self.user, self.passwd), data=data)
 
-            print(res)
+#            print(res)
             if res.status_code != 204:
                 return False
         return True

@@ -52,8 +52,7 @@ write_files:
 
 runcmd:
 
-  - dhclient # because the DNS server at uh-cloud is sometimes broken...
-
+  - dhclient # because the DNS server at uh-iaas is sometimes broken...
   - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git
 
 

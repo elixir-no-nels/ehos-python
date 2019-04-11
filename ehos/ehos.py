@@ -313,7 +313,9 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     global nodes
 
     nr = 1
-    
+
+    node_names = []
+
 
     for i in range(0, nr ):
 
@@ -386,14 +388,16 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                     
             instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting', state='booting')
             logger.debug("Execute server {}/{} is booting".format( node_id, node_name))
-                
+            node_names.append(node_name)
+
         except Exception as e:
             logger.warning("Could not create execute server")
             logger.debug("Error: {}".format(e))
 
                             
 
-    return
+    return node_names
+
 
 
 

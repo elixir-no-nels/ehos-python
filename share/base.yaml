@@ -11,10 +11,10 @@ runcmd:
   ## for Extra Packages for Enterprise Linux packages (stupid centos)
   - yum install -y epel-release 
 
-  - yum -y groupinstall "development tools"
+  - yum -y groupinstall "development tools" openssl-devel
 
   ## some editors and tools we need
-  - yum install -y vim   wget python34 python34-pip python34-devel libarchive-devel yum-utils  
+  - yum install -y vim   wget python36 python36-pip python36-devel libarchive-devel yum-utils
 
   # docker install 
   #- yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
