@@ -717,6 +717,9 @@ def readin_config_file(config_file:str) -> Munch:
         config = Munch.fromYAML(stream)
         stream.close()
 
+    if 'hostname' not in config.ehos_daemon:
+        config.ehos_daemon.hostname = get_host_name()
+
     return config
 
 

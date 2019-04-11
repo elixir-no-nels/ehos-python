@@ -121,7 +121,18 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
     config = ehos.readin_config_file( config_file )
 
-    
+    if 'influxdb' in config:
+        print( "sending startup entry to influxdb")
+        global tick
+        tick = Tick.Tick(url = config.influxdb.url, database=config.influxdb.db,
+                         user=config.influxdb.username, passwd=config.influxdb.password)
+
+        tick.write_points({"measurement": 'ehos',
+                           "tags": {'host': config.ehos_daemon.hostname,
+        },
+                           "fields": {'starting_daemon': 1 }})
+
+
     host_ip    = ehos.get_host_ip( )
 
     uid_domain = ehos.make_uid_domain_name(5)
@@ -138,14 +149,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
 
 
-    if 'influxdb' in config.ehos_daemon:
-        print( "sending startup log to influxdb")
-        global tick
-        tick = Tick.Tick(url = config.influx.url, database='ehos',
-                         user=config.influx.user, passwd=config.influx.password)
-        tick.write_points({"measurement": 'ehos',
-                           "tags": {'host':'ehos-master'},
-                           "fields": {'starting_daemon': 1 }})
 
     
     while ( True ):
@@ -171,7 +174,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
         if 'influxdb' in config.ehos_daemon:
             tick.write_points({"measurement": 'ehos',
-                               "tags": {'host':'ehos-master'},
+                               "tags": {'host':config.ehos_daemon.hostname},
                                "fields": {'nodes_busy': nodes.busy,
                                           'nodes_idle':nodes.idle,
                                           'jobs_running': jobs.running,
