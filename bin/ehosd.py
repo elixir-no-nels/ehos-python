@@ -110,7 +110,7 @@ def log_nodes( names:list) -> None:
 
 
     for name in names:
-       log_fh.write(name)
+       log_fh.write("{}\n".format(name))
 
 
 
@@ -158,8 +158,8 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     condor = ehos.htcondor.Condor()
     ehos.connect_to_clouds( config )
 
-
-    log_fh = open(config.node_log, 'a')
+    global log_fh
+    log_fh = open(config.ehos_daemon.node_log, 'a', buffering=0)
 
     
     while ( True ):
@@ -216,7 +216,9 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
-            ehos.create_execute_nodes(config, execute_config_file, config.ehos_daemon.nodes_max - nodes.total )
+            node_names = ehos.create_execute_nodes(config, execute_config_file, config.ehos_daemon.nodes_max - nodes.total )
+            log_nodes( node_names )
+
 
         # this one is just a sanity one
         elif ( jobs.idle and nodes.total == config.ehos_daemon.nodes_max):
