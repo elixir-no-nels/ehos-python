@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # 
 # 
 # 
@@ -14,8 +14,7 @@ import tempfile
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-import logging
-logger = logging.getLogger('ehos_build_images')
+import ehos.log_utils as logger
 
 from munch import Munch
 
@@ -107,17 +106,17 @@ def main():
     parser.add_argument('-e', '--external-cloud', default=False, action='store_true',   help="Configure firewall rules for an external setup (open to the world)")
     parser.add_argument('-f', '--firewall-name',     help="Name of firewall (security-group)", default='ehos_firewall')
 
-    
+    parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
+
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
     
     args = parser.parse_args()
 
-
-
     
     # set the leve of what to print.
-    ehos.log_level( args.verbose )
+    logger.init(name='ehos_setup', log_file=args.logfile )
+    logger.set_log_level( args.verbose )
     ehos.init(condor_init=False)
 
     # as this is an array, and we will ever only get one file set it

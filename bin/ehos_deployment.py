@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # 
 # 
 # 
@@ -14,8 +14,7 @@ import tempfile
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-import logging
-logger = logging.getLogger('ehos_deployment')
+import ehos.log_utils as logger
 
 
 from munch import Munch
@@ -143,6 +142,7 @@ def main():
     parser.add_argument('-e', '--execute-yaml',  help="yaml config file for execute node from",       required=False, default=ehos.find_config_file('execute.yaml'))
     parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
 
+    parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('config_file', metavar='config-file', nargs=1,   help="yaml formatted config file")
 
@@ -152,7 +152,8 @@ def main():
     config_file = args.config_file[ 0 ]
 
     # set the leve of what to print.
-    ehos.log_level( args.verbose )
+    logger.init(name='ehos_deployment', log_file=args.logfile )
+    logger.set_log_level( args.verbose )
     logger.debug("Parsed arguments")
 
     ehos.init(condor_init=False)

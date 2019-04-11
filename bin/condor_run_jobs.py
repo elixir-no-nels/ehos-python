@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # small script that runs 10 jobs each sleeping between 60 and 300 seconds
 

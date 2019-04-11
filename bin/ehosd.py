@@ -17,7 +17,6 @@ import tempfile
 import traceback
 import requests
 
-import logging
 
 # python3+ is broken on centos 7, so add the /usr/local/paths by hand
 #sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
@@ -29,6 +28,7 @@ from munch import Munch
 
 import ehos
 import ehos.htcondor
+import ehos.log_utils as logger
 
 
 condor = None
@@ -55,7 +55,7 @@ def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outf
 
     """
 
-    if ( execute_config is None):
+    if execute_config is None:
         execute_config = ehos.find_config_file('execute.yaml')
     
     ehos.alter_file(execute_config, outfile=outfile, patterns=[ (r'{master_ip}',master_ip),
@@ -247,14 +247,12 @@ def main():
     # as this is an array, and we will ever only get one file set it
 #    args.config_file = args.config_file[ 0 ]
 
-
-    ehos.setup_logger(args.verbose, args.logfile )
-    logger = logging.getLogger('ehosd')
+    logger.init(name='ehosd', log_file=args.logfile )
+    logger.set_log_level( args.verbose )
+    logger.set_log_level( 5 )
 
     logger.info("Running with config file: {}".format( args.config_file))
-
     run_daemon( args.config_file )
-
 
 
 if __name__ == '__main__':

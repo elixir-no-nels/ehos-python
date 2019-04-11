@@ -1,5 +1,5 @@
-#!/usr/bin/python3
-# 
+#!/usr/bin/env python3
+#
 # 
 # 
 # 
@@ -25,10 +25,10 @@ import random
 
 from munch import Munch
 
+import ehos.log_utils as logger
+
+# Not sure if this is still needed.
 import logging
-logger = logging.getLogger('ehos')
-
-
 logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 logging.getLogger('keystoneauth').setLevel(logging.CRITICAL)
 logging.getLogger('stevedore').setLevel(logging.CRITICAL)
@@ -906,49 +906,4 @@ def make_uid_domain_name(length:int=3):
             break
         
     return('.'.join(choices))
-
-def set_log_level(new_level:int) -> int:
-        """ Set the log level, value is forced with in the [1-5] range
-
-        levels correspond to: DEBUG=5,  INFO=4 WARN=3, ERROR=2 and CRITICAL=1
-        """
-        if new_level < 1:
-            new_level = 1
-        elif new_level > 5:
-            new_level = 5
-
-        if new_level   == 1:
-            logging.basicConfig(level=logging.CRITICAL)
-        elif new_level == 2:
-            logging.basicConfig(level=logging.ERROR)
-        elif new_level == 3:
-            logging.basicConfig(level=logging.WARNING)
-        elif new_level == 4:
-            logging.basicConfig(level=logging.INFO)
-        elif new_level == 5:
-            logging.basicConfig(level=logging.DEBUG)
-
-
-        return new_level
-
-def setup_logger(log_level:int=1, filename:str=None) -> logger:
-
-
-    logger = logging.getLogger('ehosd')
-
-    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
-                                  datefmt='%Y-%m-%d %H:%M:%S')
-
-    screen_handler = logging.StreamHandler(stream=sys.stdout)
-    screen_handler.setFormatter(formatter)
-    logger.addHandler(screen_handler)
-
-    if filename is not None:
-        handler = logging.FileHandler('filename')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-
-    set_log_level( log_level)
-
-    return logger
 

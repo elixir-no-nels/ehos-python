@@ -15,8 +15,7 @@ from enum import IntEnum
 
 import time
 
-import logging
-logger = logging.getLogger('ehos.htcondor')
+import ehos.log_utils as logger
 
 
 from munch import Munch

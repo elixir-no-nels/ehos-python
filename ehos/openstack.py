@@ -14,8 +14,7 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 import time
 
-import logging
-logger = logging.getLogger('ehos.openstack')
+import ehos.log_utils as logger
 
 import openstack
 

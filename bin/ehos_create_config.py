@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """ 
  
 The goal of this script is to ease the config generation by using an existing keystone file 
@@ -15,13 +15,12 @@ import tempfile
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-import logging
-logger = logging.getLogger('ehos_create_config')
 
 
 from munch import Munch
 
 import ehos
+import ehos.log_utils as logger
 
 
 def get_keystone_info(filename:str):
@@ -116,12 +115,15 @@ def main():
 
     # magically sets default config files
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
+    parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-o', '--out-file',     help="filt to write yaml config file to",   default='etc/ehos/ehos.yaml')
     parser.add_argument('config_template', metavar='config-template', nargs=1, help="yaml config template", default=ehos.find_config_file('ehos.yaml.template'))
     parser.add_argument('keystone_file', metavar='keystone-file', nargs=1,   help="openstack keystone file")
 
     args = parser.parse_args()
-    ehos.log_level( args.verbose )
+    logger.init(name='ehos_create_config', log_file=args.logfile )
+    logger.set_log_level( args.verbose )
+
 
     # as this is an array, and we will ever only get one file set it
     args.config_template = args.config_template[ 0 ]

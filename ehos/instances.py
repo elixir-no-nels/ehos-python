@@ -10,8 +10,7 @@ import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-import logging
-logger = logging.getLogger('ehos.instances')
+import ehos.log_utils as logger
 
 
 
