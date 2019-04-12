@@ -8,27 +8,25 @@
 
 import sys
 import pprint
+
 pp = pprint.PrettyPrinter(indent=4)
 
 import ehos.log_utils as logger
-
-
 
 from munch import Munch
 
 import ehos.vm
 import ehos.htcondor
+import ehos.instances_db as db
 
 
 class Instances(object):
-
-
     _nodes = {}
     _clouds = {}
-    
+
     _name_to_id = {}
 
-    def __init__( self ):
+    def __init__(self):
         """ Init function for the nodes class
 
         Args:
@@ -44,14 +42,28 @@ class Instances(object):
 
         self._nodes = {}
         self._clouds = {}
-        
+
         self._name_to_id = {}
+        self._db = None
+
+    def connect(self, url: str) -> None:
+        """ connects to a database instance
+
+        Args:
+        url: as specified by sqlalchemy ( {driver}://{user}:{password}@{host}:{port}/{dbase}
+
+        Returns:
+        none
+
+        Raises:
+        RuntimeError on failure.
 
 
-        
+        """
 
+        self._db = db.InstancesDB(url)
 
-    def add_cloud(self, name:str, instance) -> None:
+    def add_cloud(self, name: str, instance) -> None:
         """ adds a cloud to the class
         
         Args:
@@ -66,12 +78,13 @@ class Instances(object):
         """
 
         if name in self._clouds:
-            raise RuntimeError("Cloud {} is already present in instances".format( name ))
-        
-        self._clouds[ name ] = instance
+            raise RuntimeError("Cloud {} is already present in instances".format(name))
 
+        self._clouds[name] = instance
+        if (self._db is not None):
+            self._db.get_cloud_id(name=name)
 
-    def get_cloud( self, name:str):
+    def get_cloud(self, name: str):
         """ returns a cloud instance 
         
         Args:
@@ -85,11 +98,11 @@ class Instances(object):
         """
 
         if name not in self._clouds:
-            raise RuntimeError("Unknown cloud name {}".format( name ))
-        
-        return self._clouds[ name ]
-        
-    def get_clouds( self) -> {}:
+            raise RuntimeError("Unknown cloud name {}".format(name))
+
+        return self._clouds[name]
+
+    def get_clouds(self) -> {}:
         """ returns a copy of the cloud dict
         
         Args:
@@ -102,10 +115,9 @@ class Instances(object):
           None
         """
 
-        
         return self._clouds.copy()
 
-    def get_cloud_names(self) -> [] :
+    def get_cloud_names(self) -> []:
         """ get a list of cloud names
 
         Args:
@@ -119,9 +131,8 @@ class Instances(object):
         """
 
         return list(self._clouds.keys())
-        
 
-    def add_node( self, id:str, name:str, cloud:str, state:str='booting', status='starting')-> None:
+    def add_node(self, id: str, name: str, cloud: str, state: str = 'booting', status='starting') -> None:
         """ Adds a node to the class 
 
         Args:
@@ -140,31 +151,31 @@ class Instances(object):
 
         if (cloud not in self._clouds):
             raise RuntimeError
-        
-        if ( id in self._nodes ):
+
+        if (id in self._nodes):
             raise RuntimeError
 
-        if ( name in self._name_to_id ):
+        if (name in self._name_to_id):
             raise RuntimeError
 
-        if ( self.valid_state( state ) == False):
-            raise RuntimeError("Illegal state '{}'".format( state ))
-        
-        if ( self.valid_status( status ) == False):
-            raise RuntimeError("Illegal status '{}'".format( status ))        
+        if (self.valid_state(state) == False):
+            raise RuntimeError("Illegal state '{}'".format(state))
 
-        
-        self._nodes[ id ] = { 'id': id,
-                              'name'  : name,
-                              'cloud' : cloud,
-                              'state' : state,
-                              'status': status}
+        if (self.valid_status(status) == False):
+            raise RuntimeError("Illegal status '{}'".format(status))
 
-        self._name_to_id[ name ] = id
+        self._nodes[id] = {'id': id,
+                           'name': name,
+                           'cloud': cloud,
+                           'state': state,
+                           'status': status}
 
+        self._name_to_id[name] = id
 
-        
-    def get_node(self, id:str) -> {} :
+        if (self._db is not None):
+            self._db.add_node(id, name, cloud, state, status)
+
+    def get_node(self, id: str) -> {}:
         """ get a nodes based on its id
 
         Args:
@@ -177,14 +188,12 @@ class Instances(object):
           RuntimeError if unknown node_id
         """
 
-        if ( id not in self._nodes ):
+        if (id not in self._nodes):
             raise RuntimeError
 
+        return Munch(self._nodes[id])
 
-        return Munch(self._nodes[ id ])
-
-
-    def get_nodes(self, state=[], status=[], cloud=[]) -> {} :
+    def get_nodes(self, state=[], status=[], cloud=[]) -> {}:
         """ get a list of nodes, can be filtered based on status names
 
         Args:
@@ -199,42 +208,37 @@ class Instances(object):
           RuntimeError if unknown node_id
         """
 
-        state  = list(filter(None, state))
+        state = list(filter(None, state))
         status = list(filter(None, status))
-        cloud  = list(filter(None, cloud))
+        cloud = list(filter(None, cloud))
 
-        
         if state is not None and state != []:
             for s in state:
                 if self.valid_state(s) == False:
                     raise RuntimeError("Illegal state {}".format(s))
-                                       
+
         if status is not None and status != []:
             for s in status:
                 if self.valid_status(s) == False:
                     raise RuntimeError("Illegal status {}".format(s))
-            
-        
+
         if cloud is not None and cloud != []:
             for c in cloud:
                 if c not in self._clouds:
-                    raise RuntimeError("Unknown cloud {}".format( c ))
+                    raise RuntimeError("Unknown cloud {}".format(c))
 
-
-        
         res = []
         for node in self._nodes:
             if ((state is None or state == []) and (status is None or status == []) and (cloud is None or cloud == [])):
-                res.append( Munch(self._nodes[ node ] ))
-                
-            elif self._nodes[ node ][ 'state' ] in state or self._nodes[ node ][ 'status' ] in status or self._nodes[ node ]['cloud'] in cloud:
-                res.append( Munch(self._nodes[ node ] ))
-        
+                res.append(Munch(self._nodes[node]))
 
-        return res        
+            elif self._nodes[node]['state'] in state or self._nodes[node]['status'] in status or self._nodes[node][
+                'cloud'] in cloud:
+                res.append(Munch(self._nodes[node]))
 
+        return res
 
-    def node_state_counts(self ) -> {}:
+    def node_state_counts(self) -> {}:
         """ returns the states of nodes split into clouds
 
         Args:
@@ -247,44 +251,41 @@ class Instances(object):
           None
         """
 
-        template = { 'idle': 0,
-                     'busy': 0,
-                     'total':0,
-                     'other':0 }
+        template = {'idle': 0,
+                    'busy': 0,
+                    'total': 0,
+                    'other': 0}
 
+        res = {'all': template.copy()}
 
-        res = { 'all': template.copy() }
-        
         for node in self.get_nodes(state=['active', 'booting']):
 
-            if node[ 'cloud' ] not in res:
-                res[ node[ 'cloud' ] ] = template.copy()
+            if node['cloud'] not in res:
+                res[node['cloud']] = template.copy()
 
-            
-#            pp.pprint( node )
-            
-            if ( node['status'] == 'idle'):
-                res[ 'all' ][ 'idle'  ] += 1
-                res[ 'all' ][ 'total' ] += 1
+            #            pp.pprint( node )
 
-                res[ node[ 'cloud' ] ][ 'idle'  ] += 1
-                res[ node[ 'cloud' ] ][ 'total' ] += 1
+            if (node['status'] == 'idle'):
+                res['all']['idle'] += 1
+                res['all']['total'] += 1
 
-            elif ( node['status'] in ['busy', 'starting', 'vacating', 'benchmarking']):
-                res[ 'all' ][ 'busy'  ] += 1
-                res[ 'all' ][ 'total' ] += 1
+                res[node['cloud']]['idle'] += 1
+                res[node['cloud']]['total'] += 1
 
-                res[ node[ 'cloud' ] ][ 'busy'  ] += 1
-                res[ node[ 'cloud' ] ][ 'total' ] += 1
+            elif (node['status'] in ['busy', 'starting', 'vacating', 'benchmarking']):
+                res['all']['busy'] += 1
+                res['all']['total'] += 1
+
+                res[node['cloud']]['busy'] += 1
+                res[node['cloud']]['total'] += 1
             else:
-                res[ 'all' ][ 'other'  ] += 1
+                res['all']['other'] += 1
 
-                res[ node[ 'cloud' ] ][ 'other'  ] += 1
-                
+                res[node['cloud']]['other'] += 1
+
         return Munch(res)
-                
 
-    def get_node_ids(self, state:str=None, status:str=None, cloud:str=None) -> [] :
+    def get_node_ids(self, state: str = None, status: str = None, cloud: str = None) -> []:
         """ get a list of nodes, can be filtered based on status
 
         Args:
@@ -298,17 +299,14 @@ class Instances(object):
           None
         """
 
-
         node_ids = []
 
         for node in self.get_nodes(state=[state], status=[status], cloud=[cloud]):
-            node_ids.append( node['id'] )
+            node_ids.append(node['id'])
 
         return node_ids
 
-
-
-    def get_node_names(self, state:str=None, status:str=None, cloud:str=None) -> [] :
+    def get_node_names(self, state: str = None, status: str = None, cloud: str = None) -> []:
         """ get a list of node names, can be filtered based on status
 
         Args:
@@ -322,17 +320,14 @@ class Instances(object):
           None
         """
 
-
         node_names = []
 
         for node in self.get_nodes(state=[state], status=[status], cloud=[cloud]):
-            node_names.append( node['name'] )
+            node_names.append(node['name'])
 
         return node_names
 
-    
-
-    def id2name(self, node_id:str) -> str:
+    def id2name(self, node_id: str) -> str:
         """ translate a node id to a node name
 
         Args:
@@ -345,13 +340,12 @@ class Instances(object):
           RuntimeError if unknown node_id
         """
 
-        if ( node_id not in self._nodes ):
+        if (node_id not in self._nodes):
             raise RuntimeError
 
-        return self._nodes[ node_id ]['name']
+        return self._nodes[node_id]['name']
 
-
-    def name2id(self, node_name:str) -> str:
+    def name2id(self, node_name: str) -> str:
         """ translate a node name to a node id
 
         Args:
@@ -364,12 +358,12 @@ class Instances(object):
           RuntimeError if unknown node_name
         """
 
-        if ( node_name not in self._name_to_id ):
+        if (node_name not in self._name_to_id):
             raise RuntimeError
 
-        return self._name_to_id[ node_name ]
-    
-    def nodes_in_cloud( self, cloud_name:str) -> []:
+        return self._name_to_id[node_name]
+
+    def nodes_in_cloud(self, cloud_name: str) -> []:
         """ returns a list of node ids in a given cloud 
 
         Args:
@@ -382,19 +376,18 @@ class Instances(object):
           None
         """
 
-        if ( cloud_name not in self._clouds ):
+        if (cloud_name not in self._clouds):
             return []
 
 
         else:
             res = []
             for node in self.get_nodes(cloud=[cloud_name]):
-                res.append( node[ 'id' ] )
+                res.append(node['id'])
 
             return res
 
-
-    def find( self, id:str=None, name:str=None):
+    def find(self, id: str = None, name: str = None):
         """ find a node either by id or name
 
         Args:
@@ -410,22 +403,20 @@ class Instances(object):
         """
 
         try:
-            if ( name is not None):
-                id = self.name2id( name )
+            if (name is not None):
+                id = self.name2id(name)
         except:
             return None
-#            raise RuntimeError("Node name not found {}".format( name))
-            
-        if id  not in self._nodes :
+        #            raise RuntimeError("Node name not found {}".format( name))
+
+        if id not in self._nodes:
             return None
-#            raise RuntimeError("Unknown node id {}".format( id ))
-            
+        #            raise RuntimeError("Unknown node id {}".format( id ))
+
         if id is not None:
-            return self._nodes[ id ]
-        
+            return self._nodes[id]
 
-
-    def get_state(self, node_id:str):
+    def get_state(self, node_id: str):
         """ get vm state for a node
         
         Args:
@@ -438,14 +429,12 @@ class Instances(object):
           RuntimeError if unknown node id
         """
 
-        if ( node_id not in self._nodes):
+        if (node_id not in self._nodes):
             raise RuntimeError
 
-        return self._nodes[ node_id][ 'state']
+        return self._nodes[node_id]['state']
 
-
-
-    def valid_state( self, state:str) -> bool:
+    def valid_state(self, state: str) -> bool:
         """ check that a state has a valid value
 
         Args:
@@ -458,16 +447,14 @@ class Instances(object):
           None
         """
 
-#        logger.debug("Testing the state validity of {}".format( state ))
+        #        logger.debug("Testing the state validity of {}".format( state ))
 
-        
-        if ( state not in ehos.vm.State.__members__ ):
+        if (state not in ehos.vm.State.__members__):
             return False
 
         return True
 
-
-    def valid_status( self, status:str) -> bool:
+    def valid_status(self, status: str) -> bool:
         """ check that a state has a valid value
 
         Args:
@@ -480,18 +467,14 @@ class Instances(object):
           None
         """
 
-#        logger.debug("Testing the status validity of {}".format( status ))
+        #        logger.debug("Testing the status validity of {}".format( status ))
 
-        
-        if ( status not in ehos.htcondor.Node_status.__members__ ):
+        if (status not in ehos.htcondor.Node_status.__members__):
             return False
 
         return True
-    
-        
-    
-    
-    def set_state(self, node_id:str, state:str):
+
+    def set_state(self, node_id: str, state: str):
         """ set vm status for a node
         
         Args:
@@ -505,25 +488,24 @@ class Instances(object):
           RuntimeError if unknown node id or illegal state name
         """
 
-        if ( node_id not in self._nodes):
-            logger.warn("Unknown Node {}".format( node_id))
-            
+        if (node_id not in self._nodes):
+            logger.warn("Unknown Node {}".format(node_id))
+
             return
-            raise RuntimeError("Unknown node {}".format( node_id ))
+            raise RuntimeError("Unknown node {}".format(node_id))
 
-        if ( self.valid_state( state ) == False):
-            raise RuntimeError("Illegal state {}".format( state ))
-        
-#        if ( self._nodes[ node_id][ 'state'] == state ):
-#            return
+        if (self.valid_state(state) == False):
+            raise RuntimeError("Illegal state {}".format(state))
 
-        logger.debug("Node {}/{} state changed to {} from {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'state' ], state))
+        #        if ( self._nodes[ node_id][ 'state'] == state ):
+        #            return
 
-        self._nodes[ node_id][ 'state'] = state
-        
+        logger.debug("Node {}/{} state changed to {} from {}".format(node_id, self._nodes[node_id]['name'],
+                                                                     self._nodes[node_id]['state'], state))
 
-        
-    def get_status(self, node_id:str):
+        self._nodes[node_id]['state'] = state
+
+    def get_status(self, node_id: str):
         """ get condor status for a node
         
         Args:
@@ -536,13 +518,12 @@ class Instances(object):
           RuntimeError if unknown node id
         """
 
-        if ( node_id not in self._nodes):
+        if (node_id not in self._nodes):
             raise RuntimeError
 
-        return self._nodes[ node_id][ 'status']
+        return self._nodes[node_id]['status']
 
-        
-    def set_status(self, node_id:str, status:str):
+    def set_status(self, node_id: str, status: str):
         """ set condor status for a node
         
         Args:
@@ -556,21 +537,16 @@ class Instances(object):
           RuntimeError if unknown node id
         """
 
-        if ( node_id not in self._nodes):
+        if (node_id not in self._nodes):
             raise RuntimeError
-        
-        if (self._nodes[ node_id][ 'status'] == status):
+
+        if (self._nodes[node_id]['status'] == status):
             return
 
+        if (self.valid_status(status) == False):
+            raise RuntimeError("Illegal status {}".format(status))
 
-        if ( self.valid_status( status ) == False):
-            raise RuntimeError("Illegal status {}".format( status ))
-        
-        
-        logger.debug("Node {}/{} status changed from {} to {}".format( node_id, self._nodes[ node_id ][ 'name' ], self._nodes[ node_id ][ 'status' ], status))
+        logger.debug("Node {}/{} status changed from {} to {}".format(node_id, self._nodes[node_id]['name'],
+                                                                      self._nodes[node_id]['status'], status))
 
-        self._nodes[ node_id][ 'status'] = status
-
-        
-
-        
+        self._nodes[node_id]['status'] = status

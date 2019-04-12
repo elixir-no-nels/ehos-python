@@ -39,11 +39,8 @@ logging.getLogger('dogpile').setLevel(logging.CRITICAL)
 
 
 
-global condor
 condor    = None
-global instances
 instances = None
-
 
 def init(condor_init:bool=True):
     """ init function for the module, connects to the htcondor server and sets up the instance tracking module
@@ -71,6 +68,8 @@ def init(condor_init:bool=True):
 
     instances = I.Instances()
 
+def connect_to_database( url:str ) -> None:
+    instances.connect( url )
 
     
 def connect_to_clouds(config:Munch) -> None:

@@ -49,7 +49,7 @@ def log_nodes( names:list) -> None:
     for name in names:
        log_fh.write("{}\n".format(name))
 
-    sys,flush()
+    sys.flush()
 
 def setup_tick( config ):
     if 'influxdb' in config:
@@ -62,6 +62,11 @@ def setup_tick( config ):
                            "tags": {'host': config.ehos_daemon.hostname,
                                     },
                            "fields": {'starting_daemon': 1 }})
+
+
+def setup_db_backend( config ):
+    if 'database' in config.ehos_daemon:
+        ehos.connect_to_database( config.ehos_daemon.database )
 
 
 def open_node_logfile( config ):
@@ -91,6 +96,8 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
     setup_tick(config)
     open_node_logfile( config )
+    setup_db_backend( config )
+
     global condor
     condor = ehos.htcondor.Condor()
 
