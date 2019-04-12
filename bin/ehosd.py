@@ -39,79 +39,34 @@ log_fh = None
 #condor = ehos.htcondor.Condor()
 
 
-def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outfile:str='/usr/local/etc/ehos/execute.yaml', execute_config:str=None):
-    """ Create a execute node config file with the master ip and pool password inserted into it
-
-    Args:
-      master_ip: ip of the master to connect to
-      uid_domain: domain name we are using for this
-      password: for the cloud
-      outfile: file to write the execute file to
-      execute_config: define config template, otherwise find it in the system
-
-    Returns:
-      file name with path (str)
-
-    Raises:
-      None
-
-    """
-
-    if execute_config is None:
-        execute_config = ehos.find_config_file('execute.yaml')
-    
-    ehos.alter_file(execute_config, outfile=outfile, patterns=[ (r'{master_ip}',master_ip),
-                                                                (r'{uid_domain}', uid_domain),
-                                                                (r'{password}',password)])
-                                                
-
-    return outfile
-
-                    
-
-
-def htcondor_setup_config_file( uid_domain  ):
-    """ checks if this is a new instance of the ehosdm if it is tweak the htcondor config file and reload it
-
-    Args:
-      htcondor (obj): ehos.htcondor class
-
-    Returns:
-      None
-    
-    Raises:
-      None
-    """
-
-    
-
-
-    # first time running this master, so tweak the personal configureation file
-    if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
-
-         ehos.system_call( "systemctl stop condor" )
-#         uid_domain = ehos.make_uid_domain_name(5)
-         host_ip    = ehos.get_host_ip()
-         host_name = ehos.get_host_name()
-
-         ehos.alter_file(filename='/etc/condor/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
-                                                                                     (r'{uid_domain}',uid_domain)])
-
-         os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
-
-         ehos.system_call( "systemctl start condor" )
-         ehos.htcondor.wait_for_running()
-    
 
 def log_nodes( names:list) -> None:
+    ''' writes the names of nodes created to the log_fh if open '''
 
     if log_fh is None:
         return
 
-
     for name in names:
        log_fh.write("{}\n".format(name))
 
+
+def setup_tick( config ):
+    if 'influxdb' in config:
+        print( "sending startup entry to influxdb")
+        global tick
+        tick = Tick.Tick(url = config.influxdb.url, database=config.influxdb.db,
+                         user=config.influxdb.username, passwd=config.influxdb.password)
+
+        tick.write_points({"measurement": 'ehos',
+                           "tags": {'host': config.ehos_daemon.hostname,
+                                    },
+                           "fields": {'starting_daemon': 1 }})
+
+
+def open_node_logfile( config ):
+    if 'node_log' in config.ehos_daemon:
+        global log_fh
+        log_fh = open(config.ehos_daemon.node_log, 'a', buffering=0)
 
 
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
@@ -131,48 +86,24 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
 
     config = ehos.readin_config_file( config_file )
-
-    if 'influxdb' in config:
-        print( "sending startup entry to influxdb")
-        global tick
-        tick = Tick.Tick(url = config.influxdb.url, database=config.influxdb.db,
-                         user=config.influxdb.username, passwd=config.influxdb.password)
-
-        tick.write_points({"measurement": 'ehos',
-                           "tags": {'host': config.ehos_daemon.hostname,
-        },
-                           "fields": {'starting_daemon': 1 }})
-
-
-    host_ip    = ehos.get_host_ip( )
-
-    uid_domain = ehos.make_uid_domain_name(5)
-    ehos.htcondor.set_pool_password( config.condor.password )
-
-    htcondor_setup_config_file( uid_domain=uid_domain )
-    
-    execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
-
     ehos.init()
+
+    setup_tick(config)
+    open_node_logfile( config )
     global condor
     condor = ehos.htcondor.Condor()
+
     ehos.connect_to_clouds( config )
 
-    global log_fh
-    log_fh = open(config.ehos_daemon.node_log, 'a', buffering=0)
 
-    
     while ( True ):
 
         config = ehos.readin_config_file( config_file )
 
-#        ehos.update_node_states()
-        
         # get the current number of nodes
         nodes  = ehos.update_node_states()
         jobs   = condor.job_counts()
 
-                
         # just care about the overall number of nodes, not how many in each cloud
         nodes = Munch(nodes[ 'all' ])
 

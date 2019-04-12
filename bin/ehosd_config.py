@@ -106,6 +106,9 @@ def main():
 
     host_ip    = ehos.get_host_ip( )
 
+    config = ehos.readin_config_file( args.config_file )
+
+
     uid_domain = ehos.make_uid_domain_name(5)
     ehos.htcondor.set_pool_password( config.condor.password )
 
