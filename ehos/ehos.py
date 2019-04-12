@@ -789,7 +789,7 @@ def find_config_file( filename:str, dirs:List[str]=None) -> str:
 
     raise RuntimeError("File {} not found".format( filename ))
 
-def alter_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[ str, str]]=None, outfile:str=None):
+def patch_file(filename:str, pattern:str=None, replace:str=None, patterns:List[ Tuple[str, str]]=None, outfile:str=None):
     """ Alter a file by searching for a pattern (str or regex) and replace it
 
     The function further more make a backup copy of the original file

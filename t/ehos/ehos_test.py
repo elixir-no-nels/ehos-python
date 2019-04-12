@@ -141,7 +141,7 @@ def test_alter_file():
     tmp_fh, tmp_file = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
 #    tmp_fh.close()
     
-    E.alter_file(filename='t/data/ehos.yaml', pattern='{basename}', replace='Base1', outfile=tmp_file)
+    E.patch_file(filename='t/data/ehos.yaml', pattern='{basename}', replace='Base1', outfile=tmp_file)
     config = E.readin_config_file(tmp_file)
 
     assert config.ehos.base_image_id == 'Base1'
@@ -151,7 +151,7 @@ def test_alter_file_patterns():
 
     tmp_fh, tmp_file = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
     
-    E.alter_file(filename='t/data/ehos.yaml', patterns=[('{basename}', 'Base111')], outfile=tmp_file)
+    E.patch_file(filename='t/data/ehos.yaml', patterns=[('{basename}', 'Base111')], outfile=tmp_file)
     config = E.readin_config_file(tmp_file)
 
     assert config.ehos.base_image_id == 'Base111'

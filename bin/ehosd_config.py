@@ -43,9 +43,9 @@ def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outf
     if execute_config is None:
         execute_config = ehos.find_config_file('execute.yaml')
 
-    ehos.alter_file(execute_config, outfile=outfile, patterns=[ (r'{master_ip}',master_ip),
-                                                                (r'{uid_domain}', uid_domain),
-                                                                (r'{password}',password)])
+    ehos.patch_file(execute_config, outfile=outfile, patterns=[(r'{master_ip}', master_ip),
+                                                               (r'{uid_domain}', uid_domain),
+                                                               (r'{password}',password)])
 
 
     return outfile
@@ -66,9 +66,6 @@ def htcondor_setup_config_file( uid_domain  ):
       None
     """
 
-
-
-
     # first time running this master, so tweak the personal configureation file
     if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
 
@@ -77,8 +74,8 @@ def htcondor_setup_config_file( uid_domain  ):
         host_ip    = ehos.get_host_ip()
         host_name = ehos.get_host_name()
 
-        ehos.alter_file(filename='/etc/condor/00personal_condor.config', patterns=[ (r'{master_ip}',host_ip),
-                                                                                    (r'{uid_domain}',uid_domain)])
+        ehos.patch_file(filename='/etc/condor/00personal_condor.config', patterns=[(r'{master_ip}', host_ip),
+                                                                                   (r'{uid_domain}',uid_domain)])
 
         os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
