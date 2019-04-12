@@ -165,7 +165,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         log_fh = open(config.ehos_daemon.node_log, 'a')
 
     if 'database' in config.ehos_daemon:
-        ehos.instances.connect( config.ehos_daemon.database )
+        ehos.connect_to_database( config.ehos_daemon.database )
 
 
 
