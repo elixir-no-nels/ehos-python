@@ -33,6 +33,7 @@ ehos_daemon:
     nodes_min: 2
     nodes_spare: 2
     sleep: 30
+    execute_config:/usr/local/etc/ehos/execute.yaml
 
 condor:
     password: ChangeMe

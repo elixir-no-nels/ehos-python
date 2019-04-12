@@ -21,6 +21,7 @@ import ehos.htcondor
 import ehos.log_utils as logger
 import ehos.tick_utils as Tick
 
+
 def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outfile:str='/usr/local/etc/ehos/execute.yaml', execute_config:str=None):
     """ Create a execute node config file with the master ip and pool password inserted into it
 
@@ -114,11 +115,7 @@ def main():
 
     htcondor_setup_config_file( uid_domain=uid_domain )
 
-    execute_config_file = create_execute_config_file( host_ip, uid_domain, config.condor.password )
-
-
-    logger.info("Running with config file: {}".format( args.config_file))
-    run_daemon( args.config_file )
+    create_execute_config_file( host_ip, uid_domain, config.condor.password, outfile=config.ehos_daemon.execute_config )
 
 
 if __name__ == '__main__':
