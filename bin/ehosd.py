@@ -183,7 +183,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         logger.info("Nr of jobs {} ({} are queueing)".format( jobs.total, jobs.idle))
 
 
-        if 'influxdb' in config.ehos_daemon:
+        if 'influxdb' in config:
             tick.write_points({"measurement": 'ehos',
                                "tags": {'host':config.ehos_daemon.hostname},
                                "fields": {'nodes_busy': nodes.busy,
