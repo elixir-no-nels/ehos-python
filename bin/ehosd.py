@@ -49,6 +49,7 @@ def log_nodes( names:list) -> None:
     for name in names:
        log_fh.write("{}\n".format(name))
 
+    sys,flush()
 
 def setup_tick( config ):
     if 'influxdb' in config:
@@ -66,7 +67,7 @@ def setup_tick( config ):
 def open_node_logfile( config ):
     if 'node_log' in config.ehos_daemon:
         global log_fh
-        log_fh = open(config.ehos_daemon.node_log, 'a', buffering=0)
+        log_fh = open(config.ehos_daemon.node_log, 'a')
 
 
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
