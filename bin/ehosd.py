@@ -5,26 +5,19 @@
 # 
 # Kim Brugger (20 Sep 2018), contact: kim@brugger.dk
 
-import os
-import sys
 import pprint
+import sys
+
 pp = pprint.PrettyPrinter(indent=4)
 import time
-import datetime
 import argparse
-import re
-import tempfile
-import traceback
-import requests
-
+from munch import Munch
 
 # python3+ is broken on centos 7, so add the /usr/local/paths by hand
 #sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
 #sys.path.append("/usr/local/lib64/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
 
 
-
-from munch import Munch
 
 import ehos
 import ehos.htcondor
@@ -36,9 +29,6 @@ condor = None
 tick   = None
 log_fh = None
 
-#condor = ehos.htcondor.Condor()
-
-
 
 def log_nodes( names:list) -> None:
     ''' writes the names of nodes created to the log_fh if open '''
@@ -49,7 +39,7 @@ def log_nodes( names:list) -> None:
     for name in names:
        log_fh.write("{}\n".format(name))
 
-    sys.flush()
+    sys.stdout.flush()
 
 def setup_tick( config ):
     if 'influxdb' in config:
@@ -190,17 +180,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
         
 def main():
-    """ main loop
-
-    Args:
-      None
-    
-    Returns:
-      None
-    
-    Raises: 
-      None
-    """
 
     parser = argparse.ArgumentParser(description='ehosd: the ehos daemon to be run on the master node ')
 
@@ -210,10 +189,6 @@ def main():
 
 
     args = parser.parse_args()
-
-    # as this is an array, and we will ever only get one file set it
-#    args.config_file = args.config_file[ 0 ]
-
     logger.init(name='ehosd', log_file=args.logfile )
     logger.set_log_level( args.verbose )
 
