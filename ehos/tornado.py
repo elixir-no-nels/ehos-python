@@ -43,7 +43,7 @@ class BaseHandler( RequestHandler ):
         
 
         
-     def set_json_header(self):
+    def set_json_header(self):
          """Set the default response header to be JSON."""
          self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
