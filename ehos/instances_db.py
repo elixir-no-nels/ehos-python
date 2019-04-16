@@ -85,6 +85,12 @@ class InstancesDB(object):
         return self.get_name_id('node_status', status)
 
 
+    def clouds( self, **values ):
+
+        return self._db.get('cloud', **values)
+
+
+
     def get_cloud_id(self,  name:str ) -> int:
         """ get or create  the id corresponding to the state
 
@@ -99,6 +105,20 @@ class InstancesDB(object):
         """
 
         return self.get_name_id('cloud', name)
+
+
+    def nodes( self, **values ):
+
+        q =  "SELECT node.id,node.uuid, node.name, node_status.name AS status, node_state.name AS state FROM node, node_state, node_status "
+        q += "WHERE node.node_status_id = node_status.id AND node.node_state_id = node_state.id"
+
+        for key in values:
+            q += " AND node.{} = {}".format( key, values[ key ])
+
+
+        print( q )
+
+        return self._db.get_as_dict( q )
 
 
     def get_node_id(self, id:str) -> int:

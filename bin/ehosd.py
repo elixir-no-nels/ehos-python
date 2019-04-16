@@ -30,7 +30,7 @@ tick   = None
 log_fh = None
 
 
-def log_nodes( names:list) -> None:
+def log_nodes( names:[]) -> None:
     ''' writes the names of nodes created to the log_fh if open '''
 
     if log_fh is None:
@@ -131,7 +131,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         ### there are jobs queuing, let see what we should do
 
         # got jobs in the queue but less than or equal to our idle + spare nodes, do nothing
-        elif (  jobs.idle and jobs.idle <= nodes.idle ):
+        elif jobs.idle and jobs.idle <= nodes.idle:
             logger.info("We got stuff to do, but seems to have excess nodes to cope...")
 
             nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle -jobs.idle , nodes.idle - config.ehos_daemon.nodes_spare)

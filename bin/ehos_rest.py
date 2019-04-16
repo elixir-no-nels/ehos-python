@@ -28,10 +28,15 @@ class Clouds (tornado.BaseHandler):
     
     def get(self, id:str=None):
 
-        if id is None:
-            data = db.clouds()
-        else:
-            data = db.cloud( id=id)
+        arguments = self._arguments()
+
+        arguments = self._valid_arguments(arguments, ['name'])
+        if id is not None:
+            arguments[ 'id' ] = id
+
+        pp.pprint( arguments )
+
+        data = db.clouds(**arguments)
 
         print( 'In clouds @@@@ ')
         self.set_json_header()
@@ -46,12 +51,16 @@ class Nodes (tornado.BaseHandler):
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
 
-    def get(self, id:str=None):
+    def get(self, id:int=None):
 
-        if id is None:
-            data = db.nodes()
-        else:
-            data = db.node( id=id)
+        arguments = self._arguments()
+
+        arguments = self._valid_arguments(arguments, ['cloud_id', 'node_state_id', 'node_status_id'])
+        if id is not None:
+            arguments[ 'id' ] = id
+
+        pp.pprint( arguments )
+        data = db.nodes(**arguments)
 
         print( 'In clouds @@@@ ')
         self.set_json_header()

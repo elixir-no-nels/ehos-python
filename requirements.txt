@@ -4,4 +4,4 @@ munch
 openstacksdk
 #python-openstackclient
 records
-psycopg2
+psycopg2-binary
