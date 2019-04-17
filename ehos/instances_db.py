@@ -121,6 +121,17 @@ class InstancesDB(object):
         return self._db.get_as_dict( q )
 
 
+
+    def node_status( self):
+
+        return self._db.get('node_status')
+
+    def node_states( self ):
+
+        return self._db.get('node_state')
+
+
+
     def get_node_id(self, id:str) -> int:
         """ gets a node-id if node exists
 

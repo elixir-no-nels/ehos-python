@@ -66,6 +66,34 @@ class Nodes (tornado.BaseHandler):
         self.set_json_header()
         self.send_response( data )
 
+class NodeStatus(tornado.BaseHandler):
+
+    def set_default_headers(self):
+        print( "setting headers!!!")
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+
+    def get(self):
+
+        data = db.node_status()
+        self.set_json_header()
+        self.send_response( data )
+
+class NodeStates(tornado.BaseHandler):
+
+    def set_default_headers(self):
+        print( "setting headers!!!")
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+
+    def get(self):
+
+        data = db.node_states()
+
+        self.set_json_header()
+        self.send_response( data )
 
 
 def main():
@@ -88,14 +116,13 @@ def main():
     global db
     db = instances_db.InstancesDB(config.ehos_daemon.database)
 
-
-
-
     urls = [(r'/', RootHandler),
              (r'/nodes/?$', Nodes ),
-             (r'/nodes/(.+?)/?$', Nodes ),
+             (r'/nodes/(\d+?)/?$', Nodes ),
+             (r'/nodes/states/?$', NodeStates ),
+             (r'/nodes/status/?$', NodeStatus ),
              (r'/clouds/?$', Clouds ),
-             (r'/clouds/(.+?)/?$', Clouds ),
+             (r'/clouds/(\d+?)/?$', Clouds ),
 
         ]
 
