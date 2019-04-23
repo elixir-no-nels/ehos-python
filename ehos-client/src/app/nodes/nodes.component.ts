@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import {Component, OnDestroy, OnInit} from '@angular/core';
+import {ActivatedRoute, NavigationEnd, Router} from '@angular/router';
 
 import { Node } from '../node';
 import { State } from '../state';
@@ -14,16 +14,40 @@ import { EhosService } from '../ehos.service';
 })
 
 
-export class NodesComponent implements OnInit {
+export class NodesComponent implements OnInit, OnDestroy {
   nodes: Node[];
   states: State[];
   status: Status[];
   node_status_id: number;
   node_state_id: number;
   id: number;
+  navigationSubscription;
 
   constructor(private EhosService: EhosService,
-              private route: ActivatedRoute) { }
+              private route: ActivatedRoute,
+              private router: Router) {
+
+    this.navigationSubscription = this.router.events.subscribe((e: any) => {
+      // If it is a NavigationEnd event re-initalise the component
+      if (e instanceof NavigationEnd) {
+        this.initialiseInvites();
+      }
+    });
+  }
+
+  initialiseInvites() {
+    // Set default values and re-fetch any data you need.
+    this.getNodes();
+
+  }
+  ngOnDestroy() {
+    // avoid memory leaks here by cleaning up after ourselves. If we
+    // don't then we will continue to run our initialiseInvites()
+    // method on every navigationEnd event.
+    if (this.navigationSubscription) {
+      this.navigationSubscription.unsubscribe();
+    }
+  }
 
   ngOnInit() {
     this.getNodes();
@@ -36,6 +60,8 @@ export class NodesComponent implements OnInit {
     this.node_status_id = Number(this.route.snapshot.queryParamMap.get("node_status_id"));
     this.node_state_id = Number(this.route.snapshot.queryParamMap.get("node_state_id"));
     this.id = Number(this.route.snapshot.queryParamMap.get('id'));
+
+    this.route.queryParams
 
     console.log( this.id )
     console.log( this.node_state_id )

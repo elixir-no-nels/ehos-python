@@ -11,7 +11,7 @@ import { NodesComponent } from './nodes/nodes.component';
 @NgModule({
   declarations: [
     AppComponent,
-    MessagesComponent,	
+    MessagesComponent,
     CloudsComponent,
     NodesComponent,
   ],

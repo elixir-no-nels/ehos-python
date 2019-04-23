@@ -9,8 +9,8 @@ import { NodesComponent }      from './nodes/nodes.component';
 const routes: Routes = [
   { path: '', redirectTo: '/clouds', pathMatch: 'full' },
   { path: 'clouds', component: CloudsComponent },
-  { path: 'nodes', component: NodesComponent },
-  { path: 'nodes/:id', component: NodesComponent },
+  { path: 'nodes', component: NodesComponent, runGuardsAndResolvers:'always' },
+//  { path: 'nodes/:id', component: NodesComponent },
 //  { path: 'nodes/:id/:node_status_id/:node_state_id', component: NodesComponent },
 //  { path: 'dashboard', component: DashboardComponent },
 //  { path: 'detail/:id', component: HeroDetailComponent },
@@ -18,8 +18,7 @@ const routes: Routes = [
 
 @NgModule({
 
-  imports: [ RouterModule.forRoot(routes) ],
-
+  imports: [ RouterModule.forRoot(routes, {onSameUrlNavigation: 'reload'}) ],
   exports: [ RouterModule ]
 })
 
