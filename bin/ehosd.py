@@ -49,20 +49,20 @@ def setup_tick( config ):
                          user=config.influxdb.username, passwd=config.influxdb.password)
 
         tick.write_points({"measurement": 'ehos',
-                           "tags": {'host': config.ehos_daemon.hostname,
+                           "tags": {'host': config.daemon.hostname,
                                     },
                            "fields": {'starting_daemon': 1 }})
 
 
 def setup_db_backend( config ):
-    if 'database' in config.ehos_daemon:
-        ehos.connect_to_database( config.ehos_daemon.database )
+    if 'database' in config.daemon:
+        ehos.connect_to_database( config.daemon.database )
 
 
 def open_node_logfile( config ):
-    if 'node_log' in config.ehos_daemon:
+    if 'node_log' in config.daemon:
         global log_fh
-        log_fh = open(config.ehos_daemon.node_log, 'a')
+        log_fh = open(config.daemon.node_log, 'a')
 
 
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
@@ -114,7 +114,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
         if 'influxdb' in config:
             tick.write_points({"measurement": 'ehos',
-                               "tags": {'host':config.ehos_daemon.hostname},
+                               "tags": {'host':config.daemon.hostname},
                                "fields": {'nodes_busy': nodes.busy,
                                           'nodes_idle':nodes.idle,
                                           'jobs_running': jobs.running,
@@ -122,10 +122,10 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
         
         # Below the min number of nodes needed for our setup
-        if ( nodes.total < config.ehos_daemon.nodes_min ):
-            logger.info("We are below the min number of nodes, creating {} nodes".format( config.ehos_daemon.nodes_min - nodes.total))
+        if ( nodes.total < config.daemon.nodes_min ):
+            logger.info("We are below the min number of nodes, creating {} nodes".format( config.daemon.nodes_min - nodes.total))
 
-            node_names = ehos.create_execute_nodes(config, config.ehos_daemon.execute_config, config.ehos_daemon.nodes_min - nodes.total)
+            node_names = ehos.create_execute_nodes(config, config.daemon.execute_config, config.daemon.nodes_min - nodes.total)
             log_nodes( node_names )
 
         ### there are jobs queuing, let see what we should do
@@ -134,23 +134,23 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         elif jobs.idle and jobs.idle <= nodes.idle:
             logger.info("We got stuff to do, but seems to have excess nodes to cope...")
 
-            nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle -jobs.idle , nodes.idle - config.ehos_daemon.nodes_spare)
+            nr_of_nodes_to_delete = min( nodes.total - config.daemon.nodes_min, nodes.idle -jobs.idle , nodes.idle - config.daemon.nodes_spare)
             
             logger.info("Deleting {} idle nodes... (1)".format( nr_of_nodes_to_delete))
             ehos.delete_idle_nodes(nr_of_nodes_to_delete)
 
             
         # Got room to make some additional nodes
-        elif (  jobs.idle and nodes.total + config.ehos_daemon.nodes_spare <= config.ehos_daemon.nodes_max ):
+        elif (  jobs.idle and nodes.total + config.daemon.nodes_spare <= config.daemon.nodes_max ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
-            node_names = ehos.create_execute_nodes(config, config.ehos_daemon.execute_config, config.ehos_daemon.nodes_max - nodes.total )
+            node_names = ehos.create_execute_nodes(config, config.daemon.execute_config, config.daemon.nodes_max - nodes.total )
             log_nodes( node_names )
 
 
         # this one is just a sanity one
-        elif ( jobs.idle and nodes.total == config.ehos_daemon.nodes_max):
+        elif ( jobs.idle and nodes.total == config.daemon.nodes_max):
             logger.info("We are busy. but all nodes we are allowed have been created, nothing to do")
 
 
@@ -161,10 +161,10 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         ### Looks like we have an excess of nodes, lets cull some
 
         # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
-        elif ( nodes.total > config.ehos_daemon.nodes_min and
-               nodes.idle  > config.ehos_daemon.nodes_spare ):
+        elif ( nodes.total > config.daemon.nodes_min and
+               nodes.idle  > config.daemon.nodes_spare ):
 
-            nr_of_nodes_to_delete = min( nodes.total - config.ehos_daemon.nodes_min, nodes.idle - config.ehos_daemon.nodes_spare)
+            nr_of_nodes_to_delete = min( nodes.total - config.daemon.nodes_min, nodes.idle - config.daemon.nodes_spare)
             
             logger.info("Deleting {} idle nodes... (2)".format( nr_of_nodes_to_delete))
             ehos.delete_idle_nodes(nr_of_nodes_to_delete)
@@ -172,8 +172,8 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         else:
             logger.info("The number of execute nodes are running seem appropriate, nothing to change.")
 
-        logger.info("Napping for {} second(s).".format(config.ehos_daemon.sleep))
-        time.sleep( config.ehos_daemon.sleep)
+        logger.info("Napping for {} second(s).".format(config.daemon.sleep))
+        time.sleep( config.daemon.sleep)
 
 
 

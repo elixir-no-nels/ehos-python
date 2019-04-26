@@ -38,7 +38,6 @@ def wait_for_running( max_timeout=60):
 
     """
 
-    
     logger.info("waiting for the condor daemon ...")
     while( max_timeout >= 0 ):
         try:
@@ -87,24 +86,24 @@ def reload_config() -> None:
 
 
 class Job_status( IntEnum ):
-    idle                 = 1
-    running              = 2
-    removed              = 3
-    completed            = 4
-    held                 = 5
-    transferring_output  = 6
-    suspended            = 7
+    job_idle                 = 1
+    job_running              = 2
+    job_removed              = 3
+    job_completed            = 4
+    job_held                 = 5
+    job_transferring_output  = 6
+    job_suspended            = 7
 
 class Node_status( IntEnum ):
-    idle         =  1
-    starting     =  2
-    busy         =  3
-    suspended    =  4 
-    vacating     =  5 
-    killing      =  6
-    benchmarking =  7
-    retiring     =  8
-    lost         =  9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
+    node_idle         =  1
+    node_starting     =  2
+    node_busy         =  3
+    node_suspended    =  4
+    node_vacating     =  5
+    node_killing      =  6
+    node_benchmarking =  7
+    node_retiring     =  8
+    node_lost         =  9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
 
 
 
@@ -154,16 +153,13 @@ class Condor( object ):
           None
 
         """
-
-
-
         status_counts = {"total": 0}
 
         for job_status in Job_status:
             status_counts[ job_status.name ] = 0
 
         for job in self._schedd.xquery(projection=['ClusterId', 'ProcId', 'JobStatus']):
-            status = Job_status( job.get('JobStatus') ).name
+            status = "job_" + Job_status( job.get('JobStatus') ).name
 
             status_counts[ status  ] += 1
             status_counts[ 'total' ] += 1
@@ -186,8 +182,6 @@ class Condor( object ):
           None
 
         """
-
-
         timestamp = ehos.timestamp()
 
         node_states = {}
@@ -225,9 +219,9 @@ class Condor( object ):
 
             if ( host in node_states ):
                 if ( "_" in name):
-                    node_states[ host ] = node.get('Activity').lower()
+                    node_states[ host ] = "node_" + node.get('Activity').lower()
             else:
-                node_states[ host ] = node.get('Activity').lower() 
+                node_states[ host ] = "node_" + node.get('Activity').lower()
 
 
 
@@ -255,12 +249,12 @@ class Condor( object ):
 
         node_counts = {"total": 0}
 
+        # init the count dict to 0 for all states
         for node_status in Node_status:
-            
             node_counts[ node_status.name ] = 0
 
         
-        node_states = self.nodes( max_heard_from_time)
+        node_states = self.nodes( max_heard_from_time )
 
         for node in node_states.keys():
 

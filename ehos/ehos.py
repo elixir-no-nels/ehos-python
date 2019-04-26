@@ -70,7 +70,6 @@ def init(condor_init:bool=True):
 
 def connect_to_database( url:str ) -> None:
     instances.connect( url )
-
     
 def connect_to_clouds(config:Munch) -> None:
     """ Connects to the clouds spefified in the config file
@@ -326,9 +325,9 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
         for cloud_name in clouds:
             cloud = instances.get_cloud( cloud_name )
             resources = cloud.get_resources_available()
-            if ( resources['ram'] > config.ehos_daemon.min_ram*1024 and
-                 resources['cores'] > config.ehos_daemon.min_cores and
-                 resources['instances'] > config.ehos_daemon.min_instances ):
+            if ( resources['ram'] > config.daemon.min_ram*1024 and
+                 resources['cores'] > config.daemon.min_cores and
+                 resources['instances'] > config.daemon.min_instances ):
                 clouds_usable.append( cloud_name )
 
         clouds = clouds_usable
@@ -341,7 +340,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
         
         # for round-robin
         ### find the next cloud name
-        if ( config.ehos_daemon.node_allocation == 'round-robin'):
+        if ( config.daemon.node_allocation == 'round-robin'):
 
             nodes_created = len( instances.get_nodes())
 
@@ -429,9 +428,9 @@ def create_images( config:Munch,config_file:str, delete_original:bool=False):
 
 
         resources = cloud.get_resources_available()
-        if ( resources['ram'] > config.ehos_daemon.min_ram*1024 and
-             resources['cores'] > config.ehos_daemon.min_cores and
-             resources['instances'] > config.ehos_daemon.min_instances ):
+        if ( resources['ram'] > config.daemon.min_ram*1024 and
+             resources['cores'] > config.daemon.min_cores and
+             resources['instances'] > config.daemon.min_instances ):
 
             vm_id = cloud.server_create( name=node_name,
                                          userdata_file=config_file,
@@ -481,13 +480,13 @@ def create_master_node( config:Munch,master_file:str):
 
     if len (clouds ) == 1:
         logger.debug( "only one cloud configured, will use that for the master node regardless of configuration")
-        config.ehos_daemon.master_cloud = clouds[ 0 ]
+        config.daemon.master_cloud = clouds[ 0 ]
         
-    if 'master_cloud' not in config.ehos_daemon or config.ehos_daemon == 'None':
+    if 'master_cloud' not in config.daemon or config.daemon == 'None':
         logger.fatal( "Cloud instance for hosting the master node is not specified in the config file")
         sys.exit( 2 )
     
-    cloud_name = config.ehos_daemon.master_cloud
+    cloud_name = config.daemon.master_cloud
 
     if ( cloud_name not in clouds):
         print( "Unknown cloud instance {}, it is not found in the config file".format( cloud_name ))
@@ -720,8 +719,8 @@ def readin_config_file(config_file:str) -> Munch:
         config = Munch.fromYAML(stream)
         stream.close()
 
-    if 'hostname' not in config.ehos_daemon:
-        config.ehos_daemon.hostname = get_host_name()
+    if 'hostname' not in config.daemon:
+        config.daemon.hostname = get_host_name()
 
     return config
 

@@ -19,8 +19,8 @@ ehos:
   network: dualStack # Not sure about this one, might have to be set between opstack instances
 
 
-# for tweaking the ehos demon behaviour
-ehos_daemon:
+# for tweaking the ehos daemon behaviour
+daemon:
 
     master_cloud: default # Which cloud to create the master node in, if only using 1 cloud will default to that one
     min_cores: 1

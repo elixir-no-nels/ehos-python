@@ -160,8 +160,8 @@ def main():
     image = find_suitable_image( default, ['centos7', 'centos 7' ])
     logger.debug("Finding flavour")
     flavour = find_suitable_flavour( default,
-                                     min_ram=template.ehos_daemon.min_ram*1024,
-                                     min_cpus=template.ehos_daemon.min_cores)
+                                     min_ram=template.daemon.min_ram*1024,
+                                     min_cpus=template.daemon.min_cores)
 
 #    pp.pprint( image )
 #    pp.pprint( flavour )

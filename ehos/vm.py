@@ -9,31 +9,29 @@ Abstract class for the VM interface
 
 import sys
 import pprint
-pp = pprint.PrettyPrinter(indent=4)
 
+pp = pprint.PrettyPrinter(indent=4)
 
 import ehos
 
 from enum import IntEnum
 
-class State( IntEnum ):
-    booting    = 1
-    active     = 2
-    suspended  = 3
-    restarting = 4
-    stopping   = 5
-    deleted    = 6
-    unknown    = 7
+
+class State(IntEnum):
+    vm_booting = 1
+    vm_active = 2
+    vm_suspended = 3
+    vm_restarting = 4
+    vm_stopping = 5
+    vm_deleted = 6
+    vm_unknown = 7
+
 
 class Vm(object):
-
-
     _connection = None
-    _name       = None
-    _servers    = {}
-    _backend    = "Vm"
-    
-
+    _name = None
+    _servers = {}
+    _backend = "Vm"
 
     def __init__(self):
         """ default init function, set class variables to ensure they are not shared betwewen class objects
@@ -49,14 +47,11 @@ class Vm(object):
         """
 
         self._connection = None
-        self._name       = None
-        self._servers    = {}
-        self._backend    = "Vm"
-        
+        self._name = None
+        self._servers = {}
+        self._backend = "Vm"
 
-
-    
-    def check_connection() -> bool:
+    def check_connection(self) -> bool:
         """ Checks that there is a connection to the vm
         
         Args:
@@ -69,10 +64,9 @@ class Vm(object):
           ConnectionError if not connected
         """
 
-        return None
+        return False
 
-
-    def connect(cloud_name:str, **kwargs) -> None:
+    def connect(self, cloud_name: str, **kwargs) -> None:
         """ Connects to a vm service
 
         Args:
@@ -87,8 +81,7 @@ class Vm(object):
 
         return None
 
-
-    def server_create(name:str, *kwargs) -> str: 
+    def server_create(self, name: str, *kwargs) -> str:
         """ creates and spins up a server
     
         Args:
@@ -108,146 +101,139 @@ class Vm(object):
 
         return ""
 
+    def server_stop(self, id: str, timeout: int = 200) -> None:
+        """ stops a server
 
-    def server_stop(id:str, timeout:int=200) -> None: 
-      """ stops a server
-    
-      Args:
-        id: the name of the server
-        timeout: max time (s) to wait for the server to shotdown
+        Args:
+          id: the name of the server
+          timeout: max time (s) to wait for the server to shotdown
 
-      Returns:
-        None
+        Returns:
+          None
 
-      Raises:
-        TimeoutError: if the server is not in shutdown status within the timeout time
-      """
+        Raises:
+          TimeoutError: if the server is not in shutdown status within the timeout time
+        """
 
-      return None
+        return None
 
-    
-      def server_delete(id:str) -> None:
-          """ Deletes a server instance
+    def server_delete(self, id: str) -> None:
+        """ Deletes a server instance
 
-          Args:
-            id: name/id of a server
+        Args:
+          id: name/id of a server
 
-          Returns:
-            None
+        Returns:
+          None
 
-          Raises:
-            None
+        Raises:
+          None
 
-          """
+        """
 
-          return None
+        return None
 
-      def server_list() -> {}:
-          """ gets a list of servers on the vm
+    def server_list(self) -> {}:
+        """ gets a list of servers on the vm
 
-          Args:
-            None
+        Args:
+          None
 
-          Returns:
-            server dict ( name -> id )
+        Returns:
+          server dict ( name -> id )
 
-          Raises:
-            None
-          """
+        Raises:
+          None
+        """
 
-          return {}
+        return {}
 
-  
+    def server_log(self, id: str) -> str:
+        """ streams the dmesg? log from a server
 
-      def server_log(id:str) -> str:
-          """ streams the dmesg? log from a server
-  
-          Args:
-            id: id/name of server
-  
-          Returns:
-            the log (str)
+        Args:
+          id: id/name of server
 
-          Raises:
-            None
-          """
+        Returns:
+          the log (str)
 
-          return ""
+        Raises:
+          None
+        """
 
-      def server_log_search( id:str, match:str) -> str:
-          """ get a server log and searches for a match 
+        return ""
 
-          Args:
-            id: id/name of the server 
-            match: regex/str of log entry to look for
-  
-          Returns:
-            matches found in log, if none found returns an empty list
+    def server_log_search(self, id: str, match: str) -> str:
+        """ get a server log and searches for a match
 
-          Raises:
-            None    
+        Args:
+          id: id/name of the server
+          match: regex/str of log entry to look for
 
-          """
+        Returns:
+          matches found in log, if none found returns an empty list
 
-          return ""
+        Raises:
+          None
 
-      def wait_for_log_entry(id:str, match:str, timeout:int=200) -> str:
-          """ continually checks a server log until a string match is found
+        """
 
-          Args:
-            id: id/name of the server 
-            match: regex/str of log entry to look for
-            timeout: max time to check logs for in seconds
-  
-          Returns:
-            matches found in log, if none found returns an empty list
+        return ""
 
-          Raises:
-            TimeoutError if entry not found before timeout is 
-          """
+    def wait_for_log_entry(self, id: str, match: str, timeout: int = 200) -> str:
+        """ continually checks a server log until a string match is found
 
-          return ""
-    
-        
-      def server_ip(id:str, ipv:int=4) -> str:
-          """ returns the ip address of a server
-    
-          Args:
-          id: name/id of server
-          ipv: return IP4 or IP6 address. IPV4 is default
+        Args:
+          id: id/name of the server
+          match: regex/str of log entry to look for
+          timeout: max time to check logs for in seconds
 
-          Returns:
-            IP address (str), if not found (wrong IPV) returns None
+        Returns:
+          matches found in log, if none found returns an empty list
 
-          Raises:
-            None
-          """
+        Raises:
+          TimeoutError if entry not found before timeout is
+        """
 
-          return ""
+        return ""
 
+    def server_ip(self, id: str, ipv: int = 4) -> str:
+        """ returns the ip address of a server
 
-    
-      def make_image( id:str, image_name:str, timeout:int=200):
-          """ creates an image from a vm server. 
+        Args:
+        id: name/id of server
+        ipv: return IP4 or IP6 address. IPV4 is default
 
-          The function has a timeout variable to ensure we dont end up in an infinite loop
+        Returns:
+          IP address (str), if not found (wrong IPV) returns None
 
-          Args:
-            id: server name/id
-            image_name: the name of the backup to create
-            timeout: how long to wait for the image to be created.
+        Raises:
+          None
+        """
 
-          Returns:
-            None
-    
-          Raises:
-            TimeoutError: if the image is not created within the timeout time
+        return ""
 
-          """
+    def make_image(self, id: str, image_name: str, timeout: int = 200):
+        """ creates an image from a vm server.
 
-          return None
-      
-      def _wait_for_image_creation( image_name:str, timeout:int=200) -> str:
+        The function has a timeout variable to ensure we dont end up in an infinite loop
+
+        Args:
+          id: server name/id
+          image_name: the name of the backup to create
+          timeout: how long to wait for the image to be created.
+
+        Returns:
+          None
+
+        Raises:
+          TimeoutError: if the image is not created within the timeout time
+
+        """
+
+        return None
+
+    def _wait_for_image_creation(self, image_name: str, timeout: int = 200) -> str:
         """ Wait for a single image with the given name exists and them return the id of it
 
         Args:
@@ -262,6 +248,3 @@ class Vm(object):
         """
 
         return ""
-    
-    
-    

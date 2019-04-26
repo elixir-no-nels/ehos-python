@@ -28,7 +28,7 @@ ehos:
 
 
 # for tweaking the ehos demon behaviour
-ehos_daemon:
+daemon:
 
     master_cloud: None # Which cloud to create the master node in, if only using 1 cloud will default to that one
     min_cores: 4
