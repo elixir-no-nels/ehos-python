@@ -3,57 +3,18 @@ import ehos.log_utils as logger
 
 class InstancesDB(object):
 
-    def __init__(self, url):
+
+    def connect(self, url:str) -> None:
         self._db = db.DB( url )
 
+    def disconnect(self) -> None:
 
-
-    def add_name(self, table:str, name:str):
-        """ low level function for adding a name to a table
-
-        Args:
-          table: table to add to
-          name: the name to get/add
-
-        returns:
-          None
-
-        Raises:
-          None
-        """
-
-        self._db.do("insert into {table} (name) VALUES ('{name}');".format(table=table, name=name))
-        return self.get_name_id( table, name )
+        if self._db is not None:
+            self._db.close()
 
 
 
-
-    def get_name_id(self, table:str, name:str):
-        """ low level function for getting a name if present in database, otherwise add the entry.
-
-        Args:
-          table: table to add to
-          name: the name to get/add
-
-        returns:
-          None
-
-        Raises:
-          None
-        """
-
-        rows = self._db.get_as_dict("select * from {table} where name = '{name}';".format(table=table, name=name))
-
-
-        if len( rows) > 0:
-            return rows[ 0 ]['id']
-
-        else:
-            return self.add_name( table, name )
-
-
-
-    def get_state_id(self,  state:str ) -> int:
+    def vm_state_id(self, vm_state:str) -> int:
         """ get or create  the id corresponding to the state
 
         Args:
@@ -66,10 +27,11 @@ class InstancesDB(object):
           None
         """
 
-        return self.get_name_id('node_state', state)
+        return self._db.add_unique('vm_state', {'name':vm_state}, key='name')
 
 
-    def get_status_id(self,  status:str ) -> int:
+
+    def node_state_id(self, node_state:str) -> int:
         """ get or create  the id corresponding to the state
 
         Args:
@@ -82,7 +44,7 @@ class InstancesDB(object):
           None
         """
 
-        return self.get_name_id('node_status', status)
+        return self._db.add_unique('node_state', {'name':node_state}, key='name')
 
 
     def clouds( self, **values ):
@@ -91,8 +53,8 @@ class InstancesDB(object):
 
 
 
-    def get_cloud_id(self,  name:str ) -> int:
-        """ get or create  the id corresponding to the state
+    def cloud_id(self, name:str) -> int:
+        """ get or create  the id corresponding to the cloud
 
         Args:
           name of cloud
@@ -104,35 +66,31 @@ class InstancesDB(object):
           None
         """
 
-        return self.get_name_id('cloud', name)
+        return self._db.add_unique('cloud', {'name':name}, key='name')
 
 
     def nodes( self, **values ):
 
-        q =  "SELECT node.id,node.uuid, node.name, node_status.name AS status, node_state.name AS state FROM node, node_state, node_status "
-        q += "WHERE node.node_status_id = node_status.id AND node.node_state_id = node_state.id"
+        q =  "SELECT node.id,node.uuid, node.name, node_state.name AS node_state, vm_state.name AS vm_state FROM node, node_state, vm_state "
+        q += "WHERE node.node_state_id = node_state.id AND node.vm_state_id = vm_state.id"
 
         for key in values:
             q += " AND node.{} = {}".format( key, values[ key ])
 
-
-        print( q )
-
         return self._db.get_as_dict( q )
 
 
-
-    def node_status( self):
-
-        return self._db.get('node_status')
-
-    def node_states( self ):
+    def node_states(self):
 
         return self._db.get('node_state')
 
+    def vm_states( self ):
+
+        return self._db.get('vm_state')
 
 
-    def get_node_id(self, id:str) -> int:
+
+    def node_id(self, id:str) -> int:
         """ gets a node-id if node exists
 
         Args:
@@ -145,138 +103,86 @@ class InstancesDB(object):
           None
         """
 
-        rows = self._db.get_as_dict("select * from node where uuid = '{id}';".format(id=id))
-
+        rows = self._db.get_as_dict("SELECT * FROM node WHERE uuid = '{id}';".format(id=id))
 
         if len( rows) > 0:
             return rows[ 0 ]['id']
-
         else:
             return None
 
 
-
-
-
-
-    def add_node(self, id:str, name:str, cloud:str, state:str= 'vm_booting', status='starting')-> None:
+    def add_node(self, id:str, name:str, cloud:str, vm_state:str= 'vm_booting', node_state='starting')-> None:
         """ Adds a node to the class
 
         Args:
           id: vm id of the node (should prob be a uuid)
           name: human readable name of node
           cloud: name of cloud where the node lives
-          state: VM state of the node, default is 'vm_booting'
-          status: condor status of the node, default is 'busy'
+          vm_state: VM vm_state of the node, default is 'vm_booting'
+          node_state: condor status of the node, default is 'busy'
 
         Returns:
           None
 
         Raises:
-          RuntimeError if unknown cloud, node id/name already exist, illegal state or status
+          RuntimeError if unknown cloud, node id/name already exist, illegal vm_state or status
         """
 
 
-        node_state_id  = self.get_state_id( state )
-        node_status_id = self.get_status_id( status )
-        cloud_id       = self.get_cloud_id( cloud )
+        vm_state_id    = self.vm_state_id(vm_state)
+        node_state_id  = self.node_state_id(node_state)
+        cloud_id       = self.cloud_id(cloud)
 
+        node_id = self.node_id(id)
 
-        node_id = self.get_node_id(id)
 
         if ( node_id is None):
 
-            query = "insert into node (uuid, name, cloud_id, node_status_id, node_state_id) VALUES ('{uuid}', '{name}', {cloud_id}, {node_status_id}, {node_state_id});"
+            query = "INSERT INTO node (uuid, name, cloud_id, node_state_id, vm_state_id) VALUES ('{uuid}', '{name}', {cloud_id}, {node_state_id}, {vm_state_id});"
+
+
+
 
             self._db.do(query.format(uuid=id,
                                      name=name,
                                      cloud_id=cloud_id,
-                                     node_status_id=node_status_id,
-                                     node_state_id=node_state_id))
+                                     node_state_id=node_state_id,
+                                     vm_state_id=vm_state_id))
         else:
-            self.update_node( id, state=state, status=status)
+            self.update_node(id, vm_state=vm_state, node_state=node_state)
 
 
-    def update_node(self, uuid:str, state:str=None, status=None)-> None:
+    def update_node(self, uuid:str, vm_state:str=None, node_state=None)-> None:
         """ Adds a node to the class
 
         Args:
           id: vm id of the node (should prob be a uuid)
-          state: VM state of the node, default is 'booting'
-          status: condor status of the node, default is 'busy'
+          vm_state: VM state of the node, default is 'booting'
+          node_state: condor node_state of the node, default is 'busy'
 
         Returns:
           None
 
         Raises:
-          RuntimeError if unknown cloud, node id/name already exist, illegal state or status
+          RuntimeError if unknown cloud, node id/name already exist, illegal state or node_state
         """
 
 
-        if ( state is not None):
-            node_state_id  = self.get_state_id( state )
+        if ( vm_state is not None):
+            vm_state_id  = self.vm_state_id(vm_state)
 
-            query = "update node set node_state_id={node_state_id} where uuid='{uuid}';"
+            query = "UPDATE node SET vm_state_id={vm_state_id} WHERE uuid='{uuid}';"
 
-            print( "running {}".format( query.format(uuid=uuid,
-                                                     node_state_id=node_state_id)))
+            self._db.do(query.format(uuid=uuid,
+                                     vm_state_id=vm_state_id))
 
+        if ( node_state is not None):
+            node_state_id  = self.node_state_id(node_state)
+
+            query = "UPDATE node SET node_state_id={node_state_id} WHERE uuid='{uuid}';"
 
             self._db.do(query.format(uuid=uuid,
                                      node_state_id=node_state_id))
-
-        if ( status is not None):
-            node_status_id  = self.get_status_id( status )
-
-            query = "update node set node_status_id={node_status_id} where uuid='{uuid}';"
-
-            print( "running {}".format( query.format(uuid=uuid,
-                                                     node_status_id=node_status_id)))
-
-
-            self._db.do(query.format(uuid=uuid,
-                                     node_status_id=node_status_id))
-
-
-
-
-    def node_list(self ) -> {}:
-        """ returns the states of nodes split into clouds
-
-        Args:
-          None
-
-        Returns:
-          dict of list of nodes
-
-        Raises:
-          None
-        """
-
-        template = { 'idle': 0,
-                     'busy': 0,
-                     'total':0,
-                     'other':0 }
-
-
-        res = { 'all': template.copy() }
-
-
-        query =  "select uuid, n.name, state.name as state, status.name as status, c.name as cloud_name "
-        query += "from node n, cloud c, node_status status, node_state state "
-        query += "where n.cloud_id = c.id and n.node_state_id = state.id and n.node_status_id = status.id;";
-
-        res = {}
-
-        nodes = self._db.get_as_dict( query )
-        for node in nodes:
-            cloud_name = node['cloud_name']
-            if cloud_name not in res:
-                res[ cloud_name ] = []
-            res[ cloud_name ].append( node )
-
-
-        return res
 
 
 

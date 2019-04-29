@@ -53,14 +53,14 @@ def test_get_cloud_names():
     i.add_cloud(name='cph', instance='12345')
     i.add_cloud(name='osl', instance='56789')
     
-    names = i.get_cloud_names()
+    names = i.cloud_names()
     assert names ==  ['cph', 'osl']
 
 
 def test_get_cloud_names_empty():
     i = I.Instances() 
 
-    names = i.get_cloud_names()
+    names = i.cloud_names()
     assert names ==  []
     
 def test_get_clouds():
@@ -69,7 +69,7 @@ def test_get_clouds():
     i.add_cloud(name='cph', instance='12345')
     i.add_cloud(name='osl', instance='56789')
     
-    names = i.get_clouds()
+    names = i.clouds()
     assert names ==  {'cph':'12345', 'osl':'56789'}
     
     
@@ -479,7 +479,7 @@ def test_node_name2id():
     i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', node_state="node_idle")
     i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', node_state="node_idle")
 
-    assert i.name2id('qwerty21') == '123_21'
+    assert i.vm_name2id('qwerty21') == '123_21'
 
 def test_node_name2id_unknown():
     i = I.Instances()
@@ -497,7 +497,7 @@ def test_node_name2id_unknown():
     i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', node_state="node_idle")
 
     with pytest.raises( RuntimeError ):
-        i.name2id('qwerty213')
+        i.vm_name2id('qwerty213')
 
 def test_get_node_id2name():
     i = I.Instances()
@@ -514,7 +514,7 @@ def test_get_node_id2name():
     i.add_node( '123_22', name = 'qwerty22', cloud='tyt2', node_state="node_idle")
     i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', node_state="node_idle")
 
-    assert i.id2name('123_21') == 'qwerty21'
+    assert i.vm_id2name('123_21') == 'qwerty21'
 
 def test_node_id2name_unknown():
     i = I.Instances()
@@ -532,7 +532,7 @@ def test_node_id2name_unknown():
     i.add_node( '123_23', name = 'qwerty23', cloud='tyt3', node_state="node_idle")
 
     with pytest.raises( RuntimeError ):
-        i.id2name('123_91') == 'qwerty213'
+        i.vm_id2name('123_91') == 'qwerty213'
 
 
 
@@ -663,7 +663,7 @@ def test_get_vm_state():
     i.add_node( '123_13', name = 'qwerty13', cloud='tyt1', vm_state='vm_suspended', node_state="node_suspended")
 
 
-    assert i.get_vm_state( '123_12') ==  'vm_active'
+    assert i.vm_state('123_12') == 'vm_active'
 
 
 def test_get_state_unknown_node():
@@ -674,7 +674,7 @@ def test_get_state_unknown_node():
     i.add_node( '123_11', name = 'qwerty11', cloud='tyt1', vm_state='vm_booting', node_state="node_idle")
 
     with pytest.raises( RuntimeError ):
-        i.get_vm_state( '123d_11')
+        i.vm_state('123d_11')
 
 
 

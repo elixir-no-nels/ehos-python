@@ -65,10 +65,10 @@ class DB( object ):
         file_handle.close()
 
         for command in content.replace("\n", " ").split(';'):
-            if command.strip() == "":
+            if command.strip() ==  "":
                 continue
 
-            
+            #print( "SQL {}".format(command ))
             self.do(command)
 
     def table_names(self) -> []:
@@ -137,7 +137,7 @@ class DB( object ):
             
 
     def get(self, table, logic:str='AND', order:str=None, limit:int=None, offset:int=None, **values ) -> {}:
-        q = "SELECT * from {table} ".format( table = table )
+        q = "SELECT * FROM {table} ".format( table = table )
 
         filters = []
 

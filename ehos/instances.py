@@ -3,28 +3,20 @@
   for tracking nodes 
  
  
- Kim Brugger (22 Oct 2018), contact: kim@brugger.dk
+ Kim Brugger (22 Oct 2018), contact: kim.brugger@uib.no
 """
 
 import sys
 import pprint
-
-pp = pprint.PrettyPrinter(indent=4)
-
-import ehos.log_utils as logger
-
 from munch import Munch
 
+import ehos.log_utils as logger
 import ehos.vm
 import ehos.htcondor
 import ehos.instances_db as db
 
 
 class Instances(object):
-    _nodes = {}
-    _clouds = {}
-
-    _name_to_id = {}
 
     def __init__(self):
         """ Init function for the nodes class
@@ -42,8 +34,8 @@ class Instances(object):
 
         self._nodes = {}
         self._clouds = {}
-
         self._name_to_id = {}
+
         self._db = None
 
     def connect(self, url: str) -> None:
@@ -51,17 +43,21 @@ class Instances(object):
 
         Args:
         url: as specified by sqlalchemy ( {driver}://{user}:{password}@{host}:{port}/{dbase}
-
-        Returns:
-        none
-
-        Raises:
-        RuntimeError on failure.
-
-
         """
 
-        self._db = db.InstancesDB(url)
+        self._db = db.InstancesDB()
+        self._db.connect( url )
+
+    def disconnect(self, url: str) -> None:
+        """ connects to a database instance
+
+        Args:
+        url: as specified by sqlalchemy ( {driver}://{user}:{password}@{host}:{port}/{dbase}
+        """
+
+        self._db.disconnect( )
+
+
 
     def add_cloud(self, name: str, instance) -> None:
         """ adds a cloud to the class
@@ -82,7 +78,7 @@ class Instances(object):
 
         self._clouds[name] = instance
         if self._db is not None:
-            self._db.get_cloud_id(name=name)
+            self._db.cloud_id(name=name)
 
     def get_cloud(self, name: str):
         """ returns a cloud instance 
@@ -100,9 +96,9 @@ class Instances(object):
         if name not in self._clouds:
             raise RuntimeError("Unknown cloud name {}".format(name))
 
-        return self._clouds[name]
+        return self._clouds[ name ]
 
-    def get_clouds(self) -> {}:
+    def clouds(self) -> {}:
         """ returns a copy of the cloud dict
         
         Args:
@@ -117,7 +113,7 @@ class Instances(object):
 
         return self._clouds.copy()
 
-    def get_cloud_names(self) -> []:
+    def cloud_names(self) -> []:
         """ get a list of cloud names
 
         Args:
@@ -327,7 +323,7 @@ class Instances(object):
 
         return node_names
 
-    def id2name(self, node_id: str) -> str:
+    def vm_id2name(self, node_id: str) -> str:
         """ translate a node id to a node name
 
         Args:
@@ -345,7 +341,7 @@ class Instances(object):
 
         return self._nodes[node_id]['name']
 
-    def name2id(self, node_name: str) -> str:
+    def vm_name2id(self, node_name: str) -> str:
         """ translate a node name to a node id
 
         Args:
@@ -404,7 +400,7 @@ class Instances(object):
 
         try:
             if (name is not None):
-                id = self.name2id(name)
+                id = self.vm_name2id(name)
         except:
             return None
         #            raise RuntimeError("Node name not found {}".format( name))
@@ -416,7 +412,7 @@ class Instances(object):
         if id is not None:
             return self._nodes[id]
 
-    def get_vm_state(self, node_id: str):
+    def vm_state(self, node_id: str):
         """ get vm state for a node
         
         Args:

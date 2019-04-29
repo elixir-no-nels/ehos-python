@@ -37,12 +37,10 @@ logging.getLogger('openstack').setLevel(logging.CRITICAL)
 logging.getLogger('dogpile').setLevel(logging.CRITICAL)
 
 
-
-
 condor    = None
 instances = None
 
-def init(condor_init:bool=True):
+def init(condor_init:bool=True) -> None:
     """ init function for the module, connects to the htcondor server and sets up the instance tracking module
 
     Args:
@@ -69,8 +67,10 @@ def init(condor_init:bool=True):
     instances = I.Instances()
 
 def connect_to_database( url:str ) -> None:
+    global instances
     instances.connect( url )
-    
+
+
 def connect_to_clouds(config:Munch) -> None:
     """ Connects to the clouds spefified in the config file
 
@@ -90,9 +90,9 @@ def connect_to_clouds(config:Munch) -> None:
 
     for cloud_name in config.clouds:
 
+        # Ignore the backend setting, as we only support openstack right now.
         config.clouds[ cloud_name ].backend = 'openstack'
         
-        # Ignore the backend setting, as we only support openstack right now.
         if ( 1 or config.clouds[ cloud_name ].backend == 'openstack'):
 
             cloud_config = config.clouds[ cloud_name ]
@@ -148,7 +148,7 @@ def update_node_states( max_heard_from_time:int=300 ):
     cloud_servers = {}
     cloud_server_name_to_id = {}
     cloud_servers_to_cloud = {}
-    for cloud_name, connector in instances.get_clouds().items():
+    for cloud_name, connector in instances.clouds().items():
         server_list = connector.server_list()
 
         for server_id in server_list:

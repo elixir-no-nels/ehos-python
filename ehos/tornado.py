@@ -59,7 +59,6 @@ class BaseHandler( RequestHandler ):
 
         return valid_values
 
-
     def set_ACAO_header(self, sites="*"):
 #        print( "setting headers!!!")
         self.set_header("Access-Control-Allow-Origin", sites)

@@ -24,7 +24,7 @@ import ehos
 
 
 
-def wait_for_running( max_timeout=60):
+def wait_for_running( max_timeout=60 ):
     """ wait for htcondor to be running 
 
     Args:
