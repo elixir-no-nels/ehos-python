@@ -159,14 +159,14 @@ class InstancesDB(object):
 
 
 
-    def add_node(self, id:str, name:str, cloud:str, state:str= 'booting', status='starting')-> None:
+    def add_node(self, id:str, name:str, cloud:str, state:str= 'vm_booting', status='starting')-> None:
         """ Adds a node to the class
 
         Args:
           id: vm id of the node (should prob be a uuid)
           name: human readable name of node
           cloud: name of cloud where the node lives
-          state: VM state of the node, default is 'booting'
+          state: VM state of the node, default is 'vm_booting'
           status: condor status of the node, default is 'busy'
 
         Returns:
