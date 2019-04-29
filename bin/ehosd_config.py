@@ -20,6 +20,7 @@ import ehos
 import ehos.htcondor
 import ehos.log_utils as logger
 import ehos.tick_utils as Tick
+import ehos.utils
 
 
 def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outfile:str='/usr/local/etc/ehos/execute.yaml', execute_config:str=None):
@@ -41,11 +42,11 @@ def create_execute_config_file(master_ip:str, uid_domain:str, password:str, outf
     """
 
     if execute_config is None:
-        execute_config = ehos.find_config_file('execute.yaml')
+        execute_config = ehos.utils.find_config_file('execute.yaml')
 
-    ehos.patch_file(execute_config, outfile=outfile, patterns=[(r'{master_ip}', master_ip),
-                                                               (r'{uid_domain}', uid_domain),
-                                                               (r'{password}',password)])
+    ehos.utils.patch_file(execute_config, outfile=outfile, patterns=[(r'{master_ip}', master_ip),
+                                                                     (r'{uid_domain}', uid_domain),
+                                                                     (r'{password}',password)])
 
 
     return outfile
@@ -69,17 +70,17 @@ def htcondor_setup_config_file( uid_domain  ):
     # first time running this master, so tweak the personal configureation file
     if ( os.path.isfile( '/etc/condor/00personal_condor.config')):
 
-        ehos.system_call( "systemctl stop condor" )
+        ehos.utils.system_call("systemctl stop condor")
         #         uid_domain = ehos.make_uid_domain_name(5)
-        host_ip    = ehos.get_host_ip()
-        host_name = ehos.get_host_name()
+        host_ip    = ehos.utils.get_host_ip()
+        host_name = ehos.utils.get_host_name()
 
-        ehos.patch_file(filename='/etc/condor/00personal_condor.config', patterns=[(r'{master_ip}', host_ip),
-                                                                                   (r'{uid_domain}',uid_domain)])
+        ehos.utils.patch_file(filename='/etc/condor/00personal_condor.config', patterns=[(r'{master_ip}', host_ip),
+                                                                                         (r'{uid_domain}',uid_domain)])
 
         os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 
-        ehos.system_call( "systemctl start condor" )
+        ehos.utils.system_call("systemctl start condor")
         ehos.htcondor.wait_for_running()
 
 
@@ -90,7 +91,7 @@ def main():
 
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs='?',    help="yaml formatted config file", default=ehos.find_config_file('ehos.yaml'))
+    parser.add_argument('config_file', metavar='config-file', nargs='?', help="yaml formatted config file", default=ehos.utils.find_config_file('ehos.yaml'))
 
 
     args = parser.parse_args()
@@ -102,12 +103,12 @@ def main():
     logger.set_log_level( args.verbose )
     logger.set_log_level( 5 )
 
-    host_ip    = ehos.get_host_ip( )
+    host_ip    = ehos.utils.get_host_ip()
 
-    config = ehos.readin_config_file( args.config_file )
+    config = ehos.utils.readin_config_file(args.config_file)
 
 
-    uid_domain = ehos.make_uid_domain_name(5)
+    uid_domain = ehos.utils.make_uid_domain_name(5)
     ehos.htcondor.set_pool_password( config.condor.password )
 
     htcondor_setup_config_file( uid_domain=uid_domain )

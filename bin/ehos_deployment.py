@@ -12,6 +12,9 @@ import re
 import tempfile
 
 import pprint
+
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 
 import ehos.log_utils as logger
@@ -41,7 +44,7 @@ def make_write_file_block_from_file(filename:str, outname:str, directory:str='/u
 
     """
 
-    content = ehos.readin_whole_file(filename)
+    content = ehos.utils.readin_whole_file(filename)
 
     return make_write_file_block(content, outname, directory)
 
@@ -106,7 +109,7 @@ def write_master_yaml( config:Munch, master_filename:str, execute_filename:str=N
         write_file_block += make_write_file_block_from_file( execute_filename, 'execute.yaml',directory)
 
     # readin the maste file and insert out write_file_block(s)
-    master_content = ehos.readin_whole_file(master_filename)
+    master_content = ehos.utils.readin_whole_file(master_filename)
     master_content = re.sub('#{write_files}', write_file_block, master_content)
 
     
@@ -138,8 +141,8 @@ def main():
     parser = argparse.ArgumentParser(description='deploy_ehos: Deploy ehos onto a openstack server ')
 
     # magically sets default config files
-    parser.add_argument('-m', '--master-yaml',   help="yaml config file to create master image from", default=ehos.find_config_file('master.yaml'))
-    parser.add_argument('-e', '--execute-yaml',  help="yaml config file for execute node from",       required=False, default=ehos.find_config_file('execute.yaml'))
+    parser.add_argument('-m', '--master-yaml', help="yaml config file to create master image from", default=ehos.utils.find_config_file('master.yaml'))
+    parser.add_argument('-e', '--execute-yaml', help="yaml config file for execute node from", required=False, default=ehos.utils.find_config_file('execute.yaml'))
     parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
 
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
@@ -158,13 +161,13 @@ def main():
 
     ehos.init(condor_init=False)
     # readin the config file in as a Munch object
-    config = ehos.readin_config_file( config_file )
+    config = ehos.utils.readin_config_file(config_file)
 
     # Make some images, one for each cloud
     ehos.connect_to_clouds( config )
 
     if 'password' not in config.condor or config.condor.password == 'None':
-        config.condor.password = ehos.random_string(25)
+        config.condor.password = ehos.utils.random_string(25)
         
     tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.execute_yaml, '/usr/local/etc/ehos/')
     

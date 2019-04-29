@@ -13,6 +13,9 @@ import re
 import tempfile
 
 import pprint
+
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 
 
@@ -117,7 +120,7 @@ def main():
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-o', '--out-file',     help="filt to write yaml config file to",   default='etc/ehos/ehos.yaml')
-    parser.add_argument('config_template', metavar='config-template', nargs=1, help="yaml config template", default=ehos.find_config_file('ehos.yaml.template'))
+    parser.add_argument('config_template', metavar='config-template', nargs=1, help="yaml config template", default=ehos.utils.find_config_file('ehos.yaml.template'))
     parser.add_argument('keystone_file', metavar='keystone-file', nargs=1,   help="openstack keystone file")
 
     args = parser.parse_args()
@@ -134,7 +137,7 @@ def main():
 
     # readin the config file in as a Munch object
     logger.debug("Reading config and template files")
-    template = ehos.readin_config_file( args.config_template )
+    template = ehos.utils.readin_config_file(args.config_template)
     keystone  = get_keystone_info( args.keystone_file )
                          
     template['clouds'][ 'default' ][ 'auth_url'] = keystone[ 'OS_AUTH_URL' ]
@@ -171,7 +174,7 @@ def main():
     template.ehos.flavor = flavour['name']
 
     
-    template.condor.password = ehos.random_string(25)
+    template.condor.password = ehos.utils.random_string(25)
         
 
     logger.info("writing config file to {}".format( args.out_file ))

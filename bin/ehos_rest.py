@@ -9,6 +9,7 @@ import ehos.tornado as tornado
 import ehos.instances_db as instances_db
 import ehos
 import ehos.log_utils as logger
+import ehos.utils
 
 db = None
 
@@ -101,7 +102,7 @@ def main():
 
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs='?',    help="yaml formatted config file", default=ehos.find_config_file('ehos.yaml'))
+    parser.add_argument('config_file', metavar='config-file', nargs='?', help="yaml formatted config file", default=ehos.utils.find_config_file('ehos.yaml'))
 
     args = parser.parse_args()
     logger.init(name='ehosd', log_file=args.logfile )
@@ -110,7 +111,7 @@ def main():
     logger.info("Using config file: {}".format( args.config_file))
 
 
-    config = ehos.readin_config_file( args.config_file )
+    config = ehos.utils.readin_config_file(args.config_file)
     pp.pprint( config )
     #ehos.init( condor_init=False)
     global db

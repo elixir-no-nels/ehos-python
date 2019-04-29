@@ -4,6 +4,9 @@ import re
 import os
 import tempfile
 import pprint
+
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 
 
@@ -13,65 +16,11 @@ import pytest
 import ehos as E
 
 
-def test_timestamp():
 
-
-    
-    assert type(E.timestamp() ) == int
-    
-    
-    
-
-def test_datetimestamp():
-    dt = E.datetimestamp()
-    assert type( dt ) == str
-    assert re.match(r'\d+T\d+', dt)
-
-
-
-
-def test_random_string():
-
-    rnd_str = E.random_string()
-    
-    assert type( rnd_str ) == str
-    assert len( rnd_str) == 10
-
-def test_random_string_long():
-
-    rnd_str = E.random_string(100)
-    
-    assert type( rnd_str ) == str
-    assert len( rnd_str) == 100
-
-    
-def test_make_node_name():
-
-    nn = E.make_node_name()
-    assert re.match(r'ehos-node-\d+', nn)
-
-
-def test_make_node_name_spec():
-
-    nn = E.make_node_name(prefix="EHOS_1", name='MaSter')
-    assert re.match(r'ehos-1-master-\d+', nn)
-
-    
-    
-def test_get_node_id():
-    id = E.get_node_id(filename='t/data/instance-id')
-
-    assert id == '6f4967d5-706e-4f58-8287-74796c8fff26'
-
-def test_get_node_id_no_file():
-    with pytest.raises( RuntimeError ):
-        id = E.get_node_id(filename='t/data/instance-id-no-here')
-
-    
     
 
 def test_readin_config_file():
-    config = E.readin_config_file('t/data/ehos.yaml')
+    config = ehos.utils.readin_config_file('t/data/ehos.yaml')
 
     pp.pprint( config )
 
@@ -118,19 +67,19 @@ def test_readin_config_file():
     assert config.condor.host_ip == 'None'
     assert config.condor.password == 'None'
 
-    assert E.check_config_file( config ) == True
+    assert ehos.utils.check_config_file(config) == True
 
     
 
 def test_readin_whole_file():
 
-    content = E.get_node_id(filename='t/data/instance-id')
+    content = ehos.utils.get_node_id(filename='t/data/instance-id')
 
     assert content == "6f4967d5-706e-4f58-8287-74796c8fff26"
 
     
 def test_find_config_file( ):
-    config_file = E.find_config_file(filename='ehos.yaml', dirs=['t/data'])
+    config_file = ehos.utils.find_config_file(filename='ehos.yaml', dirs=['t/data'])
 
     assert config_file == 't/data/ehos.yaml'
 
@@ -141,8 +90,8 @@ def test_alter_file():
     tmp_fh, tmp_file = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
 #    tmp_fh.close()
     
-    E.patch_file(filename='t/data/ehos.yaml', pattern='{basename}', replace='Base1', outfile=tmp_file)
-    config = E.readin_config_file(tmp_file)
+    ehos.utils.patch_file(filename='t/data/ehos.yaml', pattern='{basename}', replace='Base1', outfile=tmp_file)
+    config = ehos.utils.readin_config_file(tmp_file)
 
     assert config.ehos.base_image_id == 'Base1'
     os.remove( tmp_file )
@@ -151,8 +100,8 @@ def test_alter_file_patterns():
 
     tmp_fh, tmp_file = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
     
-    E.patch_file(filename='t/data/ehos.yaml', patterns=[('{basename}', 'Base111')], outfile=tmp_file)
-    config = E.readin_config_file(tmp_file)
+    ehos.utils.patch_file(filename='t/data/ehos.yaml', patterns=[('{basename}', 'Base111')], outfile=tmp_file)
+    config = ehos.utils.readin_config_file(tmp_file)
 
     assert config.ehos.base_image_id == 'Base111'
     os.remove( tmp_file )
@@ -169,15 +118,15 @@ def test_log_level():
     assert E.log_level(6) == 5
 
 def test_system_call():
-    assert E.system_call( "sleep 1" ) == 0
+    assert ehos.utils.system_call("sleep 1") == 0
 
     with pytest.raises( FileNotFoundError ):
-        E.system_call( "sleeps 1" )
+        ehos.utils.system_call("sleeps 1")
         
 
 def test_make_uid_domain_name():
 
-    uid_domain = E.make_uid_domain_name(length=10)
+    uid_domain = ehos.utils.make_uid_domain_name(length=10)
 
     assert type(uid_domain) == str
     assert uid_domain.count(".") == 9
@@ -187,7 +136,7 @@ def test_make_uid_domain_name_long():
 
 
     with pytest.raises( RuntimeError ):
-        uid_domain = E.make_uid_domain_name(length=1000)
+        uid_domain = ehos.utils.make_uid_domain_name(length=1000)
     
 
     

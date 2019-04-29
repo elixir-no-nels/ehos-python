@@ -8,6 +8,8 @@
 import pprint
 import sys
 
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 import time
 import argparse
@@ -56,7 +58,7 @@ def setup_tick( config ):
 
 def setup_db_backend( config ):
     if 'database' in config.daemon:
-        ehos.connect_to_database( config.daemon.database )
+        ehos.instances_connect_to_database(config.daemon.database)
 
 
 def open_node_logfile( config ):
@@ -81,7 +83,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     """
 
 
-    config = ehos.readin_config_file( config_file )
+    config = ehos.utils.readin_config_file(config_file)
     ehos.init()
 
     setup_tick(config)
@@ -96,7 +98,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
     while ( True ):
 
-        config = ehos.readin_config_file( config_file )
+        config = ehos.utils.readin_config_file(config_file)
 
         # get the current number of nodes
         nodes  = ehos.update_node_states()
@@ -185,7 +187,7 @@ def main():
 
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs='?',    help="yaml formatted config file", default=ehos.find_config_file('ehos.yaml'))
+    parser.add_argument('config_file', metavar='config-file', nargs='?', help="yaml formatted config file", default=ehos.utils.find_config_file('ehos.yaml'))
 
 
     args = parser.parse_args()

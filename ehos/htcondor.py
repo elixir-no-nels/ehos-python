@@ -9,6 +9,9 @@ htcondor specific functions
 import sys
 import re
 import pprint
+
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 
 from enum import IntEnum
@@ -21,6 +24,27 @@ import ehos.log_utils as logger
 from munch import Munch
 
 import ehos
+
+
+class Job_status( IntEnum ):
+    job_idle                 = 1
+    job_running              = 2
+    job_removed              = 3
+    job_completed            = 4
+    job_held                 = 5
+    job_transferring_output  = 6
+    job_suspended            = 7
+
+class Node_state( IntEnum ):
+    node_idle         =  1
+    node_starting     =  2
+    node_busy         =  3
+    node_suspended    =  4
+    node_vacating     =  5
+    node_killing      =  6
+    node_benchmarking =  7
+    node_retiring     =  8
+    node_lost         =  9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
 
 
 
@@ -72,7 +96,7 @@ def set_pool_password(password:str) -> None:
     
     """
 
-    ehos.system_call( "condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
+    ehos.utils.system_call("condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
 
     
 def reload_config() -> None:
@@ -81,29 +105,9 @@ def reload_config() -> None:
     
     """
     
-    ehos.system_call("condor_reconfig")
+    ehos.utils.system_call("condor_reconfig")
 
 
-
-class Job_status( IntEnum ):
-    job_idle                 = 1
-    job_running              = 2
-    job_removed              = 3
-    job_completed            = 4
-    job_held                 = 5
-    job_transferring_output  = 6
-    job_suspended            = 7
-
-class Node_state( IntEnum ):
-    node_idle         =  1
-    node_starting     =  2
-    node_busy         =  3
-    node_suspended    =  4
-    node_vacating     =  5
-    node_killing      =  6
-    node_benchmarking =  7
-    node_retiring     =  8
-    node_lost         =  9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
 
 
 
@@ -182,7 +186,7 @@ class Condor( object ):
           None
 
         """
-        timestamp = ehos.timestamp()
+        timestamp = ehos.utils.timestamp()
 
         node_states = {}
         import htcondor as HTC
@@ -283,9 +287,9 @@ class Condor( object ):
         """
 
         if daemon is not None:
-            ehos.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
+            ehos.utils.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
         else:
-            ehos.system_call("condor_off -fast {}".format(name))
+            ehos.utils.system_call("condor_off -fast {}".format(name))
 
 
 

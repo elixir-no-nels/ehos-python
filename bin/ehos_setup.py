@@ -12,6 +12,9 @@ import re
 import tempfile
 
 import pprint
+
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 
 import ehos.log_utils as logger
@@ -97,7 +100,7 @@ def main():
 
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
 
-    parser.add_argument('-B', '--base-yaml',     help="yaml config file to create base image from",   default=ehos.find_config_file('base.yaml'))
+    parser.add_argument('-B', '--base-yaml', help="yaml config file to create base image from", default=ehos.utils.find_config_file('base.yaml'))
     parser.add_argument('-c', '--create-images', action='store_true',     help="Create images, one in each cloud in the configuration file")
 
     parser.add_argument('-s', '--ssh-key',     help="ssh-key to upload")
@@ -122,7 +125,7 @@ def main():
     # as this is an array, and we will ever only get one file set it
     config_file = args.config_file[ 0 ]
     # readin the config file in as a Munch object
-    config = ehos.readin_config_file( config_file )
+    config = ehos.utils.readin_config_file(config_file)
     # Make some images, one for each cloud
     ehos.connect_to_clouds( config )
 
@@ -149,7 +152,7 @@ def main():
     # add a password to the config file if not already set:
     if 'password' not in config.condor or config.condor.password == 'None':
         print("Setting a password in the config file")
-        config.condor.password = ehos.random_string(25)
+        config.condor.password = ehos.utils.random_string(25)
         changed_config = True
 
         
