@@ -124,7 +124,7 @@ class Instances(object):
           None
 
         Returns:
-          node dict (name, cloud, vm_state, status)
+          node dict (name, cloud, vm_state, 'node_state')
 
         Raises:
           RuntimeError if unknown node_id
@@ -132,7 +132,7 @@ class Instances(object):
 
         return list(self._clouds.keys())
 
-    def add_node(self, id:str, name:str, cloud:str, vm_state:str = 'vm_booting', status='node_starting') -> None:
+    def add_node(self, id:str, name:str, cloud:str, vm_state:str = 'vm_booting', node_state='node_starting') -> None:
         """ Adds a node to the class 
 
         Args:
@@ -140,13 +140,13 @@ class Instances(object):
           name: human readable name of node
           cloud: name of cloud where the node lives
           vm_state: VM state of the node, default is 'vm_booting'
-          status: condor status of the node, default is 'busy'
+          node_state: condor 'node_state' of the node, default is 'busy'
 
         Returns:
           None
         
         Raises:
-          RuntimeError if unknown cloud, node id/name already exist, illegal vm_state or status
+          RuntimeError if unknown cloud, node id/name already exist, illegal vm_state or 'node_state'
         """
 
         if (cloud not in self._clouds):
@@ -161,19 +161,19 @@ class Instances(object):
         if (self.valid_vm_state(vm_state) == False):
             raise RuntimeError("Illegal vm_state '{}'".format(vm_state))
 
-        if (self.valid_status(status) == False):
-            raise RuntimeError("Illegal status '{}'".format(status))
+        if (self.valid_node_state(node_state) == False):
+            raise RuntimeError("Illegal node_state '{}'".format(node_state))
 
         self._nodes[id] = {'id': id,
                            'name': name,
                            'cloud': cloud,
                            'vm_state': vm_state,
-                           'status': status}
+                           'node_state': node_state}
 
         self._name_to_id[name] = id
 
         if (self._db is not None):
-            self._db.add_node(id, name, cloud, vm_state, status)
+            self._db.add_node(id, name, cloud, vm_state, node_state)
 
     def get_node(self, id: str) -> {}:
         """ get a nodes based on its id
@@ -182,7 +182,7 @@ class Instances(object):
           id: id of the node
 
         Returns:
-          node dict (id, name, cloud, vm_state, status)
+          node dict (id, name, cloud, vm_state, 'node_state')
 
         Raises:
           RuntimeError if unknown node_id
@@ -193,23 +193,23 @@ class Instances(object):
 
         return Munch(self._nodes[id])
 
-    def get_nodes(self, vm_state=[], status=[], cloud=[]) -> {}:
-        """ get a list of nodes, can be filtered based on status names
+    def get_nodes(self, vm_state=[], node_state=[], cloud=[]) -> {}:
+        """ get a list of nodes, can be filtered based on 'node_state' names
 
         Args:
           state: (optional) for filtering on vm state
-          status: (optional) for filtering on condor status 
+          node_state: (optional) for filtering on condor node_state
           cloud: (optional) for filtering on cloud name 
 
         Returns:
-          list of node dict (name, cloud, status)
+          list of node dict (name, cloud, node_state)
 
         Raises:
           RuntimeError if unknown node_id
         """
 
         vm_state = list(filter(None, vm_state))
-        status = list(filter(None, status))
+        node_state = list(filter(None, node_state))
         cloud = list(filter(None, cloud))
 
         if vm_state is not None and vm_state != []:
@@ -217,10 +217,10 @@ class Instances(object):
                 if self.valid_vm_state(s) == False:
                     raise RuntimeError("Illegal vm_state: '{}'".format(s))
 
-        if status is not None and status != []:
-            for s in status:
-                if self.valid_status(s) == False:
-                    raise RuntimeError("Illegal status {}".format(s))
+        if node_state is not None and node_state != []:
+            for s in node_state:
+                if self.valid_node_state(s) == False:
+                    raise RuntimeError("Illegal node_state {}".format(s))
 
         if cloud is not None and cloud != []:
             for c in cloud:
@@ -229,10 +229,10 @@ class Instances(object):
 
         res = []
         for node in self._nodes:
-            if ((vm_state is None or vm_state == []) and (status is None or status == []) and (cloud is None or cloud == [])):
+            if ((vm_state is None or vm_state == []) and (node_state is None or node_state == []) and (cloud is None or cloud == [])):
                 res.append(Munch(self._nodes[node]))
 
-            elif self._nodes[node]['vm_state'] in vm_state or self._nodes[node]['status'] in status or self._nodes[node][
+            elif self._nodes[node]['vm_state'] in vm_state or self._nodes[node]['node_state'] in node_state or self._nodes[node][
                 'cloud'] in cloud:
                 res.append(Munch(self._nodes[node]))
 
@@ -265,14 +265,14 @@ class Instances(object):
 
             #            pp.pprint( node )
 
-            if (node['status'] == 'node_idle'):
+            if (node['node_state'] == 'node_idle'):
                 res['all']['node_idle'] += 1
                 res['all']['node_total'] += 1
 
                 res[node['cloud']]['node_idle'] += 1
                 res[node['cloud']]['node_total'] += 1
 
-            elif (node['status'] in ['node_busy', 'node_starting', 'node_vacating', 'node_benchmarking']):
+            elif (node['node_state'] in ['node_busy', 'node_starting', 'node_vacating', 'node_benchmarking']):
                 res['all']['node_busy'] += 1
                 res['all']['node_total'] += 1
 
@@ -285,12 +285,12 @@ class Instances(object):
 
         return Munch(res)
 
-    def get_node_ids(self, vm_state: str = None, status: str = None, cloud: str = None) -> []:
-        """ get a list of nodes, can be filtered based on status
+    def get_node_ids(self, vm_state: str = None, node_state: str = None, cloud: str = None) -> []:
+        """ get a list of nodes, can be filtered based on node_state
 
         Args:
           vm_state: (optional) for filtering on vm_state
-          status: (optional) for filtering on condor status 
+          node_state: (optional) for filtering on condor node_state
 
         Returns:
           list of node ids
@@ -301,17 +301,17 @@ class Instances(object):
 
         node_ids = []
 
-        for node in self.get_nodes(vm_state=[vm_state], status=[status], cloud=[cloud]):
+        for node in self.get_nodes(vm_state=[vm_state], node_state=[node_state], cloud=[cloud]):
             node_ids.append(node['id'])
 
         return node_ids
 
-    def get_node_names(self, vm_state: str = None, status: str = None, cloud: str = None) -> []:
-        """ get a list of node names, can be filtered based on status
+    def get_node_names(self, vm_state: str = None, node_state: str = None, cloud: str = None) -> []:
+        """ get a list of node names, can be filtered based on node_state
 
         Args:
           vm_state: (optional) for filtering on vm-state
-          status: (optional) for filtering on condor status 
+          node_state: (optional) for filtering on condor node_state
 
         Returns:
           list of node names
@@ -322,7 +322,7 @@ class Instances(object):
 
         node_names = []
 
-        for node in self.get_nodes(vm_state=[vm_state], status=[status], cloud=[cloud]):
+        for node in self.get_nodes(vm_state=[vm_state], node_state=[node_state], cloud=[cloud]):
             node_names.append(node['name'])
 
         return node_names
@@ -395,7 +395,7 @@ class Instances(object):
           name: human readable node name
         
         returns 
-          node info: (id, name, cloud_name, vm_state, status), None if id/name does not exist
+          node info: (id, name, cloud_name, vm_state, node_state), None if id/name does not exist
 
         raises:
  
@@ -454,11 +454,11 @@ class Instances(object):
 
         return True
 
-    def valid_status(self, status: str) -> bool:
+    def valid_node_state(self, node_state: str) -> bool:
         """ check that a state has a valid value
 
         Args:
-          status to check
+          node_state to check
 
         Returns 
           boolean 
@@ -467,19 +467,19 @@ class Instances(object):
           None
         """
 
-        #        logger.debug("Testing the status validity of {}".format( status ))
+        #        logger.debug("Testing the node_state validity of {}".format( node_state ))
 
-        if (status not in ehos.htcondor.Node_status.__members__):
+        if (node_state not in ehos.htcondor.Node_state.__members__):
             return False
 
         return True
 
     def set_vm_state(self, node_id: str, vm_state: str):
-        """ set vm status for a node
+        """ set vm node_state for a node
         
         Args:
           node_id: id of the node
-          vm_state: new status of the node
+          vm_state: new node_state of the node
 
         Returns:
           None
@@ -506,8 +506,8 @@ class Instances(object):
 
         self._nodes[node_id]['vm_state'] = vm_state
 
-    def get_status(self, node_id: str):
-        """ get condor status for a node
+    def get_node_state(self, node_id: str):
+        """ get condor node_state for a node
         
         Args:
           node_id: id of the node
@@ -522,14 +522,14 @@ class Instances(object):
         if (node_id not in self._nodes):
             raise RuntimeError
 
-        return self._nodes[node_id]['status']
+        return self._nodes[node_id]['node_state']
 
-    def set_status(self, node_id: str, status: str):
-        """ set condor status for a node
+    def set_node_state(self, node_id: str, node_state: str):
+        """ set condor node_state for a node
         
         Args:
           node_id: id of the node
-          status: new status of the node
+          node_state: new node_state of the node
 
         Returns:
           None
@@ -541,13 +541,13 @@ class Instances(object):
         if (node_id not in self._nodes):
             raise RuntimeError
 
-        if (self._nodes[node_id]['status'] == status):
+        if (self._nodes[node_id]['node_state'] == node_state):
             return
 
-        if (self.valid_status(status) == False):
-            raise RuntimeError("Illegal status {}".format(status))
+        if (self.valid_node_state(node_state) == False):
+            raise RuntimeError("Illegal node_state {}".format(node_state))
 
-        logger.debug("Node {}/{} status changed from {} to {}".format(node_id, self._nodes[node_id]['name'],
-                                                                      self._nodes[node_id]['status'], status))
+        logger.debug("Node {}/{} node_state changed from {} to {}".format(node_id, self._nodes[node_id]['name'],
+                                                                      self._nodes[node_id]['node_state'], node_state))
 
-        self._nodes[node_id]['status'] = status
+        self._nodes[node_id]['node_state'] = node_state

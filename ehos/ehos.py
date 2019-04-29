@@ -128,7 +128,7 @@ def get_cloud_connector( name:str):
 
 
 def update_node_states( max_heard_from_time:int=300 ):
-    """ Update the status of nodes.
+    """ Update the node_state of nodes.
 
     This will update the nodes object based on information from HTcondor and the vm backends.
 
@@ -154,7 +154,7 @@ def update_node_states( max_heard_from_time:int=300 ):
         for server_id in server_list:
             server = server_list[ server_id ]
 
-            cloud_servers[ server_id ] = server[ 'status']
+            cloud_servers[ server_id ] = server[ 'node_state']
             cloud_server_name_to_id[  server['name'] ] = server[ 'id']
 
             cloud_servers_to_cloud[ server_id ] = cloud_name
@@ -181,26 +181,26 @@ def update_node_states( max_heard_from_time:int=300 ):
         # the node is unknown to our instances, so add it
         if ( instances.find( name = condor_node ) is None):
 #            print( server_id, condor_node, cloud_servers_to_cloud[ server_id ], cloud_servers[ server_id], condor_nodes[condor_node] )
-            instances.add_node(id=server_id, name=condor_node, cloud=cloud_servers_to_cloud[ server_id ], vm_state=cloud_servers[ server_id], status=condor_nodes[condor_node])
+            instances.add_node(id=server_id, name=condor_node, cloud=cloud_servers_to_cloud[ server_id ], vm_state=cloud_servers[ server_id], node_state=condor_nodes[condor_node])
 
 
-        instances.set_status( node_id= server_id, status=condor_nodes[condor_node])
+        instances.set_node_state( node_id= server_id, node_state=condor_nodes[condor_node])
 
 #    for node in instances.get_nodes(state=['vm_booting', 'vm_active', 'vm_stopping', 'vm_unknown']):
     for node in instances.get_nodes():
 
 #        print( node )
 
-        # Not known in the clouds or status != vm_active, set is as vm_deleted.
+        # Not known in the clouds or node_state != vm_active, set is as vm_deleted.
         if node['id'] not in cloud_servers or cloud_servers[ node['id']] != 'vm_active':
             instances.set_vm_state(node['id'], vm_state='vm_deleted')
-            instances.set_status( node['id'], status='lost')
+            instances.set_node_state( node['id'], node_state='node_lost')
 
         # these are in states that are not helpful for us, so ignore them for now
         elif node['vm_state' ] in ['vm_suspended', 'vm_killing', 'vm_retiring', 'vm_lost']:
             if ( instances.find( name = condor_node ) is not None ):
                 instances.set_vm_state(node_id=server_id, vm_state='vm_deleted')
-                instances.set_status( node['id'], status='lost')
+                instances.set_vm_state( node['id'], vm_state='vm_lost')
             continue
 
         elif node[ 'vm_state' ] == 'vm_booting':
@@ -262,7 +262,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
 #            continue
         
 #        print( node )
-        if ( node[ 'status' ] == 'idle' and node['vm_state'] in ['vm_active', 'vm_booting']):
+        if ( node[ 'node_state' ] == 'idle' and node['vm_state'] in ['vm_active', 'vm_booting']):
             logger.debug("Killing node {}".format( node_name ))
             
             condor.turn_off_fast( node_name )
@@ -279,13 +279,13 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
             cloud.server_delete( node['id'] )
 
             instances.set_vm_state(node['id'], 'vm_stopping')
-            instances.set_status( node['id'], 'retiring')
+            instances.set_node_state( node['id'], 'node_retiring')
 
             nr -= 1
             if ( nr <= 0 ):
                 return
         else:
-            logger.debug("Cannot kill node {} it is {}/{}".format( node_name, node['status'],node['vm_state'] ))
+            logger.debug("Cannot kill node {} it is {}/{}".format( node_name, node['node_state'],node['vm_state'] ))
 
             
 
@@ -384,7 +384,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
                     cloud.server_delete( node_id )
 
                     
-            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, status='starting', state='vm_booting')
+            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, node_state='node_starting', state='vm_booting')
             logger.debug("Execute server {}/{} is vm_booting".format( node_id, node_name))
             node_names.append(node_name)
 

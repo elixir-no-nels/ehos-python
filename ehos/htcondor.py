@@ -94,7 +94,7 @@ class Job_status( IntEnum ):
     job_transferring_output  = 6
     job_suspended            = 7
 
-class Node_status( IntEnum ):
+class Node_state( IntEnum ):
     node_idle         =  1
     node_starting     =  2
     node_busy         =  3
