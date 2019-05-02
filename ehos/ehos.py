@@ -15,6 +15,7 @@ import random
 from munch import Munch
 
 import ehos.log_utils as logger
+import ehos.openstack
 
 # Not sure if this is still needed.
 import logging
@@ -75,14 +76,13 @@ def connect_to_clouds(config:Munch) -> None:
 
     global instances
 
-    import ehos.openstack
 
     for cloud_name in config.clouds:
 
         # Ignore the backend setting, as we only support openstack right now.
-        config.clouds[ cloud_name ].backend = 'openstack'
+#        config.clouds[ cloud_name ].backend = 'openstack'
         
-        if ( 1 or config.clouds[ cloud_name ].backend == 'openstack'):
+        if ( config.clouds[ cloud_name ].backend == 'openstack'):
 
             cloud_config = config.clouds[ cloud_name ]
 
@@ -94,8 +94,8 @@ def connect_to_clouds(config:Munch) -> None:
             logger.debug("Successfully connected to the {} openStack service".format( cloud_name ))
 
         else:
-            logger.critical( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
-            raise RuntimeError( "Unknown VM backend {}".format( config.clouds[ cloud ].backend ))
+            logger.critical( "Unknown VM backend {}".format( config.clouds[ cloud_name ].backend ))
+            raise RuntimeError( "Unknown VM backend {}".format( config.clouds[ cloud_name ].backend ))
                    
     return None
 
@@ -203,11 +203,6 @@ def update_node_states( max_heard_from_time:int=300 ):
 #                    instances.set_status( node['id'], status='running')
         else:
             instances.set_vm_state(node['id'], 'vm_active')
-            
-            
-        
-
-        
 
     return instances.node_state_counts()
     
