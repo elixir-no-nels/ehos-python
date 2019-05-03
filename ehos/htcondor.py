@@ -108,10 +108,6 @@ def reload_config() -> None:
     ehos.utils.system_call("condor_reconfig")
 
 
-
-
-
-
 class Condor( object ):
 
     _collector = None
@@ -250,7 +246,6 @@ class Condor( object ):
 
         """
 
-
         node_counts = {"total": 0}
 
         # init the count dict to 0 for all states
@@ -290,10 +285,3 @@ class Condor( object ):
             ehos.utils.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
         else:
             ehos.utils.system_call("condor_off -fast {}".format(name))
-
-
-
-        
-
-
-
