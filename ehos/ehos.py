@@ -30,38 +30,7 @@ logging.getLogger('dogpile').setLevel(logging.CRITICAL)
 condor    = None
 instances = None
 
-def init(condor_init:bool=True) -> None:
-    """ init function for the module, connects to the htcondor server and sets up the instance tracking module
-
-    Args:
-      condor_init: wether to init the condor module or not.
-    
-    Returns:
-      None
-    
-    Raises:
-      None
-    """
-
-    # Some odd bug as the name space gets polluted when I install the module multiple times
-    import ehos.instances as I
-
-    global condor
-    global instances
-
-
-    if ( condor_init ):
-        import ehos.htcondor 
-        condor  = ehos.htcondor.Condor()
-
-    instances = I.Instances()
-
-def instances_connect_to_database(url:str) -> None:
-    global instances
-    instances.connect( url )
-
-
-def connect_to_clouds(config:Munch) -> None:
+def connect_to_clouds(config:Munch) -> list:
     """ Connects to the clouds spefified in the config file
 
     Args:
@@ -74,8 +43,7 @@ def connect_to_clouds(config:Munch) -> None:
       RuntimeError if unknown backend
     """
 
-    global instances
-
+    clouds = {}
 
     for cloud_name in config.clouds:
 
@@ -90,123 +58,32 @@ def connect_to_clouds(config:Munch) -> None:
             cloud.connect( cloud_name=cloud_name,
                            **cloud_config)
 
-            instances.add_cloud( cloud_name, cloud )
+            clouds[cloud_name] = cloud_handle
             logger.debug("Successfully connected to the {} openStack service".format( cloud_name ))
 
         else:
             logger.critical( "Unknown VM backend {}".format( config.clouds[ cloud_name ].backend ))
             raise RuntimeError( "Unknown VM backend {}".format( config.clouds[ cloud_name ].backend ))
                    
-    return None
+    return clouds
 
 
-def get_cloud_connector( name:str):
-    """ returns the connector for the cloud, mainly used for debugging 
 
-    Args:
-      name of cloud to return connector for
+def vm_list( clouds:dict ):
+    """ returns a list of all vm running in all clouds """
 
-    Returns:
-      connector object for cloud
+    vms = {}
+    for cloud_name in clouds:
+        vm_list = clouds[ cloud_name].server_list()
 
-    Raises:
-      None
-    """
+        for vm_id in vm_list.keys():
+            vm = vm_list[ vm_id ]
+            vm[ 'cloud_name'] = cloud_name
+            vms[ vm_id ] = vm
 
-    return instances.get_cloud( name )
-
-
-def update_node_states( max_heard_from_time:int=300 ):
-    """ Update the node_state of nodes.
-
-    This will update the nodes object based on information from HTcondor and the vm backends.
-
-    Args:
-      max_heard_from_time: if we have not heard from a node this long, we expect it is dead (~30 min is default)
-    
-    Returns:
-      None
-
-    Raises:
-      None
-    """
-
-    global instances
-
-    # Get a list of servers running on the VMs
-    cloud_servers = {}
-    cloud_server_name_to_id = {}
-    cloud_servers_to_cloud = {}
-    for cloud_name, connector in instances.clouds().items():
-        server_list = connector.server_list()
-
-        for server_id in server_list:
-            server = server_list[ server_id ]
-
-            cloud_servers[ server_id ] = server[ 'node_state']
-            cloud_server_name_to_id[  server['name'] ] = server[ 'id']
-
-            cloud_servers_to_cloud[ server_id ] = cloud_name
-            
-
-    node_count = {'idle' : 0,
-                  'busy' : 0,
-                  'total': 0}
-
-    # The list of nodes known to htcondor        
-    condor_nodes = condor.nodes()
-    # Add the nodes known to condor if they are not already registered in the instances class
-    for condor_node in condor_nodes:
-
-        # This can happen if the server is restarted and condor
-        # retains information about old nodes that have since been
-        # deleted from the cloud(s)
-        if ( condor_node not in cloud_server_name_to_id ):
-            continue
+    return vms
 
 
-        server_id  = cloud_server_name_to_id[ condor_node ]
-
-        # the node is unknown to our instances, so add it
-        if ( instances.find( name = condor_node ) is None):
-#            print( server_id, condor_node, cloud_servers_to_cloud[ server_id ], cloud_servers[ server_id], condor_nodes[condor_node] )
-            instances.add_node(id=server_id, name=condor_node, cloud=cloud_servers_to_cloud[ server_id ], vm_state=cloud_servers[ server_id], node_state=condor_nodes[condor_node])
-
-
-        instances.set_node_state( node_id= server_id, node_state=condor_nodes[condor_node])
-
-#    for node in instances.get_nodes(state=['vm_booting', 'vm_active', 'vm_stopping', 'vm_unknown']):
-    for node in instances.get_nodes():
-
-#        print( node )
-
-        # Not known in the clouds or node_state != vm_active, set is as vm_deleted.
-        if node['id'] not in cloud_servers or cloud_servers[ node['id']] != 'vm_active':
-            instances.set_vm_state(node['id'], vm_state='vm_deleted')
-            instances.set_node_state( node['id'], node_state='node_lost')
-
-        # these are in states that are not helpful for us, so ignore them for now
-        elif node['vm_state' ] in ['vm_suspended', 'vm_killing', 'vm_retiring', 'vm_lost']:
-            if ( instances.find( name = condor_node ) is not None ):
-                instances.set_vm_state(node_id=server_id, vm_state='vm_deleted')
-                instances.set_vm_state( node['id'], vm_state='vm_lost')
-            continue
-
-        elif node[ 'vm_state' ] == 'vm_booting':
-            # often htcondor knows about the server before it is fully booted up
-            if node['name'] in condor_nodes:
-                instances.set_vm_state(node['id'], 'vm_active')
-#            else:
-                # Looking for the "server is running" keywords in the server log
-#                node_status = clouds[ node['cloud']].server_log_search()
-#                if (node_status is not None and node_status != []):
-#                    instances.set_status( node['id'], status='running')
-        else:
-            instances.set_vm_state(node['id'], 'vm_active')
-
-    return instances.node_state_counts()
-    
-    
 
 def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
     """ Delete idle nodes, by default one node is vm_deleted
@@ -223,7 +100,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
     """
 
     global instances
-    
+
     condor_nodes = condor.nodes( max_heard_from_time )
 
     # Subtract the ones that are currently vm_stopping
@@ -234,32 +111,32 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
     if ( nr <= 0 ):
         logger.debug( 'A suitable amount of nodes are already being killed')
         return
-    
+
     # loop through the nodes that are deletable
     for node_name in condor_nodes:
-        
+
         node = instances.find( name = node_name )
         if node is None:
             continue
 
 #        if node_name != 'ehos-v1-execute-20181107t071902':
 #            continue
-        
+
 #        print( node )
         if ( node[ 'node_state' ] == 'idle' and node['vm_state'] in ['vm_active', 'vm_booting']):
             logger.debug("Killing node {}".format( node_name ))
-            
+
             condor.turn_off_fast( node_name )
             cloud = instances.get_cloud( node['cloud'])
-            
+
             volumes = cloud.volumes_attached_to_server(node['id'])
             cloud.detach_volumes_from_server(node['id'])
 
             for volume in volumes:
-            
+
                 cloud.volume_delete( volume )
-            
-            
+
+
             cloud.server_delete( node['id'] )
 
             instances.set_vm_state(node['id'], 'vm_stopping')
@@ -271,7 +148,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
         else:
             logger.debug("Cannot kill node {} it is {}/{}".format( node_name, node['node_state'],node['vm_state'] ))
 
-            
+
 
     return
 

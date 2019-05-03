@@ -48,7 +48,7 @@ class Instances(object):
         self._db = db.InstancesDB()
         self._db.connect( url )
 
-    def disconnect(self, url: str) -> None:
+    def disconnect(self) -> None:
         """ connects to a database instance
 
         Args:
@@ -79,6 +79,11 @@ class Instances(object):
         self._clouds[name] = instance
         if self._db is not None:
             self._db.cloud_id(name=name)
+
+
+    def add_clouds(self, clouds:{}):
+        for cloud_name in clouds:
+            self.add_cloud(cloud_name, clouds[ cloud_name])
 
     def get_cloud(self, name: str):
         """ returns a cloud instance 
@@ -398,11 +403,11 @@ class Instances(object):
 
         """
 
-        try:
-            if (name is not None):
+        if (name is not None):
+            try:
                 id = self.vm_name2id(name)
-        except:
-            return None
+            except:
+                return None
         #            raise RuntimeError("Node name not found {}".format( name))
 
         if id not in self._nodes:
@@ -491,7 +496,7 @@ class Instances(object):
             raise RuntimeError("Unknown node {}".format(node_id))
 
         if (self.valid_vm_state(vm_state) == False):
-            print( vm_state )
+            #print( vm_state )
             raise RuntimeError("Illegal vm_state {}".format(vm_state))
 
         #        if ( self._nodes[ node_id][ 'vm_state'] == vm_state ):
@@ -547,3 +552,53 @@ class Instances(object):
                                                                       self._nodes[node_id]['node_state'], node_state))
 
         self._nodes[node_id]['node_state'] = node_state
+
+
+    def update(self, nodes):
+
+        clouds = self.clouds()
+        vms = ehos.vm_list( clouds )
+        vm_names = {vms[q]['name']:q for q in vms}
+        #print( vm_names )
+        for node in nodes:
+
+            # This can happen if the server is restarted and condor
+            # retains information about old nodes that have since been
+            # deleted from the cloud(s)
+            if ( node not in vm_names ):
+                continue
+
+            vm_id = vm_names[ node ]
+#            print( "VM ID : ", vm_id)
+
+            # the node is unknown to our instances, so add it
+            if ( self.find( name = node ) is None ):
+#                print(vm_id, node, vms[ vm_id ]['cloud_name'], vms[ vm_id ]['vm_state'], nodes[ node ])
+                self.add_node(id=vm_id, name=node, cloud=vms[ vm_id ]['cloud_name'], vm_state=vms[ vm_id ]['vm_state'], node_state=nodes[ node ])
+            else:
+                self.set_node_state( node_id=vm_id, node_state=nodes[ node ])
+
+        print( self.get_nodes())
+
+        for node in self.get_nodes():
+
+            # Not known in the clouds or node_state != vm_active, set is as vm_deleted.
+            if node['id'] not in vms:# or vms[ node['id']]['vm_state'] != 'vm_active':
+                print('del 1')
+                self.set_vm_state(node_id=node['id'], vm_state='vm_deleted')
+                self.set_node_state( node_id=node['id'], node_state='node_lost')
+
+            # these are in states that are not helpful for us, so ignore them for now
+            elif node['node_state' ] in ['node_suspended', 'node_killing', 'node_retiring', 'node_lost']:
+                print("del 2")
+                self.set_vm_state(node_id=node['id'], vm_state='vm_deleted')
+                self.set_node_state( node_id=node['id'], node_state='node_lost')
+
+            elif node[ 'vm_state' ] == 'vm_booting':
+                # often htcondor knows about the server before it is fully booted up
+                self.set_vm_state(node_id=node['id'], vm_state='vm_active')
+            else:
+                self.set_vm_state(node_id=node['id'], vm_state='vm_active')
+
+
+
