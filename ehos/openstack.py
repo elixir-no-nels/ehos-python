@@ -481,12 +481,13 @@ class Openstack( ehos.vm.Vm ):
 
         images = []
         for image in self._connection.image.images():
-            if active and image.status!="vm_active":
+            if active and image.status!="   active":
                 continue
-
+                
             if (name is not None and
-                name.lower() not in image.name.lower()):
-               continue
+                    (name.lower() not in image.name.lower() and
+                     name.lower() not in image.id.lower())):
+                continue
                 
             
             image_info = { 'id': image.id,
