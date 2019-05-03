@@ -160,8 +160,9 @@ class Openstack( ehos.vm.Vm ):
 
         for server in self._connection.compute.servers():
             server.name = re.sub("_","-", server.name)
-            servers[ server.id ] = {'id':server.id, 'name':server.name.lower(), 'status':server.status.lower()}
-            
+            servers[ server.id ] = {'id':server.id, 'name':server.name.lower(), 'vm_state':"vm_"+server.status.lower()}
+            servers[ server.name.lower() ] = servers[ server.id ]
+
         logger.debug("Servers: \n{}".format( pp.pformat( servers )))
 
         return servers
@@ -532,8 +533,9 @@ class Openstack( ehos.vm.Vm ):
 
         return flavours
     
-        
-    
+
+
+
     def volume_create(self, size:int, name:str=None, **kwargs) -> str:
         """ Create a volume
 
