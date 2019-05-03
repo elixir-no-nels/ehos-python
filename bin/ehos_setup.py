@@ -121,7 +121,6 @@ def main():
     # set the leve of what to print.
     logger.init(name='ehos_setup', log_file=args.logfile )
     logger.set_log_level( args.verbose )
-    ehos.init(condor_init=False)
 
     # as this is an array, and we will ever only get one file set it
     config_file = args.config_file[ 0 ]
@@ -166,7 +165,7 @@ def main():
         
     if ( args.create_images):
         print("Creating image(s)")
-        images = ehos.create_images( config, args.base_yaml, delete_original=True)
+        images = ehos.create_images( instances, config, args.base_yaml, delete_original=True)
     
 
         # Add the image name to the config object.

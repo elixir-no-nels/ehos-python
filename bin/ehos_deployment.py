@@ -23,6 +23,7 @@ import ehos.log_utils as logger
 from munch import Munch
 
 import ehos
+import ehos.instances
 
 
 
@@ -159,12 +160,14 @@ def main():
     logger.set_log_level( args.verbose )
     logger.debug("Parsed arguments")
 
-    ehos.init(condor_init=False)
     # readin the config file in as a Munch object
     config = ehos.utils.readin_config_file(config_file)
 
     # Make some images, one for each cloud
-    ehos.connect_to_clouds( config )
+    instances = ehos.instances.Instances()
+    clouds = ehos.connect_to_clouds( config )
+    instances.add_clouds( clouds )
+
 
     if 'password' not in config.condor or config.condor.password == 'None':
         config.condor.password = ehos.utils.random_string(25)
@@ -172,9 +175,8 @@ def main():
     tmp_master_config_file = write_master_yaml( config, args.master_yaml, args.execute_yaml, '/usr/local/etc/ehos/')
     
     logger.debug("Written tmp config file to: {}".format( tmp_master_config_file))
-    
 
-    master_id, master_ip = ehos.create_master_node(config, tmp_master_config_file)
+    master_id, master_ip = ehos.create_master_node(instances, config, tmp_master_config_file)
 
     print(" Master node created IP: {} ID: {}".format( master_ip, master_id))
 

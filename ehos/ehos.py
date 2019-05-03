@@ -27,8 +27,7 @@ logging.getLogger('openstack').setLevel(logging.CRITICAL)
 logging.getLogger('dogpile').setLevel(logging.CRITICAL)
 
 
-condor    = None
-instances = None
+#condor    = None
 
 def connect_to_clouds(config:Munch) -> list:
     """ Connects to the clouds spefified in the config file
@@ -54,8 +53,8 @@ def connect_to_clouds(config:Munch) -> list:
 
             cloud_config = config.clouds[ cloud_name ]
 
-            cloud = ehos.openstack.Openstack()
-            cloud.connect( cloud_name=cloud_name,
+            cloud_handle = ehos.openstack.Openstack()
+            cloud_handle.connect( cloud_name=cloud_name,
                            **cloud_config)
 
             clouds[cloud_name] = cloud_handle
@@ -149,7 +148,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
     return
 
 
-def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
+def create_execute_nodes(instances, config:Munch,execute_config_file:str, nr:int=1):
     """ Create a number of execute nodes
 
     Args:
@@ -173,7 +172,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
     for i in range(0, nr ):
 
         cloud_name = None
-        clouds = list(instances.get_clouds().keys())
+        clouds = list(instances.clouds().keys())
 
         clouds_usable = []
         
@@ -252,7 +251,7 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
 
 
 
-def create_images( config:Munch,config_file:str, delete_original:bool=False):
+def create_images(instances, config:Munch,config_file:str, delete_original:bool=False):
     """ Create a number of images to be used later to create nodes
 
     Args:
@@ -267,7 +266,7 @@ def create_images( config:Munch,config_file:str, delete_original:bool=False):
       RuntimeError if unknown node-allocation method
     """
 
-    clouds = list(instances.get_clouds().keys())
+    clouds = list(instances.clouds().keys())
 
     images = {}
     
@@ -313,7 +312,7 @@ def create_images( config:Munch,config_file:str, delete_original:bool=False):
     return images
 
 
-def create_master_node( config:Munch,master_file:str):
+def create_master_node(instances, config:Munch, master_file:str):
     """ Create a number of images to be used later to create nodes
 
     Args:
@@ -328,14 +327,14 @@ def create_master_node( config:Munch,master_file:str):
       RuntimeError if unknown node-allocation method
     """
 
-    clouds = list(instances.get_clouds().keys())
+    clouds = list(instances.clouds().keys())
 
     if len (clouds ) == 1:
         logger.debug( "only one cloud configured, will use that for the master node regardless of configuration")
         config.daemon.master_cloud = clouds[ 0 ]
         
     if 'master_cloud' not in config.daemon or config.daemon == 'None':
-        logger.fatal( "Cloud instance for hosting the master node is not specified in the config file")
+        logger.critical( "Cloud instance for hosting the master node is not specified in the config file (daemon:master_cloud)")
         sys.exit( 2 )
     
     cloud_name = config.daemon.master_cloud
@@ -365,10 +364,3 @@ def create_master_node( config:Munch,master_file:str):
     
 
     return master_id, cloud.server_ip( master_id )
-
-
-
-
-# ===================== Low level generic function =====================
-
-

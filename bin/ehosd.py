@@ -104,7 +104,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
 
     config = ehos.utils.readin_config_file(config_file)
-    ehos.init()
 
     setup_tick(config)
     open_node_logfile( config )
@@ -151,7 +150,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         if ( nodes.total < config.daemon.nodes_min ):
             logger.info("We are below the min number of nodes, creating {} nodes".format( config.daemon.nodes_min - nodes.total))
 
-            node_names = ehos.create_execute_nodes(config, config.daemon.execute_config, config.daemon.nodes_min - nodes.total)
+            node_names = ehos.create_execute_nodes(instances, config, config.daemon.execute_config, config.daemon.nodes_min - nodes.total)
             log_nodes( node_names )
 
         ### there are jobs queuing, let see what we should do
@@ -171,7 +170,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
-            node_names = ehos.create_execute_nodes(config, config.daemon.execute_config, config.daemon.nodes_max - nodes.total )
+            node_names = ehos.create_execute_nodes(instances, config, config.daemon.execute_config, config.daemon.nodes_max - nodes.total )
             log_nodes( node_names )
 
 
