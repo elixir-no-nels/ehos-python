@@ -119,9 +119,6 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
         if node is None:
             continue
 
-#        if node_name != 'ehos-v1-execute-20181107t071902':
-#            continue
-
 #        print( node )
         if ( node[ 'node_state' ] == 'idle' and node['vm_state'] in ['vm_active', 'vm_booting']):
             logger.debug("Killing node {}".format( node_name ))
@@ -135,7 +132,6 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
             for volume in volumes:
 
                 cloud.volume_delete( volume )
-
 
             cloud.server_delete( node['id'] )
 
@@ -168,8 +164,6 @@ def create_execute_nodes( config:Munch,execute_config_file:str, nr:int=1):
       RuntimeError if unknown node-allocation method
       None
     """
-
-    global nodes
 
     nr = 1
 
