@@ -48,6 +48,29 @@ class Node_state( IntEnum ):
 
 
 
+def turn_off_fast(self, name:str, daemon:str=None):
+    """ Turns off all daemons, unless defined by name
+
+        Ideally this should be done by an API call but this "feature" is undocumented
+
+        Args:
+          name: name of node to turn off
+          daemon: name of daemon, othewise all of them
+
+        Returns:
+          None
+
+        Raises:
+          None
+
+    """
+
+    if daemon is not None:
+        ehos.utils.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
+    else:
+        ehos.utils.system_call("condor_off -fast {}".format(name))
+
+
 def wait_for_running( max_timeout=60 ):
     """ wait for htcondor to be running 
 
@@ -264,24 +287,3 @@ class Condor( object ):
 
 
 
-    def turn_off_fast(self, name:str, daemon:str=None):
-        """ Turns off all daemons, unless defined by name
-
-        Ideally this should be done by an API call but this "feature" is undocumented
-
-        Args:
-          name: name of node to turn off
-          daemon: name of daemon, othewise all of them
-
-        Returns:
-          None
-
-        Raises:
-          None
-
-        """
-
-        if daemon is not None:
-            ehos.utils.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
-        else:
-            ehos.utils.system_call("condor_off -fast {}".format(name))

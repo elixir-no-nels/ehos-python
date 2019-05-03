@@ -123,8 +123,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         config = ehos.utils.readin_config_file(config_file)
 
         # get the current number of nodes
-        nodes = condor.nodes()
-        instances.update(nodes)
+        instances.update(condor.nodes())
         nodes = instances.node_state_counts()
         jobs   = condor.job_counts()
 
@@ -134,17 +133,17 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         logger.debug( "Node data\n" + pp.pformat( nodes ))
         logger.debug( "Jobs data\n" + pp.pformat( jobs  ))
 
-        logger.info("Nr of nodes {} ({} are idle)".format( nodes.nodes_total, nodes.nodes_idle))
-        logger.info("Nr of jobs {} ({} are queueing)".format( jobs.total, jobs.idle))
+        logger.info("Nr of nodes {} ({} are idle)".format( nodes.node_total, nodes.node_idle))
+        logger.info("Nr of jobs {} ({} are queueing)".format( jobs.job_total, jobs.job_idle))
 
 
         if 'influxdb' in config:
             tick.write_points({"measurement": 'ehos',
                                "tags": {'host':config.daemon.hostname},
-                               "fields": {'nodes_busy': nodes.busy,
-                                          'nodes_idle':nodes.idle,
-                                          'jobs_running': jobs.running,
-                                          'jobs_idle': jobs.idle,}})
+                               "fields": {'nodes_busy': nodes.node_busy,
+                                          'nodes_idle':nodes.node_idle,
+                                          'jobs_running': jobs.job_running,
+                                          'jobs_idle': jobs.job_idle,}})
 
         
         # Below the min number of nodes needed for our setup
@@ -157,17 +156,17 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         ### there are jobs queuing, let see what we should do
 
         # got jobs in the queue but less than or equal to our idle + spare nodes, do nothing
-        elif jobs.idle and jobs.idle <= nodes.idle:
+        elif jobs.job_idle and jobs.job_idle <= nodes.node_idle:
             logger.info("We got stuff to do, but seems to have excess nodes to cope...")
 
-            nr_of_nodes_to_delete = min( nodes.node_total - config.daemon.nodes_min, nodes.idle -jobs.idle , nodes.idle - config.daemon.nodes_spare)
+            nr_of_nodes_to_delete = min( nodes.node_total - config.daemon.nodes_min, nodes.node_idle -jobs.job_idle , nodes.node_idle - config.daemon.nodes_spare)
             
             logger.info("Deleting {} idle nodes... (1)".format( nr_of_nodes_to_delete))
-            ehos.delete_idle_nodes(nr_of_nodes_to_delete)
+            ehos.delete_idle_nodes(instances, condor.nodes(), nr_of_nodes_to_delete)
 
             
         # Got room to make some additional nodes
-        elif (  jobs.idle and nodes.node_total + config.daemon.nodes_spare <= config.daemon.nodes_max ):
+        elif (  jobs.jobs_idle and nodes.node_total + config.daemon.nodes_spare <= config.daemon.nodes_max ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
@@ -176,11 +175,11 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
 
         # this one is just a sanity one
-        elif ( jobs.idle and nodes.node_total == config.daemon.nodes_max):
+        elif ( jobs.jobs_idle and nodes.node_total == config.daemon.nodes_max):
             logger.info("We are busy. but all nodes we are allowed have been created, nothing to do")
 
 
-        elif (  jobs.idle ):
+        elif (  jobs.jobs_idle ):
             logger.info("We got stuff to do, but seems to have nodes to cope...")
 
             
@@ -188,12 +187,12 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
         # We got extra nodes not needed and we can delete some without going under the min cutoff, so lets get rid of some
         elif ( nodes.node_total > config.daemon.nodes_min and
-               nodes.idle  > config.daemon.nodes_spare ):
+               nodes.node_idle  > config.daemon.nodes_spare ):
 
-            nr_of_nodes_to_delete = min( nodes.node_total - config.daemon.nodes_min, nodes.idle - config.daemon.nodes_spare)
+            nr_of_nodes_to_delete = min( nodes.node_total - config.daemon.nodes_min, nodes.node_idle - config.daemon.nodes_spare)
             
             logger.info("Deleting {} idle nodes... (2)".format( nr_of_nodes_to_delete))
-            ehos.delete_idle_nodes(nr_of_nodes_to_delete)
+            ehos.delete_idle_nodes(instances, condor.nodes(), nr_of_nodes_to_delete)
             
         else:
             logger.info("The number of execute nodes are running seem appropriate, nothing to change.")

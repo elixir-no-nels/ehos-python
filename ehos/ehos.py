@@ -16,6 +16,7 @@ from munch import Munch
 
 import ehos.log_utils as logger
 import ehos.openstack
+import ehos.condor as condor
 
 # Not sure if this is still needed.
 import logging
@@ -27,7 +28,6 @@ logging.getLogger('openstack').setLevel(logging.CRITICAL)
 logging.getLogger('dogpile').setLevel(logging.CRITICAL)
 
 
-#condor    = None
 
 def connect_to_clouds(config:Munch) -> list:
     """ Connects to the clouds spefified in the config file
@@ -84,7 +84,7 @@ def vm_list( clouds:dict ):
 
 
 
-def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
+def delete_idle_nodes(instances, nodes, nr:int=1, max_heard_from_time:int=300):
     """ Delete idle nodes, by default one node is vm_deleted
 
     Args:
@@ -98,10 +98,6 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
       None
     """
 
-    global instances
-
-    condor_nodes = condor.nodes( max_heard_from_time )
-
     # Subtract the ones that are currently vm_stopping
     nr -= len( instances.get_nodes( state=['vm_stopping']))
 
@@ -112,7 +108,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
         return
 
     # loop through the nodes that are deletable
-    for node_name in condor_nodes:
+    for node_name in nodes:
 
         node = instances.find( name = node_name )
         if node is None:
@@ -122,7 +118,7 @@ def delete_idle_nodes(nr:int=1, max_heard_from_time:int=300):
         if ( node[ 'node_state' ] == 'idle' and node['vm_state'] in ['vm_active', 'vm_booting']):
             logger.debug("Killing node {}".format( node_name ))
 
-            condor.turn_off_fast( node_name )
+            ehos.condor.turn_off_fast( node_name )
             cloud = instances.get_cloud( node['cloud'])
 
             volumes = cloud.volumes_attached_to_server(node['id'])
