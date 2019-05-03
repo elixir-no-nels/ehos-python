@@ -116,7 +116,13 @@ class Openstack( ehos.vm.Vm ):
     
         self.check_connection()
 
-        
+        if ( self.get_images(name=image) == []):
+            logger.critical("Image {} does not exist in the openstack instance".format(image))
+            raise( RuntimeError("Image {} does not exist in the openstack instance".format(image)))
+
+
+
+
         try:
             user_data_fh = None
             if ( userdata_file is not None):
@@ -140,6 +146,7 @@ class Openstack( ehos.vm.Vm ):
             return server.id
 
         except Exception as e:
+            print( e )
             raise e
 
 
