@@ -29,7 +29,9 @@ if os.path.isfile("{}/../ehos/ehos.py".format( script_dir)):
     
 
 import ehos
+import ehos.instances
 
+instances = None
 
 def set_firewall_rules(config:Munch, group_name:str, internal=False):
 
@@ -38,7 +40,7 @@ def set_firewall_rules(config:Munch, group_name:str, internal=False):
     for cloud in config.clouds:
     
         
-        cloud = ehos.get_cloud_connector( cloud )
+        cloud = instances.get_cloud( cloud )
         groups = cloud.security_groups()
 
         if ( group_name not in groups):
@@ -63,7 +65,7 @@ def upload_ssh_key(config, keypath:str, name:str='ehos'):
 
     print("Setting up ssh keys")
     for cloud in config.clouds:
-        cloud = ehos.get_cloud_connector( cloud )
+        cloud = instances.get_cloud( cloud )
         cloud.upload_key( public_key=keypath, name=name)
             
 
@@ -77,7 +79,6 @@ def write_config( config:Munch, config_file:str):
     fh.write(  config_text )
     fh.close()
 
-        
 
 
 def main():
@@ -127,7 +128,10 @@ def main():
     # readin the config file in as a Munch object
     config = ehos.utils.readin_config_file(config_file)
     # Make some images, one for each cloud
-    ehos.connect_to_clouds( config )
+    clouds = ehos.connect_to_clouds( config )
+    global instances
+    instances = ehos.instances.Instances()
+    instances.add_clouds( clouds )
 
     logger.debug("Parsed arguments")
 

@@ -23,17 +23,19 @@ from munch import Munch
 
 import ehos
 import ehos.htcondor
+import ehos.instances
 import ehos.log_utils as logger
 import ehos.tick_utils as Tick
 
 
-condor = None
-tick   = None
-log_fh = None
+condor    = None
+tick      = None
+log_fh    = None
+instances = None
 
 
 def log_nodes( names:[]) -> None:
-    ''' writes the names of nodes created to the log_fh if open '''
+    ''' writes the names of nodes created to the log_fh if filehandle is open'''
 
     if log_fh is None:
         return
@@ -67,6 +69,24 @@ def open_node_logfile( config ):
         log_fh = open(config.daemon.node_log, 'a')
 
 
+
+def init( instance_url:str=None ):
+    ''' setup the environment '''
+    global condor
+    global instances
+
+
+    condor  = ehos.htcondor.Condor()
+    instances = ehos.instances.Instances()
+
+    if instance_url is not None:
+        instances.connect( instance_url )
+
+
+
+
+
+
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
                
@@ -93,7 +113,9 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     global condor
     condor = ehos.htcondor.Condor()
 
-    ehos.connect_to_clouds( config )
+    clouds = ehos.connect_to_clouds( config )
+    global instances
+    instances.add_clouds( clouds )
 
 
     while ( True ):
@@ -101,7 +123,9 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         config = ehos.utils.readin_config_file(config_file)
 
         # get the current number of nodes
-        nodes  = ehos.update_node_states()
+        nodes = condor.nodes()
+        instances.update(nodes)
+        nodes = instances.node_states( clouds )
         jobs   = condor.job_counts()
 
         # just care about the overall number of nodes, not how many in each cloud
