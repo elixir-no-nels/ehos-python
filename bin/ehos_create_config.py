@@ -24,6 +24,7 @@ from munch import Munch
 
 import ehos
 import ehos.log_utils as logger
+import ehos.instances
 
 
 def get_keystone_info(filename:str):
@@ -155,7 +156,10 @@ def main():
 #    sys.exit()
     
     ehos.init(condor_init=False)
-    ehos.connect_to_clouds( template )
+    clouds = ehos.connect_to_clouds( template )
+    global instances
+    instances = ehos.instances.Instances()
+    instances.add_clouds( clouds )
     
     default = ehos.get_cloud_connector( 'default' )
 
