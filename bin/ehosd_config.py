@@ -75,8 +75,8 @@ def htcondor_setup_config_file( uid_domain  ):
         host_ip    = ehos.utils.get_host_ip()
         host_name = ehos.utils.get_host_name()
 
-        ehos.utils.patch_file(filename='/etc/condor/00personal_condor.config', patterns=[(r'{master_ip}', host_ip),
-                                                                                         (r'{uid_domain}',uid_domain)])
+        ehos.utils.patch_file(filename='/etc/condor/00personal_condor.config', patterns=[(r'{master_ip}', host_ip), ,
+                                                                                         (r'{uid_domain}', uid_domain),])
 
         os.rename('/etc/condor/00personal_condor.config', '/etc/condor/config.d/00personal_condor.config')
 

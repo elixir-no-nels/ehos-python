@@ -16,6 +16,7 @@ setup(name='ehos',
           'typing',
           'munch',
           'openstacksdk',
+          'records',
       ],
       classifiers=[
         'Development Status :: 1.0.0',

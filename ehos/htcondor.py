@@ -153,7 +153,7 @@ class Condor( object ):
           None
 
         """
-        status_counts = {"total": 0}
+        status_counts = {"job_total": 0}
 
         for job_status in Job_status:
             status_counts[ job_status.name ] = 0
@@ -162,7 +162,7 @@ class Condor( object ):
             status = "job_" + Job_status( job.get('JobStatus') ).name
 
             status_counts[ status  ] += 1
-            status_counts[ 'total' ] += 1
+            status_counts[ 'job_total' ] += 1
 
         return Munch(status_counts)
 
@@ -246,7 +246,7 @@ class Condor( object ):
 
         """
 
-        node_counts = {"total": 0}
+        node_counts = {"node_total": 0}
 
         # init the count dict to 0 for all states
         for node_status in Node_status:
@@ -258,7 +258,7 @@ class Condor( object ):
         for node in node_states.keys():
 
             node_counts[ node_states[ node] ] += 1
-            node_counts['total'] += 1
+            node_counts['node_total'] += 1
 
         return Munch(node_counts)
 

@@ -188,9 +188,13 @@ def create_execute_nodes(instances, config:Munch,execute_config_file:str, nr:int
                 
         if ( clouds == []):
             logger.warn('No resources available to make a new node')
+            return
         
         # for round-robin
         ### find the next cloud name
+        if 'node_allocation' not in config.daemon:
+            config.daemon['node_allocation'] = 'round-robin'
+
         if ( config.daemon.node_allocation == 'round-robin'):
 
             nodes_created = len( instances.get_nodes())

@@ -5,3 +5,4 @@ openstacksdk
 #python-openstackclient
 records
 psycopg2-binary
+records
