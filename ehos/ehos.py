@@ -16,7 +16,7 @@ from munch import Munch
 
 import ehos.log_utils as logger
 import ehos.openstack
-import ehos.condor as condor
+import ehos.htcondor as condor
 
 # Not sure if this is still needed.
 import logging
@@ -99,7 +99,7 @@ def delete_idle_nodes(instances, nodes, nr:int=1, max_heard_from_time:int=300):
     """
 
     # Subtract the ones that are currently vm_stopping
-    nr -= len( instances.get_nodes( state=['vm_stopping']))
+    nr -= len( instances.get_nodes( vm_state=['vm_stopping']))
 
     # We have already tagged the number of nodes to be vm_deleted so be
     # conservative and see if we still need to do this later on
@@ -115,7 +115,7 @@ def delete_idle_nodes(instances, nodes, nr:int=1, max_heard_from_time:int=300):
             continue
 
 #        print( node )
-        if ( node[ 'node_state' ] == 'idle' and node['vm_state'] in ['vm_active', 'vm_booting']):
+        if ( node[ 'node_state' ] == 'node_idle' and node['vm_state'] in ['vm_active', 'vm_booting']):
             logger.debug("Killing node {}".format( node_name ))
 
             ehos.condor.turn_off_fast( node_name )

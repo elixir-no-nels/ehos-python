@@ -48,7 +48,7 @@ class Node_state( IntEnum ):
 
 
 
-def turn_off_fast(self, name:str, daemon:str=None):
+def turn_off_fast(name:str, daemon:str=None):
     """ Turns off all daemons, unless defined by name
 
         Ideally this should be done by an API call but this "feature" is undocumented

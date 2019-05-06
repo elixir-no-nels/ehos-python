@@ -166,7 +166,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
             
         # Got room to make some additional nodes
-        elif (  jobs.jobs_idle and nodes.node_total + config.daemon.nodes_spare <= config.daemon.nodes_max ):
+        elif (  jobs.job_idle and nodes.node_total + config.daemon.nodes_spare <= config.daemon.nodes_max ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
@@ -175,11 +175,11 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
 
         # this one is just a sanity one
-        elif ( jobs.jobs_idle and nodes.node_total == config.daemon.nodes_max):
+        elif ( jobs.job_idle and nodes.node_total == config.daemon.nodes_max):
             logger.info("We are busy. but all nodes we are allowed have been created, nothing to do")
 
 
-        elif (  jobs.jobs_idle ):
+        elif (  jobs.job_idle ):
             logger.info("We got stuff to do, but seems to have nodes to cope...")
 
             
