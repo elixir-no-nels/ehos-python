@@ -584,13 +584,13 @@ class Instances(object):
 
             # Not known in the clouds or node_state != vm_active, set is as vm_deleted.
             if node['id'] not in vms:# or vms[ node['id']]['vm_state'] != 'vm_active':
-                print('del 1')
+                #print('del 1')
                 self.set_vm_state(node_id=node['id'], vm_state='vm_deleted')
                 self.set_node_state( node_id=node['id'], node_state='node_lost')
 
             # these are in states that are not helpful for us, so ignore them for now
             elif node['node_state' ] in ['node_suspended', 'node_killing', 'node_retiring', 'node_lost']:
-                print("del 2")
+                #print("del 2")
                 self.set_vm_state(node_id=node['id'], vm_state='vm_deleted')
                 self.set_node_state( node_id=node['id'], node_state='node_lost')
 

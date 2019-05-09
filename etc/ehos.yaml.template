@@ -38,7 +38,8 @@ daemon:
     database: postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
 
 condor:
-    password: ChangeMe
+    host_ip: None
+    password: {password}
 
 influxdb:
     db: <DB>

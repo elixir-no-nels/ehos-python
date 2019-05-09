@@ -22,6 +22,7 @@ CREATE TABLE node (
 
   uuid           VARCHAR(80) NOT NULL,
   name           VARCHAR(80) NOT NULL,
+  image          VARCHAR(80) NOT NULL,
 
   cloud_id       INT REFERENCES cloud(id),
   node_state_id  INT REFERENCES node_state(id),

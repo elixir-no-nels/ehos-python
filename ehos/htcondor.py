@@ -182,7 +182,7 @@ class Condor( object ):
             status_counts[ job_status.name ] = 0
 
         for job in self._schedd.xquery(projection=['ClusterId', 'ProcId', 'JobStatus']):
-            status = "job_" + Job_status( job.get('JobStatus') ).name
+            status = Job_status( job.get('JobStatus') ).name
 
             status_counts[ status  ] += 1
             status_counts[ 'job_total' ] += 1
