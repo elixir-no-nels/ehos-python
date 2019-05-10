@@ -48,8 +48,8 @@ def connect_to_clouds(config:Munch) -> list:
 
         # Ignore the backend setting, as we only support openstack right now.
 #        config.clouds[ cloud_name ].backend = 'openstack'
-        
-        if ( config.clouds[ cloud_name ].backend == 'openstack'):
+
+        if ( 1 or config.clouds[ cloud_name ].backend == 'openstack'):
 
             cloud_config = config.clouds[ cloud_name ]
 
@@ -251,7 +251,7 @@ def create_execute_nodes(instances, config:Munch,execute_config_file:str, nr:int
 
 
 
-def create_images(instances, config:Munch,config_file:str, delete_original:bool=False):
+def create_images(instances, config:Munch, config_file:str, delete_original:bool=False):
     """ Create a number of images to be used later to create nodes
 
     Args:

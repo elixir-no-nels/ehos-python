@@ -144,8 +144,7 @@ def main():
     # magically sets default config files
     parser.add_argument('-m', '--master-yaml', help="yaml config file to create master image from", default=ehos.utils.find_config_file('master.yaml'))
     parser.add_argument('-e', '--execute-yaml', help="yaml config file for execute node from", required=False, default=ehos.utils.find_config_file('execute.yaml'))
-    parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
-    parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
+    #parser.add_argument('-c', '--config-dir',    help="Where to write config files to on the master", required=False, default='/usr/local/etc/ehos/')
 
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")

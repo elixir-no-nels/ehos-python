@@ -74,13 +74,16 @@ def find_suitable_image( handle, names ):
 
     images = handle.get_images( name='centos')
 
+    print( images )
+
     if images == []:
         raise RuntimeError('Could not find a suitable CentOS 7 image to use')
 
 
     for image in images:
         for name in names:
-            if (name.lower() in map( str.lower, image['tags'])):
+            if (name.lower() == image['name'].lower() or
+                name.lower() in map( str.lower, image['tags'])):
                 return image
     
 
@@ -155,16 +158,14 @@ def main():
 #    pp.pprint( template )
 #    sys.exit()
     
-    ehos.init(condor_init=False)
     clouds = ehos.connect_to_clouds( template )
-    global instances
     instances = ehos.instances.Instances()
     instances.add_clouds( clouds )
     
-    default = ehos.get_cloud_connector( 'default' )
+    default = instances.get_cloud( 'default' )
 
     logger.debug("Finding image")
-    image = find_suitable_image( default, ['centos7', 'centos 7' ])
+    image = find_suitable_image( default, ['centos7', 'centos 7', 'centos-7' ])
     logger.debug("Finding flavour")
     flavour = find_suitable_flavour( default,
                                      min_ram=template.daemon.min_ram*1024,

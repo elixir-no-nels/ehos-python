@@ -116,6 +116,7 @@ def main():
 
     
     args = parser.parse_args()
+    print( args)
 
     
     # set the leve of what to print.

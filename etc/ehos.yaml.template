@@ -16,7 +16,8 @@ clouds:
 ehos:
 # default prefix for creating servers and storage
   project_prefix: ehos_v1
-  network: dualStack # Not sure about this one, might have to be set between opstack instances
+  network: <NETWORK_NAME>
+  key: <SSH-KEY>
 
 
 # for tweaking the ehos daemon behaviour

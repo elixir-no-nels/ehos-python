@@ -120,9 +120,6 @@ class Openstack( ehos.vm.Vm ):
             logger.critical("Image {} does not exist in the openstack instance".format(image))
             raise( RuntimeError("Image {} does not exist in the openstack instance".format(image)))
 
-
-
-
         try:
             user_data_fh = None
             if ( userdata_file is not None):
@@ -271,7 +268,7 @@ class Openstack( ehos.vm.Vm ):
             
             timeout -= 1
             if ( not timeout):
-                raise TimeoutError
+                raise TimeoutError("Timed out waiting for log entry: {}".format( match ))
 
             #        print(". {}".format( timeout))
             time.sleep( 1 )        
@@ -294,13 +291,16 @@ class Openstack( ehos.vm.Vm ):
         None
         """
 
+        ips = []
         server = self._connection.compute.get_server( id )
-        
-        for nic in server.addresses['dualStack']:
-            if ( nic['version'] == ipv):
-                return nic['addr']
 
-        return None
+        #print( server.addresses )
+        for network in server.addresses:
+            for nic in server.addresses[ network]:
+                if ( nic['version'] == ipv):
+                    ips.append( nic['addr'] )
+
+        return ips
 
 
 
@@ -331,7 +331,7 @@ class Openstack( ehos.vm.Vm ):
 
             timeout -= 1
             if ( not timeout ):
-                raise TimeoutError
+                raise TimeoutError('timeout before the VM was shutdown')
 
             logger.debug("sleeping in server stop TO:{} status:{}".format( timeout, server.status ))
             time.sleep(1)

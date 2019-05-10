@@ -188,7 +188,7 @@ def readin_config_file(config_file:str) -> Munch:
         config = Munch.fromYAML(stream)
         stream.close()
 
-    #print( config_file )
+    #print( config )
 
     if 'daemon' not in config:
         config[ 'daemon' ] = {}
