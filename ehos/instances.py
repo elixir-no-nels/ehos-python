@@ -540,7 +540,11 @@ class Instances(object):
         """
 
         if (node_id not in self._nodes):
-            raise RuntimeError
+#            logger.warning("Unknown node {} --> {}".format( node_id, node_state))
+#            return
+
+            raise RuntimeError("Unknown node {} --> {}".format( node_id, node_state))
+
 
         if (self._nodes[node_id]['node_state'] == node_state):
             return
@@ -560,6 +564,7 @@ class Instances(object):
         vms = ehos.vm_list( clouds )
         vm_names = {vms[q]['name']:q for q in vms}
         #print( vm_names )
+        #print( self._nodes )
         for node in nodes:
 
             # This can happen if the server is restarted and condor
@@ -571,14 +576,15 @@ class Instances(object):
             vm_id = vm_names[ node ]
 #            print( "VM ID : ", vm_id)
 
+            curr_node = self.find( name = node )
             # the node is unknown to our instances, so add it
-            if ( self.find( name = node ) is None ):
+            if ( curr_node is None ):
 #                print(vm_id, node, vms[ vm_id ]['cloud_name'], vms[ vm_id ]['vm_state'], nodes[ node ])
                 self.add_node(id=vm_id, name=node, cloud=vms[ vm_id ]['cloud_name'], vm_state=vms[ vm_id ]['vm_state'], node_state=nodes[ node ])
             else:
-                self.set_node_state( node_id=vm_id, node_state=nodes[ node ])
+                self.set_node_state( node_id=curr_node['id'], node_state=nodes[ node ])
 
-        print( self.get_nodes())
+        #print( self.get_nodes())
 
         for node in self.get_nodes():
 
