@@ -85,8 +85,6 @@ def init( instance_url:str=None ):
 
 
 
-
-
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
                
@@ -117,6 +115,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     instances = ehos.instances.Instances()
     instances.add_clouds( clouds )
 
+    new_nodes = []
 
     while ( True ):
 
@@ -136,6 +135,9 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         logger.info("Nr of nodes {} ({} are idle)".format( nodes.node_total, nodes.node_idle))
         logger.info("Nr of jobs {} ({} are queueing)".format( jobs.job_total, jobs.job_idle))
 
+        if ('purge_floating_ips' in config.daemon ):
+            new_nodes = ehos.remove_floating_ips(instances, new_nodes )
+
 
         if 'influxdb' in config:
             tick.write_points({"measurement": 'ehos',
@@ -152,6 +154,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
 
             node_names = ehos.create_execute_nodes(instances, config, config.daemon.execute_config, config.daemon.nodes_min - nodes.node_total)
             log_nodes( node_names )
+            new_nodes += node_names
 
         ### there are jobs queuing, let see what we should do
 

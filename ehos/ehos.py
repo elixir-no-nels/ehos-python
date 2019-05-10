@@ -144,6 +144,24 @@ def delete_idle_nodes(instances, nodes, nr:int=1, max_heard_from_time:int=300):
     return
 
 
+
+def remove_floating_ips(instances, node_names):
+
+    for node_name in node_names:
+        node = instances.find( name=node_name )
+        print( node_names)
+        print( node )
+        cloud_handle = instances.get_cloud( node['cloud'] )
+        # for cpouta remove any floating IPs
+        if (cloud_handle.server_remove_floating_ips( node['id'] ) > 0):
+            node_names.remove( node_name )
+
+    return node_names
+
+
+
+
+
 def create_execute_nodes(instances, config:Munch,execute_config_file:str, nr:int=1):
     """ Create a number of execute nodes
 
@@ -234,8 +252,8 @@ def create_execute_nodes(instances, config:Munch,execute_config_file:str, nr:int
                     logger.warning("Could not create execute server, not enough disk available, deleting the instance.")
                     cloud.server_delete( node_id )
 
-                    
-            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, node_state='node_starting', state='vm_booting')
+
+            instances.add_node( id=node_id, name=node_name, cloud=cloud_name, node_state='node_starting', vm_state='vm_booting')
             logger.debug("Execute server {}/{} is vm_booting".format( node_id, node_name))
             node_names.append(node_name)
 

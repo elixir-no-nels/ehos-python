@@ -303,6 +303,20 @@ class Openstack( ehos.vm.Vm ):
         return ips
 
 
+    def server_remove_floating_ips(self, id:str) -> None:
+        """ removes floating IPs from a server, this is a cpouta fix"""
+        server = self._connection.compute.get_server( id )
+        logger.debug('Checking if Floating IP is assigned to testing_instance...')
+        ips_removed = 0
+        for values in server.addresses.values():
+            for address in values:
+                if address['OS-EXT-IPS:type'] == 'floating':
+                    logger.debug( "Removing floating ip: {}".format( address['addr'] ))
+                    #server.remove_floating_ip_from_server(address=address['addr'])
+                    self._connection.compute.remove_floating_ip_from_server(server=server, address=address['addr'])
+                    ips_removed += 1
+
+        return ips_removed
 
     def server_stop(self, id:str, timeout:int=200): 
         """ stops a server
