@@ -85,7 +85,7 @@ class Tick(object):
         data = self._generate_line(points )
 
         url = "{url}/write?db={db}".format( url=self.url, db=self.db)
-        print( url )
+        #print( url )
         
         if self.user is not None and self.passwd is not None:
             res = requests.post(url, auth=(self.user, self.passwd), data=data)
