@@ -90,12 +90,13 @@ def wait_for_running( max_timeout=60 ):
         try:
             import htcondor
 
-            self._collector = htcondor.Collector()
-            self._schedd    = htcondor.Schedd()
-            self._security  = htcondor.SecMan()
+            collector = htcondor.Collector()
+            schedd    = htcondor.Schedd()
+            security  = htcondor.SecMan()
 
             return True
-        except:
+        except Exception as e:
+            print( e )
             logger.debug("still waiting for the condor daemon to come online")
             time.sleep( 5 )
             max_timeout -= 5

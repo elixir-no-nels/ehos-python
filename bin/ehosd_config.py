@@ -109,11 +109,11 @@ def main():
 
 
     uid_domain = ehos.utils.make_uid_domain_name(5)
-    ehos.htcondor.set_pool_password( config.condor.password )
 
     htcondor_setup_config_file( uid_domain=uid_domain )
 
     create_execute_config_file( host_ip, uid_domain, config.condor.password, outfile=config.daemon.execute_config )
+    ehos.htcondor.set_pool_password( config.condor.password )
 
 
 if __name__ == '__main__':
