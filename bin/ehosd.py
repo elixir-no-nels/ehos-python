@@ -47,7 +47,7 @@ def log_nodes( names:[]) -> None:
 
 def setup_tick( config ):
     if 'influxdb' in config:
-        print( "sending startup entry to influxdb")
+        #s "sending startup entry to influxdb")
         global tick
         tick = Tick.Tick(url = config.influxdb.url, database=config.influxdb.db,
                          user=config.influxdb.username, passwd=config.influxdb.password)

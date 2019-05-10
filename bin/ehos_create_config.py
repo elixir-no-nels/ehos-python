@@ -74,7 +74,7 @@ def find_suitable_image( handle, names ):
 
     images = handle.get_images( name='centos')
 
-    print( images )
+    #print( images )
 
     if images == []:
         raise RuntimeError('Could not find a suitable CentOS 7 image to use')
