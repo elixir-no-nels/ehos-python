@@ -30,3 +30,9 @@ CREATE TABLE node (
 );
 
 
+CREATE TABLE setting (
+  id             SERIAL PRIMARY KEY,
+
+  name           VARCHAR(80) NOT NULL,
+  value          VARCHAR(80) NOT NULL
+);

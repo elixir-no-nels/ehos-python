@@ -162,7 +162,7 @@ def remove_floating_ips(instances, node_names):
 
 
 
-def create_execute_nodes(instances, config:Munch,execute_config_file:str, nr:int=1):
+def create_execute_nodes(instances, config:Munch, execute_config_file:str, nr:int=1):
     """ Create a number of execute nodes
 
     Args:

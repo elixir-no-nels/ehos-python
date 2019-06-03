@@ -13,7 +13,7 @@ from munch import Munch
 import ehos.log_utils as logger
 import ehos.vm
 import ehos.htcondor
-import ehos.instances_db as db
+import ehos.db as ehos_db
 
 
 class Instances(object):
@@ -45,7 +45,7 @@ class Instances(object):
         url: as specified by sqlalchemy ( {driver}://{user}:{password}@{host}:{port}/{dbase}
         """
 
-        self._db = db.InstancesDB()
+        self._db = ehos_db.DB()
         self._db.connect( url )
 
     def disconnect(self) -> None:

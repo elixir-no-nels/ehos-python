@@ -6,7 +6,7 @@ import argparse
 import pprint as pp
 
 import ehos.tornado as tornado
-import ehos.instances_db as instances_db
+import ehos.db as ehos_db
 import ehos
 import ehos.log_utils as logger
 import ehos.utils
@@ -56,7 +56,7 @@ class Nodes (tornado.BaseHandler):
 
         arguments = self._arguments()
 
-        arguments = self._valid_arguments(arguments, ['cloud_id', 'node_state_id', 'node_status_id'])
+        arguments = self._valid_arguments(arguments, ['cloud_id', 'node_state_id', 'vm_state_id'])
         if id is not None:
             arguments[ 'id' ] = id
 
@@ -77,7 +77,7 @@ class NodeStatus(tornado.BaseHandler):
 
     def get(self):
 
-        data = db.node_status()
+        data = db.vm_states()
         self.set_json_header()
         self.send_response( data )
 
@@ -115,7 +115,8 @@ def main():
     pp.pprint( config )
     #ehos.init( condor_init=False)
     global db
-    db = instances_db.InstancesDB(config.daemon.database)
+    db = ehos_db.DB()
+    db.connect(config.daemon.database)
 
     urls = [(r'/', RootHandler),
              (r'/nodes/?$', Nodes ),

@@ -63,7 +63,7 @@ def setup_tick( config ):
 
 def setup_db_backend( config ):
     if 'database' in config.daemon:
-        ehos.instances_connect_to_database(config.daemon.database)
+        ehos.instances.connect(config.daemon.database)
 
 
 def open_node_logfile( config ):
