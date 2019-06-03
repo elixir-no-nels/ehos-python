@@ -1,5 +1,7 @@
 import ehos.db_utils as db
-import ehos.log_utils as logger
+
+from munch import Munch
+
 
 class DB(object):
 
@@ -230,7 +232,6 @@ class DB(object):
 
 
         setting_id = self.setting_id(name)
-        print( setting_id )
 
         if ( setting_id is None):
 
@@ -244,4 +245,25 @@ class DB(object):
 
             self._db.do(query.format(name=name,
                                      value=value))
+
+
+
+    def store_settings(self, config:Munch):
+
+        # Have utterly found this on the internet: https://codereview.stackexchange.com/questions/21033/flatten-dictionary-in-python-functional-style
+        def flatten_dict(d:dict):
+            def expand(key, value):
+                if isinstance(value, dict):
+                    return [ (key + '.' + k, v) for k, v in flatten_dict(value).items() ]
+                else:
+                    return [ (key, value) ]
+
+            items = [ item for k, v in d.items() for item in expand(k, v) ]
+
+            return dict(items)
+
+        settings =  flatten_dict( dict( config ))
+        print( settings )
+        for name, value in settings.items():
+            self.set_setting( name, value )
 

@@ -111,7 +111,7 @@ def main():
     logger.info("Using config file: {}".format( args.config_file))
 
 
-    config = ehos.utils.readin_config_file(args.config_file)
+    config = ehos.utils.get_configuration(args.config_file)
     pp.pprint( config )
     #ehos.init( condor_init=False)
     global db

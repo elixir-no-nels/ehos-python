@@ -126,7 +126,7 @@ def main():
     # as this is an array, and we will ever only get one file set it
     config_file = args.config_file[ 0 ]
     # readin the config file in as a Munch object
-    config = ehos.utils.readin_config_file(config_file)
+    config = ehos.utils.get_configuration(config_file)
     # Make some images, one for each cloud
     clouds = ehos.connect_to_clouds( config )
     global instances

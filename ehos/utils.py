@@ -9,10 +9,14 @@ import string
 import subprocess
 import time
 from typing import List, Tuple
+import pprint as pp
+
+import munch
 
 from munch import Munch
 
 from ehos import log_utils as logger
+import ehos.db as ehos_db
 
 
 def get_host_ip() -> str:
@@ -182,6 +186,21 @@ def get_node_id(filename:str='/var/lib/cloud/data/instance-id') -> str:
     return id
 
 
+def get_configuration( config_file:str) -> Munch:
+
+    config = readin_config_file( config_file)
+    pp.pprint( config )
+    print( config.daemon.use_db_settings  )
+
+    if 'use_db_settings' in config.daemon and config.daemon.use_db_settings == True:
+        print( 'using database for config/settings')
+        store_config_in_db_if_empty(config.daemon.database, config)
+        config = config_from_db( config.daemon.database )
+
+    return config
+
+
+
 def readin_config_file(config_file:str) -> Munch:
     """ reads in and checks the config file
 
@@ -199,14 +218,37 @@ def readin_config_file(config_file:str) -> Munch:
         config = Munch.fromYAML(stream)
         stream.close()
 
-    #print( config )
-
     if 'daemon' not in config:
         config[ 'daemon' ] = {}
     if 'hostname' not in config.daemon:
         config.daemon['hostname'] = get_host_name()
 
     return config
+
+
+def store_config_in_db_if_empty(url:str, config:Munch) -> Munch:
+
+    db = ehos_db.DB()
+    db.connect( url )
+
+    settings = db.settings()
+    if settings is None or settings == {}:
+        db.store_settings( config )
+
+    db.disconnect()
+
+
+def config_from_db(url:str) -> Munch:
+
+    db = ehos_db.DB()
+    db.connect( url )
+
+    settings = db.settings()
+
+    config = munch.munchify( settings )
+
+    return config
+
 
 
 

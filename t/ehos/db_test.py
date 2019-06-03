@@ -1,5 +1,8 @@
 import pytest
 
+import munch
+
+
 import ehos.db as ehos_db
 import ehos.db_utils as db_utils
 
@@ -263,3 +266,16 @@ def test_set_setting_002():
     i.set_setting(name='daemon.master.cloud1', value='uh_bgo')
 
     assert i.settings() == {'daemon': {'master': {'cloud1': 'uh_bgo'}}}
+
+def test_store_settings():
+    i = ehos_db.DB( )
+    i.connect( url )
+    create_tables()
+
+    config = munch.munchify( {'daemon':{'master_clouds': {'a':'uh_osl', 'b': 'two'},
+                                        'min_cores': 4}})
+
+    i.store_settings( config )
+
+    assert i.settings() == {'daemon': {'master_clouds': {'a': 'uh_osl', 'b': 'two'}, 'min_cores': '4'}}
+

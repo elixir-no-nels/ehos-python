@@ -105,7 +105,7 @@ def main():
 
     host_ip    = ehos.utils.get_host_ip()
 
-    config = ehos.utils.readin_config_file(args.config_file)
+    config = ehos.utils.get_configuration(args.config_file)
 
 
     uid_domain = ehos.utils.make_uid_domain_name(5)

@@ -141,7 +141,7 @@ def main():
 
     # readin the config file in as a Munch object
     logger.debug("Reading config and template files")
-    template = ehos.utils.readin_config_file(args.config_template)
+    template = ehos.utils.get_configuration(args.config_template)
     keystone  = get_keystone_info( args.keystone_file )
                          
     template['clouds'][ 'default' ][ 'auth_url'] = keystone[ 'OS_AUTH_URL' ]

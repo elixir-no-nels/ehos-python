@@ -161,7 +161,7 @@ def main():
     logger.debug("Parsed arguments")
 
     # readin the config file in as a Munch object
-    config = ehos.utils.readin_config_file(config_file)
+    config = ehos.utils.get_configuration(config_file)
 
     # Make some images, one for each cloud
     instances = ehos.instances.Instances()
