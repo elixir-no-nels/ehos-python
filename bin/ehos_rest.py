@@ -115,7 +115,7 @@ def main():
     pp.pprint( config )
     #ehos.init( condor_init=False)
     global db
-    db = instances_db.InstancesDB(config.ehos_daemon.database)
+    db = instances_db.InstancesDB(config.daemon.database)
 
     urls = [(r'/', RootHandler),
              (r'/nodes/?$', Nodes ),
