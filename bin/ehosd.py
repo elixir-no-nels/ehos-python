@@ -40,6 +40,9 @@ def log_nodes( names:[]) -> None:
     if log_fh is None:
         return
 
+    if names is None:
+        return
+
     for name in names:
        log_fh.write("{}\n".format(name))
 
