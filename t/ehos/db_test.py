@@ -1,14 +1,13 @@
 import pytest
 
-import ehos.instances_db as I
+import ehos.db as ehos_db
 import ehos.db_utils as db_utils
 
 
-#import ehos.tyt
 
 import sys
-print(sys.modules['ehos.instances_db'] )
-print( I )
+print(sys.modules['ehos.db'] )
+print( ehos_db )
 
 db_name = 'ehos_testing'
 url = "postgresql://ehos:ehos@127.0.0.1:5432/{db_name}".format( db_name=db_name )
@@ -32,7 +31,7 @@ def create_tables():
 
 def test_init():
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
 
     i.disconnect()
@@ -44,7 +43,7 @@ def test_create_tables():
 
 def test_add_cloud():
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -57,7 +56,7 @@ def test_add_cloud():
 
 def test_get_clouds():
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -70,7 +69,7 @@ def test_get_clouds():
     
 def test_add_state():
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -84,7 +83,7 @@ def test_add_state():
 
 def test_add_status():
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -100,7 +99,7 @@ def test_add_status():
 def test_add_node():
 
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -111,7 +110,7 @@ def test_add_node():
 def test_get_nodes():
 
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -128,7 +127,7 @@ def test_get_nodes():
 def test_get_nodes_002():
 
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -146,7 +145,7 @@ def test_get_nodes_002():
 def test_get_nodes_003():
 
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -161,7 +160,7 @@ def test_get_nodes_003():
 def test_nodes_state():
 
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -177,7 +176,7 @@ def test_nodes_state():
 def test_vm_state():
 
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -193,7 +192,7 @@ def test_vm_state():
 def test_node_id():
 
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -207,7 +206,7 @@ def test_node_id():
 
 def test_update_node():
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 
@@ -224,7 +223,7 @@ def test_update_node():
 
 def test_update_node_002():
 
-    i = I.InstancesDB( )
+    i = ehos_db.DB( )
     i.connect( url )
     create_tables()
 

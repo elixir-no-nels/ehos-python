@@ -193,8 +193,8 @@ def create_execute_nodes(instances, config:Munch, execute_config_file:str, nr:in
         for cloud_name in clouds:
             cloud = instances.get_cloud( cloud_name )
             resources = cloud.get_resources_available()
-            if ( resources['ram'] > config.daemon.min_ram*1024 and
-                 resources['cores'] > config.daemon.min_cores and
+            if ( resources['ram']       > config.daemon.min_ram*1024 and
+                 resources['cores']     > config.daemon.min_cores and
                  resources['instances'] > config.daemon.min_instances ):
                 clouds_usable.append( cloud_name )
 
