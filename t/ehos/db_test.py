@@ -104,7 +104,7 @@ def test_add_node():
     create_tables()
 
 
-    i.add_node(id='id1', name='name1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id1', name='name1', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
 
 
 def test_get_nodes():
@@ -115,13 +115,13 @@ def test_get_nodes():
     create_tables()
 
 
-    i.add_node(id='id1', name='name1', cloud='uh1', vm_state='booting', node_state='starting')
-    i.add_node(id='id2', name='name2', cloud='uh2', vm_state='booting2', node_state='starting2')
-    i.add_node(id='id3', name='name3', cloud='uh3', vm_state='booting', node_state='starting')
+    i.add_node(id='id1', name='name1', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh2', vm_state='booting2', node_state='starting2')
+    i.add_node(id='id3', name='name3', image='img1', cloud='uh3', vm_state='booting', node_state='starting')
 
-    assert [{'id': 1, 'uuid': 'id1', 'name': 'name1', 'node_state': 'starting', 'vm_state': 'booting'},
-            {'id': 2, 'uuid': 'id2', 'name': 'name2', 'node_state': 'starting2', 'vm_state': 'booting2'},
-            {'id': 3, 'uuid': 'id3', 'name': 'name3', 'node_state': 'starting', 'vm_state': 'booting'}] == i.nodes()
+    assert [{'id': 1, 'uuid': 'id1', 'name': 'name1', 'image':'img1', 'node_state': 'starting', 'vm_state': 'booting'},
+            {'id': 2, 'uuid': 'id2', 'name': 'name2', 'image':'img1', 'node_state': 'starting2', 'vm_state': 'booting2'},
+            {'id': 3, 'uuid': 'id3', 'name': 'name3', 'image':'img1', 'node_state': 'starting', 'vm_state': 'booting'}] == i.nodes()
 
 
 def test_get_nodes_002():
@@ -132,14 +132,14 @@ def test_get_nodes_002():
     create_tables()
 
 
-    i.add_node(id='id1', name='name1', cloud='uh1', vm_state='booting', node_state='starting')
-    i.add_node(id='id2', name='name2', cloud='uh2', vm_state='booting2', node_state='starting2')
-    i.add_node(id='id3', name='name3', cloud='uh3', vm_state='booting', node_state='starting')
+    i.add_node(id='id1', name='name1', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh2', vm_state='booting2', node_state='starting2')
+    i.add_node(id='id3', name='name3', image='img1', cloud='uh3', vm_state='booting', node_state='starting')
 
     print( i.nodes())
 
-    assert [{'id': 1, 'uuid': 'id1', 'name': 'name1', 'node_state': 'starting', 'vm_state': 'booting'},
-            {'id': 3, 'uuid': 'id3', 'name': 'name3', 'node_state': 'starting', 'vm_state': 'booting'}] == i.nodes(node_state_id=1)
+    assert [{'id': 1, 'uuid': 'id1', 'name': 'name1', 'image':'img1', 'node_state': 'starting', 'vm_state': 'booting'},
+            {'id': 3, 'uuid': 'id3', 'name': 'name3', 'image':'img1', 'node_state': 'starting', 'vm_state': 'booting'}] == i.nodes(node_state_id=1)
 
 
 def test_get_nodes_003():
@@ -150,11 +150,11 @@ def test_get_nodes_003():
     create_tables()
 
 
-    i.add_node(id='id1', name='name1', cloud='uh1', vm_state='booting', node_state='starting')
-    i.add_node(id='id2', name='name2', cloud='uh2', vm_state='booting2', node_state='starting2')
-    i.add_node(id='id3', name='name3', cloud='uh3', vm_state='booting', node_state='starting')
+    i.add_node(id='id1', name='name1', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh2', vm_state='booting2', node_state='starting2')
+    i.add_node(id='id3', name='name3', image='img1', cloud='uh3', vm_state='booting', node_state='starting')
 
-    assert [{'id': 2, 'uuid': 'id2', 'name': 'name2', 'node_state': 'starting2', 'vm_state': 'booting2'}] == i.nodes(vm_state_id=2)
+    assert [{'id': 2, 'uuid': 'id2', 'name': 'name2', 'image':'img1', 'node_state': 'starting2', 'vm_state': 'booting2'}] == i.nodes(vm_state_id=2)
 
 
 def test_nodes_state():
@@ -165,9 +165,9 @@ def test_nodes_state():
     create_tables()
 
 
-    i.add_node(id='id1', name='name1', cloud='uh1', vm_state='booting', node_state='starting')
-    i.add_node(id='id2', name='name2', cloud='uh2', vm_state='booting2', node_state='starting2')
-    i.add_node(id='id3', name='name3', cloud='uh3', vm_state='booting', node_state='starting')
+    i.add_node(id='id1', name='name1', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh2', vm_state='booting2', node_state='starting2')
+    i.add_node(id='id3', name='name3', image='img1', cloud='uh3', vm_state='booting', node_state='starting')
 
     assert [{'id':1, 'name':'starting'},
             {'id':2, 'name':'starting2'}] == i.node_states()
@@ -181,9 +181,9 @@ def test_vm_state():
     create_tables()
 
 
-    i.add_node(id='id1', name='name1', cloud='uh1', vm_state='booting', node_state='starting')
-    i.add_node(id='id2', name='name2', cloud='uh2', vm_state='booting2', node_state='starting2')
-    i.add_node(id='id3', name='name3', cloud='uh3', vm_state='booting', node_state='starting')
+    i.add_node(id='id1', name='name1', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh2', vm_state='booting2', node_state='starting2')
+    i.add_node(id='id3', name='name3', image='img1', cloud='uh3', vm_state='booting', node_state='starting')
 
     assert [{'id':1, 'name':'booting'},
             {'id':2, 'name':'booting2'}] == i.vm_states()
@@ -197,9 +197,9 @@ def test_node_id():
     create_tables()
 
 
-    i.add_node(id='id1', name='name1', cloud='uh1', vm_state='booting', node_state='starting')
-    i.add_node(id='id2', name='name2', cloud='uh2', vm_state='booting2', node_state='starting2')
-    i.add_node(id='id3', name='name3', cloud='uh3', vm_state='booting', node_state='starting')
+    i.add_node(id='id1', name='name1', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh2', vm_state='booting2', node_state='starting2')
+    i.add_node(id='id3', name='name3', image='img1', cloud='uh3', vm_state='booting', node_state='starting')
 
     assert 2  == i.node_id('id2')
 
@@ -214,7 +214,7 @@ def test_update_node():
     i.node_state_id('starting')
 
 
-    i.add_node(id='id2', name='name2', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
 
 
     i.update_node(uuid='id2', vm_state='changed_vm_state')
@@ -231,7 +231,35 @@ def test_update_node_002():
     i.node_state_id('starting')
 
 
-    i.add_node(id='id2', name='name2', cloud='uh1', vm_state='booting', node_state='starting')
-    i.add_node(id='id2', name='name2', cloud='uh1', vm_state='booting1', node_state='starting2')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh1', vm_state='booting', node_state='starting')
+    i.add_node(id='id2', name='name2', image='img1', cloud='uh1', vm_state='booting1', node_state='starting2')
 
-    assert [{'id': 1, 'uuid': 'id2', 'name': 'name2', 'node_state': 'starting2', 'vm_state': 'booting1'}] == i.nodes()
+    assert [{'id': 1, 'uuid': 'id2', 'name': 'name2', 'image':'img1', 'node_state': 'starting2', 'vm_state': 'booting1'}] == i.nodes()
+
+
+def test_set_setting_001():
+    i = ehos_db.DB( )
+    i.connect( url )
+    create_tables()
+    i.set_setting(name='daemon.master.cloud', value='uh_osl')
+
+    assert i.settings() == {'daemon': {'master': {'cloud': 'uh_osl'}}}
+
+def test_set_setting_002():
+    i = ehos_db.DB( )
+    i.connect( url )
+    create_tables()
+    i.set_setting(name='daemon.master.cloud1', value='uh_osl')
+    i.set_setting(name='daemon.master.cloud2', value='uh_bgo')
+
+    assert i.settings() == {'daemon': {'master': {'cloud1': 'uh_osl', 'cloud2': 'uh_bgo'}}}
+
+
+def test_set_setting_002():
+    i = ehos_db.DB( )
+    i.connect( url )
+    create_tables()
+    i.set_setting(name='daemon.master.cloud1', value='uh_osl')
+    i.set_setting(name='daemon.master.cloud1', value='uh_bgo')
+
+    assert i.settings() == {'daemon': {'master': {'cloud1': 'uh_bgo'}}}

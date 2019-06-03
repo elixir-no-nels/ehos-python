@@ -192,10 +192,23 @@ class DB(object):
 
         config = {}
 
-        for name, value in settings:
-            print( name, value)
-            #names = name.split('.')
-            #for sub_name in names:
+        for setting in settings:
+            print( setting )
+
+            # names are split on '.' and deep keys are set in the dict
+            d = config
+            names = setting['name'].split('.')
+            for name in names[ 0:-1 ]:
+                if name not in d:
+                    d[ name ] = {}
+                d = d[ name ]
+
+            d[ names[ -1 ]] = setting['value']
+
+        return config
+
+    def setting_id(self, name):
+        return self._db.get_id('setting', name=name)
 
 
     def set_setting(self, name, value):
@@ -217,7 +230,7 @@ class DB(object):
 
 
         setting_id = self.setting_id(name)
-
+        print( setting_id )
 
         if ( setting_id is None):
 
@@ -227,7 +240,7 @@ class DB(object):
                                      name=name,
                                      value=value))
         else:
-            query = "UPDATE setting SET value={value} WHERE name='{name}';"
+            query = "UPDATE setting SET value='{value}' WHERE name='{name}';"
 
             self._db.do(query.format(name=name,
                                      value=value))

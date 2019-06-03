@@ -133,7 +133,7 @@ class Instances(object):
 
         return list(self._clouds.keys())
 
-    def add_node(self, id:str, name:str, cloud:str, vm_state:str = 'vm_booting', node_state='node_starting') -> None:
+    def add_node(self, id:str, name:str, image:str, cloud:str, vm_state:str = 'vm_booting', node_state='node_starting') -> None:
         """ Adds a node to the class 
 
         Args:
@@ -174,7 +174,7 @@ class Instances(object):
         self._name_to_id[name] = id
 
         if (self._db is not None):
-            self._db.add_node(id, name, cloud, vm_state, node_state)
+            self._db.add_node(id, name, image, cloud, vm_state, node_state)
 
     def get_node(self, id: str) -> {}:
         """ get a nodes based on its id
