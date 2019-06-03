@@ -238,7 +238,7 @@ def create_execute_nodes(instances, config:Munch, execute_config_file:str, nr:in
             config.ehos.image= config.clouds[ cloud_name ].image
             
             node_id = cloud.server_create( name=node_name,
-                                           userdata_file=execute_config_file,
+                                           userdata_file=userdata_file,
                                            **config.ehos )
 
             if ( 'scratch_size' in config.ehos and
@@ -336,7 +336,7 @@ def create_master_node(instances, config:Munch, master_file:str):
     Args:
        config: config settings
        master_file: config file for master node
-       execute_file: config file for execute nodes
+
 
     Returns:
       the master_id (uuid)

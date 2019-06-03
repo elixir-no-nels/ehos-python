@@ -112,7 +112,7 @@ def main():
 
     htcondor_setup_config_file( uid_domain=uid_domain )
 
-    create_execute_config_file( host_ip, uid_domain, config.condor.password, outfile=config.daemon.execute_config )
+    create_execute_config_file( host_ip, uid_domain, config.condor.password, outfile=config.ehos.userdata_file )
     ehos.htcondor.set_pool_password( config.condor.password )
 
 

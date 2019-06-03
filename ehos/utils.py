@@ -189,11 +189,11 @@ def get_node_id(filename:str='/var/lib/cloud/data/instance-id') -> str:
 def get_configuration( config_file:str) -> Munch:
 
     config = readin_config_file( config_file)
-    pp.pprint( config )
-    print( config.daemon.use_db_settings  )
+  #  pp.pprint( config )
+  #  print( config.daemon.use_db_settings  )
 
     if 'use_db_settings' in config.daemon and config.daemon.use_db_settings == True:
-        print( 'using database for config/settings')
+        logger.info( 'Using the database for config/settings')
         store_config_in_db_if_empty(config.daemon.database, config)
         config = config_from_db( config.daemon.database )
 

@@ -112,7 +112,7 @@ def main():
 
 
     config = ehos.utils.get_configuration(args.config_file)
-    pp.pprint( config )
+    #pp.pprint( config )
     #ehos.init( condor_init=False)
     global db
     db = ehos_db.DB()

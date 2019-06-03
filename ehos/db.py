@@ -195,7 +195,7 @@ class DB(object):
         config = {}
 
         for setting in settings:
-            print( setting )
+            #print( setting )
 
             # names are split on '.' and deep keys are set in the dict
             d = config
@@ -263,7 +263,7 @@ class DB(object):
             return dict(items)
 
         settings =  flatten_dict( dict( config ))
-        print( settings )
+#        print( settings )
         for name, value in settings.items():
             self.set_setting( name, value )
 

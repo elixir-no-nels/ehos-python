@@ -73,21 +73,6 @@ def open_node_logfile( config ):
 
 
 
-def init( instance_url:str=None ):
-    ''' setup the environment '''
-    global condor
-    global instances
-
-
-    condor  = ehos.htcondor.Condor()
-    instances = ehos.instances.Instances()
-
-    if instance_url is not None:
-        instances.connect( instance_url )
-
-
-
-
 def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
                
@@ -155,7 +140,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         if ( nodes.node_total < config.daemon.nodes_min ):
             logger.info("We are below the min number of nodes, creating {} nodes".format( config.daemon.nodes_min - nodes.node_total))
 
-            node_names = ehos.create_execute_nodes(instances, config, config.daemon.execute_config, config.daemon.nodes_min - nodes.node_total)
+            node_names = ehos.create_execute_nodes(instances, config, config.daemon.nodes_min - nodes.node_total)
             log_nodes( node_names )
             new_nodes += node_names
 
@@ -176,7 +161,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
-            node_names = ehos.create_execute_nodes(instances, config, config.daemon.execute_config, config.daemon.nodes_max - nodes.node_total )
+            node_names = ehos.create_execute_nodes(instances, config, config.daemon.nodes_max - nodes.node_total )
             log_nodes( node_names )
 
 
