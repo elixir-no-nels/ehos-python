@@ -16,22 +16,52 @@ clouds:
 ehos:
 # default prefix for creating servers and storage
   project_prefix: ehos_v1
-  network: dualStack # Not sure about this one, might have to be set between opstack instances
+  network: <NETWORK_NAME>
+  key: <SSH-KEY>
+  userdata_file: /usr/local/etc/ehos/execute.yaml
 
 
-# for tweaking the ehos demon behaviour
-ehos_daemon:
+# for tweaking the ehos daemon behaviour
+daemon:
 
     master_cloud: default # Which cloud to create the master node in, if only using 1 cloud will default to that one
     min_cores: 1
     min_instances: 2
     min_ram: 4
     node_allocation: round-robin
+    node_log: nodes.log
 
     nodes_max: 6
     nodes_min: 2
     nodes_spare: 2
     sleep: 30
 
+    execute_config: /usr/local/etc/ehos/execute.yaml
+    database: postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
+
 condor:
-    password: ChangeMe
+    host_ip: None
+    password: {password}
+
+
+ehos:
+    flavor: m1.medium
+    image: GOLD CentOS 7
+    key: ehos_key
+    network: dualStack
+    project_prefix: ehos_v1
+    security_groups: ehos_firewall
+daemon:
+    hostname: laptop
+    influxdb: http://localhost:8086/write?db=ehos
+    master_cloud: default
+    min_cores: 1
+    min_instances: 2
+    min_ram: 4
+    node_allocation: round-robin
+    nodes_max: 6
+    nodes_min: 2
+    nodes_spare: 2
+    sleep: 30
+    database: postgresql://ehos:ehos@localhost:5432/ehos
+    use_db_settings: False

@@ -1,8 +1,7 @@
-
-
-
 import sys
 # python3+ is broken on centos 7, so add the /usr/local/paths by hand
+import ehos.utils
+
 sys.path.append("/usr/local/lib/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
 sys.path.append("/usr/local/lib64/python{}.{}/site-packages/".format( sys.version_info.major, sys.version_info.minor))
 
@@ -23,57 +22,56 @@ import ehos
 
 def test_job_status():
 
-    assert C.Job_status.idle                 == 1
-    assert C.Job_status.running              == 2
-    assert C.Job_status.removed              == 3
-    assert C.Job_status.completed            == 4
-    assert C.Job_status.held                 == 5
-    assert C.Job_status.transferring_output  == 6
-    assert C.Job_status.suspended            == 7
+    assert C.Job_status.job_idle                 == 1
+    assert C.Job_status.job_running              == 2
+    assert C.Job_status.job_removed              == 3
+    assert C.Job_status.job_completed            == 4
+    assert C.Job_status.job_held                 == 5
+    assert C.Job_status.job_transferring_output  == 6
+    assert C.Job_status.job_suspended            == 7
 
     
 def test_job_status_reverse():
 
-    assert C.Job_status(1) == C.Job_status.idle
-    assert C.Job_status(2) == C.Job_status.running
-    assert C.Job_status(3) == C.Job_status.removed
-    assert C.Job_status(4) == C.Job_status.completed
-    assert C.Job_status(5) == C.Job_status.held
-    assert C.Job_status(6) == C.Job_status.transferring_output
-    assert C.Job_status(7) == C.Job_status.suspended
+    assert C.Job_status(1) == C.Job_status.job_idle
+    assert C.Job_status(2) == C.Job_status.job_running
+    assert C.Job_status(3) == C.Job_status.job_removed
+    assert C.Job_status(4) == C.Job_status.job_completed
+    assert C.Job_status(5) == C.Job_status.job_held
+    assert C.Job_status(6) == C.Job_status.job_transferring_output
+    assert C.Job_status(7) == C.Job_status.job_suspended
 
 
 
-def test_node_status():
+def test_node_state():
 
-    assert C.Node_status.idle         == 1
-    assert C.Node_status.starting     == 2
-    assert C.Node_status.busy         == 3
-    assert C.Node_status.suspended    == 4
-    assert C.Node_status.vacating     == 5
-    assert C.Node_status.killing      == 6
-    assert C.Node_status.benchmarking == 7
-    assert C.Node_status.retiring     == 8
-    assert C.Node_status.lost         == 9
+    assert C.Node_state.node_idle         == 1
+    assert C.Node_state.node_starting     == 2
+    assert C.Node_state.node_busy         == 3
+    assert C.Node_state.node_suspended    == 4
+    assert C.Node_state.node_vacating     == 5
+    assert C.Node_state.node_killing      == 6
+    assert C.Node_state.node_benchmarking == 7
+    assert C.Node_state.node_retiring     == 8
+    assert C.Node_state.node_lost         == 9
     
 
-def test_node_status_reverse():
+def test_node_state_reverse():
 
-    assert C.Node_status(1) == C.Node_status.idle
-    assert C.Node_status(2) == C.Node_status.starting
-    assert C.Node_status(3) == C.Node_status.busy
-    assert C.Node_status(4) == C.Node_status.suspended
-    assert C.Node_status(5) == C.Node_status.vacating
-    assert C.Node_status(6) == C.Node_status.killing
-    assert C.Node_status(7) == C.Node_status.benchmarking
-    assert C.Node_status(8) == C.Node_status.retiring
-    assert C.Node_status(9) == C.Node_status.lost
+    assert C.Node_state(1) == C.Node_state.node_idle
+    assert C.Node_state(2) == C.Node_state.node_starting
+    assert C.Node_state(3) == C.Node_state.node_busy
+    assert C.Node_state(4) == C.Node_state.node_suspended
+    assert C.Node_state(5) == C.Node_state.node_vacating
+    assert C.Node_state(6) == C.Node_state.node_killing
+    assert C.Node_state(7) == C.Node_state.node_benchmarking
+    assert C.Node_state(8) == C.Node_state.node_retiring
+    assert C.Node_state(9) == C.Node_state.node_lost
     
 
 
-def test_init():
-
-    c = C.Condor() 
+#def test_init():
+#    c = C.Condor()
 
 
 # Fake xquery to be used by the next job test function. Returns the number of job equal to the status.
@@ -82,7 +80,7 @@ def fake_job_query(self, **kwargs):
     res = []
     ca = "[ ServerTime = {ts}; JobStatus= {st}; ProcId = 0; ClusterId = 991; ]"
 
-    now = ehos.timestamp()
+    now = ehos.utils.timestamp()
     
     for job_status in C.Job_status:
         for i in range(0, job_status.value):
@@ -113,7 +111,7 @@ def fake_node_query(self, types, **kwargs):
     res = []
     ca = """[ Name = "{name}"; Activity= "{act}"; LastHeardFrom = {ts}; State = "{st}"; ]"""
 
-    now = ehos.timestamp()
+    now = ehos.utils.timestamp()
     
     res.append( classad.ClassAd(ca.format( name='node1-test.tyt', act='Idle',         ts=now,     st='Unclaimed')))
     res.append( classad.ClassAd(ca.format( name='node2-test.tyt', act='Starting',     ts=now,     st='Unclaimed')))

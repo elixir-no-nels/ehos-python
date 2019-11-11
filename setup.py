@@ -4,7 +4,7 @@ def readme():
         return f.read()
 
 setup(name='ehos',
-      version='1.0.0',
+      version='1.1.0',
       description='Elastic HTCondor OpenStack Scaling',
       url='https://github.com/elixir-no-nels/ehos-python/',
       author='Kim Brugger',
@@ -16,6 +16,7 @@ setup(name='ehos',
           'typing',
           'munch',
           'openstacksdk',
+          'records',
       ],
       classifiers=[
         'Development Status :: 1.0.0',
@@ -25,8 +26,9 @@ setup(name='ehos',
       scripts=['bin/ehosd.py',
                'bin/ehos_deployment.py',
                'bin/ehos_create_config.py',
-               'bin/ehos_setup.py',
+               'bin/ehos_cloud_setup.py',
                'bin/condor_run_jobs.py',
+               'bin/ehosd_config.py'
            ],
       # install our config files into an ehos share.
       data_files=[('share/ehos/', ['share/base.yaml',

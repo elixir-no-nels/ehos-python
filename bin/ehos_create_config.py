@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """ 
  
 The goal of this script is to ease the config generation by using an existing keystone file 
@@ -13,15 +13,18 @@ import re
 import tempfile
 
 import pprint
+
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 
-import logging
-logger = logging.getLogger('ehos_create_config')
 
 
 from munch import Munch
 
 import ehos
+import ehos.log_utils as logger
+import ehos.instances
 
 
 def get_keystone_info(filename:str):
@@ -71,13 +74,16 @@ def find_suitable_image( handle, names ):
 
     images = handle.get_images( name='centos')
 
+    #print( images )
+
     if images == []:
         raise RuntimeError('Could not find a suitable CentOS 7 image to use')
 
 
     for image in images:
         for name in names:
-            if (name.lower() in map( str.lower, image['tags'])):
+            if (name.lower() == image['name'].lower() or
+                name.lower() in map( str.lower, image['tags'])):
                 return image
     
 
@@ -116,12 +122,15 @@ def main():
 
     # magically sets default config files
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
+    parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-o', '--out-file',     help="filt to write yaml config file to",   default='etc/ehos/ehos.yaml')
-    parser.add_argument('config_template', metavar='config-template', nargs=1, help="yaml config template", default=ehos.find_config_file('ehos.yaml.template'))
+    parser.add_argument('config_template', metavar='config-template', nargs=1, help="yaml config template", default=ehos.utils.find_config_file('ehos.yaml.template'))
     parser.add_argument('keystone_file', metavar='keystone-file', nargs=1,   help="openstack keystone file")
 
     args = parser.parse_args()
-    ehos.log_level( args.verbose )
+    logger.init(name='ehos_create_config', log_file=args.logfile )
+    logger.set_log_level( args.verbose )
+
 
     # as this is an array, and we will ever only get one file set it
     args.config_template = args.config_template[ 0 ]
@@ -132,7 +141,7 @@ def main():
 
     # readin the config file in as a Munch object
     logger.debug("Reading config and template files")
-    template = ehos.readin_config_file( args.config_template )
+    template = ehos.utils.get_configuration(args.config_template)
     keystone  = get_keystone_info( args.keystone_file )
                          
     template['clouds'][ 'default' ][ 'auth_url'] = keystone[ 'OS_AUTH_URL' ]
@@ -149,17 +158,18 @@ def main():
 #    pp.pprint( template )
 #    sys.exit()
     
-    ehos.init(condor_init=False)
-    ehos.connect_to_clouds( template )
+    clouds = ehos.connect_to_clouds( template )
+    instances = ehos.instances.Instances()
+    instances.add_clouds( clouds )
     
-    default = ehos.get_cloud_connector( 'default' )
+    default = instances.get_cloud( 'default' )
 
     logger.debug("Finding image")
-    image = find_suitable_image( default, ['centos7', 'centos 7' ])
+    image = find_suitable_image( default, ['centos7', 'centos 7', 'centos-7' ])
     logger.debug("Finding flavour")
     flavour = find_suitable_flavour( default,
-                                     min_ram=template.ehos_daemon.min_ram*1024,
-                                     min_cpus=template.ehos_daemon.min_cores)
+                                     min_ram=template.daemon.min_ram*1024,
+                                     min_cpus=template.daemon.min_cores)
 
 #    pp.pprint( image )
 #    pp.pprint( flavour )
@@ -169,7 +179,7 @@ def main():
     template.ehos.flavor = flavour['name']
 
     
-    template.condor.password = ehos.random_string(25)
+    template.condor.password = ehos.utils.random_string(25)
         
 
     logger.info("writing config file to {}".format( args.out_file ))

@@ -14,8 +14,7 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 import time
 
-import logging
-logger = logging.getLogger('ehos.openstack')
+import ehos.log_utils as logger
 
 import openstack
 
@@ -117,7 +116,10 @@ class Openstack( ehos.vm.Vm ):
     
         self.check_connection()
 
-        
+        if ( self.get_images(name=image) == []):
+            logger.critical("Image {} does not exist in the openstack instance".format(image))
+            raise( RuntimeError("Image {} does not exist in the openstack instance".format(image)))
+
         try:
             user_data_fh = None
             if ( userdata_file is not None):
@@ -141,6 +143,7 @@ class Openstack( ehos.vm.Vm ):
             return server.id
 
         except Exception as e:
+            print( e )
             raise e
 
 
@@ -161,11 +164,11 @@ class Openstack( ehos.vm.Vm ):
 
         for server in self._connection.compute.servers():
             server.name = re.sub("_","-", server.name)
-            servers[ server.id ] = {'id':server.id, 'name':server.name.lower(), 'status':server.status.lower()}
-            
+            servers[ server.id ] = {'id':server.id, 'name':server.name.lower(), 'vm_state':"vm_"+server.status.lower()}
+            servers[ server.name.lower() ] = servers[ server.id ]
+
         logger.debug("Servers: \n{}".format( pp.pformat( servers )))
 
-            
         return servers
 
 
@@ -265,7 +268,7 @@ class Openstack( ehos.vm.Vm ):
             
             timeout -= 1
             if ( not timeout):
-                raise TimeoutError
+                raise TimeoutError("Timed out waiting for log entry: {}".format( match ))
 
             #        print(". {}".format( timeout))
             time.sleep( 1 )        
@@ -288,15 +291,32 @@ class Openstack( ehos.vm.Vm ):
         None
         """
 
+        ips = []
         server = self._connection.compute.get_server( id )
-        
-        for nic in server.addresses['dualStack']:
-            if ( nic['version'] == ipv):
-                return nic['addr']
 
-        return None
+        #print( server.addresses )
+        for network in server.addresses:
+            for nic in server.addresses[ network]:
+                if ( nic['version'] == ipv):
+                    ips.append( nic['addr'] )
+
+        return ips
 
 
+    def server_remove_floating_ips(self, id:str) -> None:
+        """ removes floating IPs from a server, this is a cpouta fix"""
+        server = self._connection.compute.get_server( id )
+        logger.debug('Checking if Floating IP is assigned to testing_instance...')
+        ips_removed = 0
+        for values in server.addresses.values():
+            for address in values:
+                if address['OS-EXT-IPS:type'] == 'floating':
+                    logger.debug( "Removing floating ip: {}".format( address['addr'] ))
+                    #server.remove_floating_ip_from_server(address=address['addr'])
+                    self._connection.compute.remove_floating_ip_from_server(server=server, address=address['addr'])
+                    ips_removed += 1
+
+        return ips_removed
 
     def server_stop(self, id:str, timeout:int=200): 
         """ stops a server
@@ -320,12 +340,12 @@ class Openstack( ehos.vm.Vm ):
         self._connection.compute.stop_server( server )
         while ( True ):
             server = self._connection.compute.get_server( id )
-            if ( server.status.lower() == 'shutoff'):
+            if ( server.status.lower() == 'vm_shutoff'):
                 return
 
             timeout -= 1
             if ( not timeout ):
-                raise TimeoutError
+                raise TimeoutError('timeout before the VM was shutdown')
 
             logger.debug("sleeping in server stop TO:{} status:{}".format( timeout, server.status ))
             time.sleep(1)
@@ -359,7 +379,7 @@ class Openstack( ehos.vm.Vm ):
                     image_status = image.status.lower()
 
             # Only one image with our name exist, so return its id
-            if nr_images == 1 and image_status == 'active':
+            if nr_images == 1 and image_status == 'vm_active':
                 logger.info("Created image from server id{}, image_id:{} ".format( id, image_id ))
                 return image_id
 
@@ -479,8 +499,9 @@ class Openstack( ehos.vm.Vm ):
                 continue
 
             if (name is not None and
-                name.lower() not in image.name.lower()):
-               continue
+                    (name.lower() not in image.name.lower() and
+                     name.lower() not in image.id.lower())):
+                continue
                 
             
             image_info = { 'id': image.id,
@@ -534,8 +555,9 @@ class Openstack( ehos.vm.Vm ):
 
         return flavours
     
-        
-    
+
+
+
     def volume_create(self, size:int, name:str=None, **kwargs) -> str:
         """ Create a volume
 

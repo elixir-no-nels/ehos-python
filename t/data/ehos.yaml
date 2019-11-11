@@ -1,4 +1,5 @@
 #cloud-init
+#cloud-init
 # vim: syntax=yaml
 
 # vm parameters
@@ -34,7 +35,7 @@ ehos:
 # creating servers etc
   project_prefix: ehos-v2
   flavor: m1.medium 
-  base_image_id: '{basename}'
+  base_image_id: {basename}
   base_image: GOLD CentOS 7
   network: dualStack
   key: banana-key

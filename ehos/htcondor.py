@@ -9,14 +9,16 @@ htcondor specific functions
 import sys
 import re
 import pprint
+
+import ehos.utils
+
 pp = pprint.PrettyPrinter(indent=4)
 
 from enum import IntEnum
 
 import time
 
-import logging
-logger = logging.getLogger('ehos.htcondor')
+import ehos.log_utils as logger
 
 
 from munch import Munch
@@ -24,8 +26,52 @@ from munch import Munch
 import ehos
 
 
+class Job_status( IntEnum ):
+    job_idle                 = 1
+    job_running              = 2
+    job_removed              = 3
+    job_completed            = 4
+    job_held                 = 5
+    job_transferring_output  = 6
+    job_suspended            = 7
 
-def wait_for_running( max_timeout=60):
+class Node_state( IntEnum ):
+    node_idle         =  1
+    node_starting     =  2
+    node_busy         =  3
+    node_suspended    =  4
+    node_vacating     =  5
+    node_killing      =  6
+    node_benchmarking =  7
+    node_retiring     =  8
+    node_lost         =  9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
+
+
+
+def turn_off_fast(name:str, daemon:str=None):
+    """ Turns off all daemons, unless defined by name
+
+        Ideally this should be done by an API call but this "feature" is undocumented
+
+        Args:
+          name: name of node to turn off
+          daemon: name of daemon, othewise all of them
+
+        Returns:
+          None
+
+        Raises:
+          None
+
+    """
+
+    if daemon is not None:
+        ehos.utils.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
+    else:
+        ehos.utils.system_call("condor_off -fast {}".format(name))
+
+
+def wait_for_running( max_timeout=60 ):
     """ wait for htcondor to be running 
 
     Args:
@@ -39,18 +85,18 @@ def wait_for_running( max_timeout=60):
 
     """
 
-    
     logger.info("waiting for the condor daemon ...")
     while( max_timeout >= 0 ):
         try:
             import htcondor
 
-            self._collector = htcondor.Collector()
-            self._schedd    = htcondor.Schedd()
-            self._security  = htcondor.SecMan()
+            collector = htcondor.Collector()
+            schedd    = htcondor.Schedd()
+            security  = htcondor.SecMan()
 
             return True
-        except:
+        except Exception as e:
+            print( e )
             logger.debug("still waiting for the condor daemon to come online")
             time.sleep( 5 )
             max_timeout -= 5
@@ -74,7 +120,7 @@ def set_pool_password(password:str) -> None:
     
     """
 
-    ehos.system_call( "condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
+    ehos.utils.system_call("condor_store_cred -p {password} -f /var/lock/condor/pool_password".format(password=password))
 
     
 def reload_config() -> None:
@@ -83,31 +129,7 @@ def reload_config() -> None:
     
     """
     
-    ehos.system_call("condor_reconfig")
-
-
-
-class Job_status( IntEnum ):
-    idle                 = 1
-    running              = 2
-    removed              = 3
-    completed            = 4
-    held                 = 5
-    transferring_output  = 6
-    suspended            = 7
-
-class Node_status( IntEnum ):
-    idle         =  1
-    starting     =  2
-    busy         =  3
-    suspended    =  4 
-    vacating     =  5 
-    killing      =  6
-    benchmarking =  7
-    retiring     =  8
-    lost         =  9 # we have not heard from the server for a while so it is probably lost or dead. It normally takes ~30 min for this to register.
-
-
+    ehos.utils.system_call("condor_reconfig")
 
 
 class Condor( object ):
@@ -155,10 +177,7 @@ class Condor( object ):
           None
 
         """
-
-
-
-        status_counts = {"total": 0}
+        status_counts = {"job_total": 0}
 
         for job_status in Job_status:
             status_counts[ job_status.name ] = 0
@@ -167,7 +186,7 @@ class Condor( object ):
             status = Job_status( job.get('JobStatus') ).name
 
             status_counts[ status  ] += 1
-            status_counts[ 'total' ] += 1
+            status_counts[ 'job_total' ] += 1
 
         return Munch(status_counts)
 
@@ -187,9 +206,7 @@ class Condor( object ):
           None
 
         """
-
-
-        timestamp = ehos.timestamp()
+        timestamp = ehos.utils.timestamp()
 
         node_states = {}
         import htcondor as HTC
@@ -226,9 +243,9 @@ class Condor( object ):
 
             if ( host in node_states ):
                 if ( "_" in name):
-                    node_states[ host ] = node.get('Activity').lower()
+                    node_states[ host ] = "node_" + node.get('Activity').lower()
             else:
-                node_states[ host ] = node.get('Activity').lower() 
+                node_states[ host ] = "node_" + node.get('Activity').lower()
 
 
 
@@ -253,50 +270,21 @@ class Condor( object ):
 
         """
 
+        node_counts = {"node_total": 0}
 
-        node_counts = {"total": 0}
-
+        # init the count dict to 0 for all states
         for node_status in Node_status:
-            
             node_counts[ node_status.name ] = 0
 
         
-        node_states = self.nodes( max_heard_from_time)
+        node_states = self.nodes( max_heard_from_time )
 
         for node in node_states.keys():
 
             node_counts[ node_states[ node] ] += 1
-            node_counts['total'] += 1
+            node_counts['node_total'] += 1
 
         return Munch(node_counts)
-
-
-
-    def turn_off_fast(self, name:str, daemon:str=None):
-        """ Turns off all daemons, unless defined by name
-
-        Ideally this should be done by an API call but this "feature" is undocumented
-
-        Args:
-          name: name of node to turn off
-          daemon: name of daemon, othewise all of them
-
-        Returns:
-          None
-
-        Raises:
-          None
-
-        """
-
-        if daemon is not None:
-            ehos.system_call("condor_off -fast -daemon {} {}".format(daemon, name))
-        else:
-            ehos.system_call("condor_off -fast {}".format(name))
-
-
-
-        
 
 
 
