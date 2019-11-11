@@ -62,8 +62,10 @@ class Libcloud(ehos.vm.Vm):
         Raises:
             ConnectionError if not connected
         """
+        if  self._connection is None:
+            logger.critical("No connection to openstack cloud")
+            raise ConnectionError
 
-        return None
 
     def connect(self, cloud_name: str, **kwargs) -> None:
         """ Connects to a vm service
@@ -79,10 +81,8 @@ class Libcloud(ehos.vm.Vm):
         """
         print( kwargs)
 
-        handle = self._driver( kwargs['username'], kwargs['password'], **kwargs)
-        print( "Handle {}".format(handle ))
-
-        pp.pprint( handle.list_sizes())
+        self._connection = handle = self._driver( kwargs['username'], kwargs['password'], **kwargs)
+        self._name = cloud_name
 
         return handle
 
@@ -151,7 +151,18 @@ class Libcloud(ehos.vm.Vm):
           None
         """
 
-        return {}
+        nodes = {}
+        for node in self._connection.list_nodes():
+            pp.pprint( node )
+            node_name = node.name.lower()
+            nodes[ node.id] = {'id':node.id, 'name': node_name, 'vm_state':"vm_"+node.state.lower()}
+            nodes[ node_name ] = nodes[ node.id ]
+
+
+        pp.pprint( nodes )
+
+
+        return nodes
 
     def server_log(self, id: str) -> str:
         """ streams the dmesg? log from a server
