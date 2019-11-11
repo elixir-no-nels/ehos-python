@@ -126,7 +126,7 @@ class Vm(object):
       return None
 
     
-      def server_delete(id:str) -> None:
+    def server_delete(id:str) -> None:
           """ Deletes a server instance
 
           Args:

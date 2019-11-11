@@ -97,9 +97,10 @@ def connect_to_clouds(config:Munch) -> None:
         # Ignore the backend setting, as we only support openstack right now.
         if ( 1 or config.clouds[ cloud_name ].backend == 'openstack'):
 
+
             cloud_config = config.clouds[ cloud_name ]
 
-            cloud = ehos.openstack.Openstack()
+            cloud = ehos.libcloud.Libcloud()
             cloud.connect( cloud_name=cloud_name,
                            **cloud_config)
 
