@@ -1,0 +1,45 @@
+clouds:
+  example-snic:
+    backend: openstack
+    ex_force_auth_version: 3.x_password
+    ex_force_service_region: HPC2N
+    ex_force_auth_url: https://hpc2n.cloud.snic.se:5000
+    username: myuser
+    password: mypassword
+    ex_tenant_name: SNIC 2018/10-50
+    ex_domain_name: snic
+  example-uh-iaas:
+    backend: openstack
+    ex_tenant_name:      DEMO-ola.normann.uib.no
+    ex_domain_name:      dataporten
+    ex_force_auth_url:    https://api.uh-iaas.no:5000
+    ex_force_service_region:      osl
+    ex_force_auth_version:     3.x_password
+    username:        ola.normann@uib.no
+    password:    zqctmZMdgQdAU0Lhl
+
+condor:
+  host_ip: None
+  password: ItIsASecret
+
+ehos:
+  flavor: m1.medium
+  image: GOLD CentOS 7
+  key: ehos_key2
+  network: dualStack
+  project_prefix: EHOS_V1
+  scratch_size: 10
+  security_groups: ehos_firewall
+
+daemon:
+  master_cloud: uh_osl
+  min_cores: 4
+  min_instances: 0
+  min_ram: 12
+  node_allocation: round-robin
+  nodes_max: 6
+  nodes_min: 2
+  nodes_spare: 2
+  sleep: 10
+  submission_nodes: 1
+  execute_config: /usr/local/etc/ehos/execute.yaml
