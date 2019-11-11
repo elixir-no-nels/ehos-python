@@ -8,6 +8,7 @@ from tornado.web import Application
 
 from tornado.web import RequestHandler
 import tornado.gen as gen
+import tornado
 
 import pprint as pp
 
@@ -48,6 +49,11 @@ class BaseHandler( RequestHandler ):
                 return False
 
         return True
+
+    def json_decode(self, value):
+
+        return tornado.escape.json_decode( value )
+
 
     def _valid_arguments(self, values:dict, valid:list) -> bool:
 

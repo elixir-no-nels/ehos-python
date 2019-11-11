@@ -22,11 +22,13 @@ class RootHandler (tornado.BaseHandler):
 class Clouds (tornado.BaseHandler):
 
     def set_default_headers(self):
-        print( "setting headers!!!")
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
-        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
-    
+        #print( "setting headers!!!")
+        #self.set_header("Access-Control-Allow-Origin", "*")
+        #self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        #self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+
+
     def get(self, id:str=None):
 
         arguments = self._arguments()
@@ -35,11 +37,11 @@ class Clouds (tornado.BaseHandler):
         if id is not None:
             arguments[ 'id' ] = id
 
-        pp.pprint( arguments )
+        #pp.pprint( arguments )
 
         data = db.clouds(**arguments)
 
-        print( 'In clouds @@@@ ')
+        #print( 'In clouds @@@@ ')
         self.set_json_header()
         self.send_response( data )
 
@@ -47,7 +49,7 @@ class Clouds (tornado.BaseHandler):
 class Nodes (tornado.BaseHandler):
 
     def set_default_headers(self):
-        print( "setting headers!!!")
+        #print( "setting headers!!!")
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
@@ -60,17 +62,17 @@ class Nodes (tornado.BaseHandler):
         if id is not None:
             arguments[ 'id' ] = id
 
-        pp.pprint( arguments )
+        #pp.pprint( arguments )
         data = db.nodes(**arguments)
 
-        print( 'In clouds @@@@ ')
+        #print( 'In clouds @@@@ ')
         self.set_json_header()
         self.send_response( data )
 
 class NodeStatus(tornado.BaseHandler):
 
     def set_default_headers(self):
-        print( "setting headers!!!")
+        #print( "setting headers!!!")
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
@@ -84,7 +86,7 @@ class NodeStatus(tornado.BaseHandler):
 class NodeStates(tornado.BaseHandler):
 
     def set_default_headers(self):
-        print( "setting headers!!!")
+        #print( "setting headers!!!")
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
@@ -96,6 +98,49 @@ class NodeStates(tornado.BaseHandler):
         self.set_json_header()
         self.send_response( data )
 
+
+class Settings(tornado.BaseHandler):
+
+    def set_default_headers(self):
+        #print( "setting headers!!!")
+        self.set_header("Access-Control-Allow-Origin", "*")
+        #self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
+        self.set_header('Access-Control-Allow-Headers', '*')
+        self.set_header('Access-Control-Allow-Headers',
+                    'Content-Type, Access-Control-Allow-Origin, Access-Control-Allow-Headers, X-Requested-By, Access-Control-Allow-Methods')
+
+
+    def get(self, id:int=None):
+        print( 'get...')
+
+        arguments = self._arguments()
+
+        #arguments = self._valid_arguments(arguments, ['cloud_id', 'node_state_id', 'vm_state_id'])
+        #if id is not None:
+        #    arguments[ 'id' ] = id
+
+        #pp.pprint( arguments )
+        data = db.settings_flat(**arguments)
+        data = list( filter( lambda x:'clouds' not in x['name'], data  ))
+        data = sorted( data, key=lambda k: k['name'] )
+        pp.pprint( data )
+        #print( 'In clouds @@@@ ')
+        self.set_json_header()
+        self.send_response( data )
+
+
+    def options(self, id:str=None):
+        print( 'checking options...')
+        pass
+
+    def patch(self, id:int=None):
+        print( 'patch... ID:', id)
+        setting = self.json_decode(self.request.body)
+        pp.pprint( setting )
+        db.set_setting(name=setting['name'], value=setting['value'], setting_id=id)
+
+        self.send_response_204( )
 
 def main():
     parser = argparse.ArgumentParser(description='ehos_rest: the ehos rest service daemon')
@@ -125,7 +170,8 @@ def main():
              (r'/nodes/status/?$', NodeStatus ),
              (r'/clouds/?$', Clouds ),
              (r'/clouds/(\d+?)/?$', Clouds ),
-
+             (r'/settings/(\d+)/?$', Settings ),
+             (r'/settings/?$', Settings ),
         ]
 
 

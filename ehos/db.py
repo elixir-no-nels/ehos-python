@@ -209,11 +209,18 @@ class DB(object):
 
         return config
 
+
+    def settings_flat(self, **values ):
+        return self._db.get('setting', **values)
+
+
+
+
     def setting_id(self, name):
         return self._db.get_id('setting', name=name)
 
 
-    def set_setting(self, name, value):
+    def set_setting(self, name, value, setting_id=None):
         """ Adds a node to the class
 
         Args:
@@ -230,8 +237,8 @@ class DB(object):
             RuntimeError if unknown cloud, node id/name already exist, illegal vm_state or status
         """
 
-
-        setting_id = self.setting_id(name)
+        if setting_id is None:
+            setting_id = self.setting_id(name)
 
         if ( setting_id is None):
 

@@ -23,6 +23,7 @@ ehos:
   network: None # Will be set by the deployment script
   key: None # Will be set by the deployment script
   security_groups: None # Will be set by the deployment script
+  userdata_file: /usr/local/etc/ehos/execute.yaml
 
 
 
@@ -41,6 +42,8 @@ daemon:
     nodes_spare: 2
     sleep: 30
 
+    database: postgresql://ehos:ehos@localhost:5432/ehos
+    use_db_settings: False
 
 
 condor:

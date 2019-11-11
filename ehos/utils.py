@@ -244,11 +244,28 @@ def config_from_db(url:str) -> Munch:
     db.connect( url )
 
     settings = db.settings()
-
     config = munch.munchify( settings )
 
     return config
 
+
+
+
+
+def dict_validation(data:dict, template:dict) -> bool:
+
+    for key in template.keys():
+        if key not in data:
+            raise KeyError
+
+        if not isinstance(data[key], type(template[key])):
+            print("Key value error: Expected {}, got a {}".format( type(template[key]), type(data[key])))
+            raise AttributeError
+
+        if isinstance(data[ key ], dict):
+            dict_validation(data[ key ], template[ key ])
+
+    return True
 
 
 

@@ -18,6 +18,7 @@ ehos:
   project_prefix: ehos_v1
   network: <NETWORK_NAME>
   key: <SSH-KEY>
+  userdata_file: /usr/local/etc/ehos/execute.yaml
 
 
 # for tweaking the ehos daemon behaviour
@@ -42,8 +43,25 @@ condor:
     host_ip: None
     password: {password}
 
-influxdb:
-    db: <DB>
-    username: <USERNAME>
-    password: <PASSWORD>
-    url: https://localhost:8088/
+
+ehos:
+    flavor: m1.medium
+    image: GOLD CentOS 7
+    key: ehos_key
+    network: dualStack
+    project_prefix: ehos_v1
+    security_groups: ehos_firewall
+daemon:
+    hostname: laptop
+    influxdb: http://localhost:8086/write?db=ehos
+    master_cloud: default
+    min_cores: 1
+    min_instances: 2
+    min_ram: 4
+    node_allocation: round-robin
+    nodes_max: 6
+    nodes_min: 2
+    nodes_spare: 2
+    sleep: 30
+    database: postgresql://ehos:ehos@localhost:5432/ehos
+    use_db_settings: False
