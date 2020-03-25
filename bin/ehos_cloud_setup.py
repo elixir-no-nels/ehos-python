@@ -137,39 +137,37 @@ def main():
 
     logger.debug("Parsed arguments")
 
-    changed_config = False
-    
+    config_changed = False
 
     if args.ssh_key is not None:
         upload_ssh_key(config, keypath=args.ssh_key, name=args.ssh_key_name)
         config.ehos.key = args.ssh_key_name
-        changed_config = True
+        config_changed = True
 
     if ( args.external_cloud ):
         set_firewall_rules(config, group_name=args.firewall_name, internal=False)
         config.ehos.security_groups = args.firewall_name
-        changed_config = True
+        config_changed = True
 
     else:
         set_firewall_rules(config, group_name=args.firewall_name, internal=True)
         config.ehos.security_groups = args.firewall_name
-        changed_config = True
+        config_changed = True
     
     # add a password to the config file if not already set:
     if 'password' not in config.condor or config.condor.password == 'None':
         print("Setting a password in the config file")
         config.condor.password = ehos.utils.random_string(25)
-        changed_config = True
+        config_changed = True
 
         
-    if ( changed_config ):
+    if ( config_changed ):
         write_config( config, config_file)
-        changed_config = False
+        config_changed = False
         
     if ( args.create_images):
         print("Creating image(s)")
         images = ehos.create_images( instances, config, args.base_yaml, delete_original=True)
-    
 
         # Add the image name to the config object.
         for cloud in images:
@@ -177,11 +175,9 @@ def main():
                 print( "No image created for cloud '{}', fix this before progressing".format( cloud ))
                 sys.exit(1)
             config.clouds[ cloud ].image = images[ cloud ]
-            changed_config = True
+            config_changed = True
 
-
-
-    if ( changed_config ):
+    if ( config_changed ):
         write_config( config, config_file)
     
         

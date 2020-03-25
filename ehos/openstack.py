@@ -340,7 +340,7 @@ class Openstack( ehos.vm.Vm ):
         self._connection.compute.stop_server( server )
         while ( True ):
             server = self._connection.compute.get_server( id )
-            if ( server.status.lower() == 'vm_shutoff'):
+            if ( server.status.lower() == 'shutoff'):
                 return
 
             timeout -= 1
@@ -379,7 +379,7 @@ class Openstack( ehos.vm.Vm ):
                     image_status = image.status.lower()
 
             # Only one image with our name exist, so return its id
-            if nr_images == 1 and image_status == 'vm_active':
+            if nr_images == 1 and image_status == 'active':
                 logger.info("Created image from server id{}, image_id:{} ".format( id, image_id ))
                 return image_id
 
