@@ -72,6 +72,8 @@ def upload_ssh_key(config, keypath:str, name:str='ehos'):
 def write_config( config:Munch, config_file:str):
 
     print("Overwriting config file with new information")
+    if os.path.isfile( "{}.backup".format( config_file )):
+        os.remove("{}.backup".format( config_file ))
     os.rename(config_file, "{}.backup".format( config_file ))
 
     fh = open( config_file, 'w')
