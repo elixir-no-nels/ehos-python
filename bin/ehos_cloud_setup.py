@@ -160,11 +160,6 @@ def main():
         config.condor.password = ehos.utils.random_string(25)
         config_changed = True
 
-        
-    if ( config_changed ):
-        write_config( config, config_file)
-        config_changed = False
-        
     if ( args.create_images):
         print("Creating image(s)")
         images = ehos.create_images( instances, config, args.base_yaml, delete_original=True)

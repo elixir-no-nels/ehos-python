@@ -1,4 +1,6 @@
 from setuptools import setup
+import json
+
 def readme():
     with open('README.rst') as f:
         return f.read()
