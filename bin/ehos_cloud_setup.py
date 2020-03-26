@@ -168,12 +168,12 @@ def main():
     if ( args.create_images):
         print("Creating image(s)")
         images = ehos.create_images( instances, config, args.base_yaml, delete_original=True)
-
+        print( images )
         # Add the image name to the config object.
         for cloud in images:
             if images[ cloud ] is None:
                 print( "No image created for cloud '{}', fix this before progressing".format( cloud ))
-                sys.exit(1)
+
             config.clouds[ cloud ].image = images[ cloud ]
             config_changed = True
 

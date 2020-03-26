@@ -3,8 +3,16 @@ def readme():
     with open('README.rst') as f:
         return f.read()
 
+def get_version():
+    with open('version.json') as json_file:
+        data = json.load(json_file)
+
+    return "{}.{}.{}".format( data['major'], data['minor'], data['patch'])
+
+
+
 setup(name='ehos',
-      version='1.1.0',
+      version= get_version(),
       description='Elastic HTCondor OpenStack Scaling',
       url='https://github.com/elixir-no-nels/ehos-python/',
       author='Kim Brugger',
@@ -19,9 +27,8 @@ setup(name='ehos',
           'records',
       ],
       classifiers=[
-        'Development Status :: 1.0.0',
         'License :: MIT License',
-        'Programming Language :: Python :: 3.4'
+        'Programming Language :: Python :: +3.6'
         ],      
       scripts=['bin/ehosd.py',
                'bin/ehos_deployment.py',
@@ -37,6 +44,7 @@ setup(name='ehos',
                                    'share/master.sh',]),
                   ('etc/ehos/', ['etc/ehos.yaml.example',
                                  'etc/ehos.yaml.template']),
-                  ('/etc/systemd/system/',['ehos.service'])],
+ #                 ('/etc/systemd/system/',['ehos.service'])
+                 ],
       include_package_data=True,
       zip_safe=False)
