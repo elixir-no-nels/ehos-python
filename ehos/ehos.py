@@ -162,7 +162,7 @@ def remove_floating_ips(instances, node_names):
 
 
 
-def create_execute_nodes(instances, config:Munch, execute_config_file:str, nr:int=1):
+def create_execute_nodes(instances, config:Munch, execute_config_file:str=None, nr:int=1):
     """ Create a number of execute nodes
 
     Args:
@@ -238,7 +238,7 @@ def create_execute_nodes(instances, config:Munch, execute_config_file:str, nr:in
             config.ehos.image= config.clouds[ cloud_name ].image
             
             node_id = cloud.server_create( name=node_name,
-                                           userdata_file=userdata_file,
+                                           userdata_file=execute_config_file,
                                            **config.ehos )
 
             if ( 'scratch_size' in config.ehos and

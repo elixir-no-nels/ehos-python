@@ -121,22 +121,28 @@ class Openstack( ehos.vm.Vm ):
             raise( RuntimeError("Image {} does not exist in the openstack instance".format(image)))
 
         try:
-            user_data_fh = None
             if ( userdata_file is not None):
                 user_data_fh = open( userdata_file, 'r')
-            server = self._connection.create_server(name,
-                                              image=image,
-                                              flavor=flavor,
-                                              network=network,
-                                              key_name=key,
-                                              security_groups=security_groups,
-                                              # Kind of breaks with the documentation, plus needs a filehandle, not commands or a filename.
-                                              # though the code looks like it should work with just a string of command(s).
-                                              # Cannot be bothered to get to the bottom of this right now.
-                                              userdata=user_data_fh,
-                                              wait=True,
-                                              auto_ip=True)
-        
+
+                server = self._connection.create_server(name,
+                                                       image=image,
+                                                       flavor=flavor,
+                                                       network=network,
+                                                       key_name=key,
+                                                       security_groups=security_groups,
+                                                       userdata=user_data_fh,
+                                                       wait=True,
+                                                       auto_ip=True)
+            else:
+                server = self._connection.create_server(name,
+                                                        image=image,
+                                                        flavor=flavor,
+                                                        network=network,
+                                                        key_name=key,
+                                                        security_groups=security_groups,
+                                                        wait=True,
+                                                        auto_ip=True)
+
 
             logger.debug("Created server id:{} ip:{}".format( server.id, self.server_ip(server.id)))
         

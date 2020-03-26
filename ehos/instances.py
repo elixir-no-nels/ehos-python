@@ -133,7 +133,7 @@ class Instances(object):
 
         return list(self._clouds.keys())
 
-    def add_node(self, id:str, name:str, image:str, cloud:str, vm_state:str = 'vm_booting', node_state='node_starting') -> None:
+    def add_node(self, id:str, name:str, image:str=None, cloud:str="default", vm_state:str = 'vm_booting', node_state='node_starting') -> None:
         """ Adds a node to the class 
 
         Args:

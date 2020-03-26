@@ -140,7 +140,7 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         if ( nodes.node_total < config.daemon.nodes_min ):
             logger.info("We are below the min number of nodes, creating {} nodes".format( config.daemon.nodes_min - nodes.node_total))
 
-            node_names = ehos.create_execute_nodes(instances, config, config.daemon.nodes_min - nodes.node_total)
+            node_names = ehos.create_execute_nodes(instances, config, nr=config.daemon.nodes_min - nodes.node_total)
             log_nodes( node_names )
             new_nodes += node_names
 

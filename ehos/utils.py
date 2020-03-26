@@ -309,6 +309,7 @@ def find_config_file( filename:str, dirs:list=None) -> str:
 
     default_dirs = ['/etc/ehos/',
                     '/usr/local/etc/ehos',
+                    '/usr/local/etc/',
                     "{}/../etc".format( script_dir ),
                     'etc/',
                     'etc/ehos',

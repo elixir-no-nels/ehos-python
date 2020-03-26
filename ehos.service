@@ -10,7 +10,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=centos
-ExecStart = /usr/local/bin/ehosd.py
+ExecStart = /usr/local/bin/ehosd.py -l /var/log/ehos /usr/local/etc/ehos.yaml
 
 [Install]
 WantedBy = multi-user.target
