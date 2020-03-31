@@ -109,7 +109,7 @@ def run_daemon( config_files:[]=["/usr/local/etc/ehos.yaml"] ):
 
     while ( True ):
 
-        config = ehos.utils.get_configuration(config_file)
+        config = ehos.utils.get_configurations(config_files)
 
         # get the current number of nodes
         instances.update(condor.nodes())
