@@ -199,6 +199,23 @@ def get_configuration( config_file:str) -> Munch:
 
     return config
 
+def get_configurations( config_files:[]) -> Munch:
+
+    config = Munch()
+
+    for config_file in config_files:
+        next_config = readin_config_file( config_file)
+        # Merge contents of dict2 in dict1
+        config.update(next_config)
+
+    if 'use_db_settings' in config.daemon and config.daemon.use_db_settings == True:
+        logger.info( 'Using the database for config/settings')
+        store_config_in_db_if_empty(config.daemon.database, config)
+        config = config_from_db( config.daemon.database )
+
+
+    return config
+
 
 
 def readin_config_file(config_file:str) -> Munch:

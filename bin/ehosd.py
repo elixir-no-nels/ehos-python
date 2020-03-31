@@ -73,7 +73,7 @@ def open_node_logfile( config ):
 
 
 
-def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
+def run_daemon( config_files:[]=["/usr/local/etc/ehos.yaml"] ):
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
                
     The confirguration file is continously read so it is possible to tweak the behaviour of the system
@@ -89,7 +89,9 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
     """
 
 
-    config = ehos.utils.get_configuration(config_file)
+    config = ehos.utils.get_configurations(config_files)
+#    pp.pprint( config )
+#    sys.exit()
 
     setup_tick(config)
     open_node_logfile( config )
@@ -126,7 +128,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
         if ('purge_floating_ips' in config.daemon ):
             new_nodes = ehos.remove_floating_ips(instances, new_nodes )
 
-
         if 'influxdb' in config:
             tick.write_points({"measurement": 'ehos',
                                "tags": {'host':config.daemon.hostname},
@@ -135,7 +136,6 @@ def run_daemon( config_file:str="/usr/local/etc/ehos.yaml" ):
                                           'jobs_running': jobs.job_running,
                                           'jobs_idle': jobs.job_idle,}})
 
-        
         # Below the min number of nodes needed for our setup
         if ( nodes.node_total < config.daemon.nodes_min ):
             logger.info("We are below the min number of nodes, creating {} nodes".format( config.daemon.nodes_min - nodes.node_total))
@@ -201,15 +201,15 @@ def main():
 
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
-    parser.add_argument('config_file', metavar='config-file', nargs='?', help="yaml formatted config file", default=ehos.utils.find_config_file('ehos.yaml'))
+    parser.add_argument('config_files', metavar='config-files', nargs='+', help="yaml formatted config files", default=ehos.utils.find_config_file('ehos.yaml'))
 
 
     args = parser.parse_args()
     logger.init(name='ehosd', log_file=args.logfile )
     logger.set_log_level( args.verbose )
 
-    logger.info("Running with config file: {}".format( args.config_file))
-    run_daemon( args.config_file )
+    logger.info("Running with config file: {}".format( args.config_files    ))
+    run_daemon( args.config_files )
 
 
 if __name__ == '__main__':
