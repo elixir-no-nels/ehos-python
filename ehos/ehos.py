@@ -195,7 +195,7 @@ def create_execute_nodes(instances, config:Munch, execute_config_file:str=None, 
             resources = cloud.get_resources_available()
             if ( resources['ram']       > config.daemon.min_ram*1024 and
                  resources['cores']     > config.daemon.min_cores and
-                 resources['instances'] > config.daemon.min_instances ):
+                 resources['instances'] > config.daemon.min_instances):
                 clouds_usable.append( cloud_name )
 
         clouds = clouds_usable
@@ -297,9 +297,9 @@ def create_images(instances, config:Munch, config_file:str, delete_original:bool
 
 
         resources = cloud.get_resources_available()
-        if ( resources['ram'] > config.daemon.min_ram*1024 and
-             resources['cores'] > config.daemon.min_cores and
-             resources['instances'] > config.daemon.min_instances ):
+        if ( resources['ram'] > config.daemon.get('min_ram', 1)*1024 and
+             resources['cores'] > config.daemon.get('min_cores', 1) and
+             resources['instances'] > config.daemon.get('min_instances',1 )):
 
             vm_id = cloud.server_create( name=node_name,
                                          userdata_file=config_file,
