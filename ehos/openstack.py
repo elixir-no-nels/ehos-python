@@ -249,7 +249,7 @@ class Openstack( ehos.vm.Vm ):
 
         return results
 
-    def wait_for_log_entry(self, id:str, match:str, timeout:int=200):
+    def wait_for_log_entry(self, id:str, match:str, timeout:int=400):
         """ continually checks a server log until a string match is found
 
         Args:
@@ -324,7 +324,7 @@ class Openstack( ehos.vm.Vm ):
 
         return ips_removed
 
-    def server_stop(self, id:str, timeout:int=200): 
+    def server_stop(self, id:str, timeout:int=300):
         """ stops a server
         
         Args:
@@ -359,7 +359,7 @@ class Openstack( ehos.vm.Vm ):
         logger.info("Server stopped id:{} ".format( id ))
 
 
-    def _wait_for_image_creation(self, image_name:str, timeout:int=200):
+    def _wait_for_image_creation(self, image_name:str, timeout:int=600):
         """ Wait for a single image with the given name exists and them return the id of it
 
         Args:
