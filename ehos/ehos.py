@@ -310,7 +310,7 @@ def create_images(instances, config:Munch, config_file:str, delete_original:bool
 
 
             # Wait for the server to come online and everything have been configured.    
-            cloud.wait_for_log_entry(vm_id, "The EHOS vm is up after ")
+            cloud.wait_for_log_entry(vm_id, "The EHOS vm is up after ", timeout=1200)
             logger.info("VM server is now online")
             
             image_name = make_node_name(config.ehos.project_prefix, "image")
