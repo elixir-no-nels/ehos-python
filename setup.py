@@ -43,8 +43,7 @@ setup(name='ehos',
       # install our config files into an ehos share.
       data_files=[('share/ehos/', ['share/base.yaml',
                                    'share/master.yaml',
-                                   'share/execute.yaml',
-                                   'share/master.sh',]),
+                                   'share/execute.yaml',]),
                   ('etc/ehos/', ['etc/ehos.yaml.example',
                                  'etc/ehos.yaml.template']),
  #                 ('/etc/systemd/system/',['ehos.service'])

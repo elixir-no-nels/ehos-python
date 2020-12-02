@@ -19,30 +19,19 @@ write_files:
 # Create custom condor configuration file to create an execute node
 -   content: |
         ##  What machine is your central manager?
-        
         CONDOR_HOST = {master_ip}
-        
-        ##  This macro determines what daemons the condor_master will start and keep its watchful eyes on.
-        ##  The list is a comma or space separated list of subsystem names
-        
-        DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SCHEDD
-
-        
-        FLOCK_TO = $(CONDOR_HOST)
-        ALLOW_NEGOTIATOR = $(FLOCK_TO)
-        #ALLOW_WRITE = {ip_range}
-        ALLOW_WRITE  = *
-        ALLOW_READ = $(ALLOW_WRITE)
-        UID_DOMAIN = {uid_domain}
-        STARTER_ALLOW_RUNAS_OWNER = TRUE
-        TRUST_UID_DOMAIN=TRUE
-        SOFT_UID_DOMAIN = TRUE
-
-
-        SEC_PASSWORD_FILE = $(LOCK)/pool_password
-        SEC_DEFAULT_AUTHENTICATION = REQUIRED
-        SEC_DEFAULT_AUTHENTICATION_METHODS = FS, PASSWORD
-
+        SEC_PASSWORD_FILE = /etc/condor/passwords.d/POOL
+        SEC_DAEMON_AUTHENTICATION = REQUIRED
+        SEC_DAEMON_INTEGRITY = REQUIRED
+        SEC_DAEMON_AUTHENTICATION_METHODS = PASSWORD
+        SEC_NEGOTIATOR_AUTHENTICATION = REQUIRED
+        SEC_NEGOTIATOR_INTEGRITY = REQUIRED
+        SEC_NEGOTIATOR_AUTHENTICATION_METHODS = PASSWORD
+        SEC_CLIENT_AUTHENTICATION_METHODS = FS, PASSWORD, KERBEROS, GSI
+        ALLOW_DAEMON = condor_pool@*/*, condor@*/$(IP_ADDRESS)
+        ALLOW_NEGOTIATOR = condor_pool@*/{master_ip}
+        use ROLE: CentralManager, Submit
+        ALLOW_WRITE_COLLECTOR=$(ALLOW_WRITE) *
         NEGOTIATOR_INTERVAL = 5
     owner: root:root
     path: /etc/condor/00personal_condor.config
@@ -54,6 +43,19 @@ runcmd:
 
   - dhclient # because the DNS server at uh-iaas is sometimes broken...
   - pip3 install --prefix /usr/local/ git+https://github.com/elixir-no-nels/ehos-python.git
+  # htcondor install and setup
+  - wget -P /tmp/ http://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
+  - rpm --import /tmp/RPM-GPG-KEY-HTCondor
+  - wget -P /etc/yum.repos.d https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
+  - yum -y install condor
+  - mkdir /etc/condor/passwords.d
+  - chown 700 /etc/condor/passwords.d
+  - condor_store_cred add -cp {password}
+
+  # Start condor and enable it on start
+  - systemctl enable condor
+  - systemctl start condor
+
 
 
 final_message: "The EHOS vm is up after $UPTIME seconds"

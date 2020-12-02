@@ -15,64 +15,37 @@ final_message: "The EHOS vm is up after $UPTIME seconds"
 # Create custom condor configuration file to create an execute node
 write_files:
 -   content: |
-        ##  What machine is your central manager?
-        
-        CONDOR_HOST = {master_ip}
-        
-        ## Pool's short description
-        
-        COLLECTOR_NAME = $(CONDOR_HOST)
-        
-        ##  When is this machine willing to start a job?
-        
-        START = TRUE
-        
-        
-        ##  When to suspend a job?
-        
-        SUSPEND = FALSE
-        
-        
-        ##  When to nicely stop a job?
-        ##  (as opposed to killing it instantaneously)
-        
-        PREEMPT = FALSE
-        
-        
-        ##  When to instantaneously kill a preempting job
-        ##  (e.g. if a job is in the pre-empting stage for too long)
-        
-        KILL = FALSE
-        
-        
-        ##  This macro determines what daemons the condor_master will start and keep its watchful eyes on.
-        ##  The list is a comma or space separated list of subsystem names
-        
-        DAEMON_LIST = MASTER, STARTD
-        DISCARD_SESSION_KEYRING_ON_STARTUP = False
-        
-        UID_DOMAIN = {uid_domain}
-        DEFAULT_DOMAIN_NAME = $(UID_DOMAIN)
-        TRUST_UID_DOMAIN = TRUE
-        SOFT_UID_DOMAIN=true
+      ##  What machine is your central manager?
+      CONDOR_HOST = {master_ip}
+      use ROLE: Execute
 
-
-        SEC_PASSWORD_FILE = $(LOCK)/pool_password
-        SEC_DEFAULT_AUTHENTICATION = REQUIRED
-        SEC_DEFAULT_AUTHENTICATION_METHODS = FS, PASSWORD
-        #ALLOW_ADVERTISE_STARTD = condor_pool@$(UID_DOMAIN)
-
-        NUM_SLOTS = 1
-        NUM_SLOTS_TYPE_1 = 1
-        SLOT_TYPE_1 = cpus=100%
-        SLOT_TYPE_1_PARTITIONABLE = true
+      SEC_PASSWORD_FILE = /etc/condor/passwords.d/POOL
+      SEC_DAEMON_AUTHENTICATION = REQUIRED
+      SEC_DAEMON_INTEGRITY = REQUIRED
+      SEC_DAEMON_AUTHENTICATION_METHODS = PASSWORD
+      SEC_NEGOTIATOR_AUTHENTICATION = REQUIRED
+      SEC_NEGOTIATOR_INTEGRITY = REQUIRED
+      SEC_NEGOTIATOR_AUTHENTICATION_METHODS = PASSWORD
+      SEC_CLIENT_AUTHENTICATION_METHODS = FS, PASSWORD, KERBEROS, GSI
+      ALLOW_DAEMON = condor_pool@*/*, condor@*/$(IP_ADDRESS)
+      ALLOW_NEGOTIATOR = condor_pool@*/{master_ip}
     owner: root:root
     path: /etc/condor/config.d/00personal_condor.config
     permissions: '0644'
 
 runcmd:
-  - dhclient # because the DNS server at uh-iaas is sometimes broken...
+  - yum install -y epel-release
+
+  # htcondor install and setup
+  - wget -P /tmp/ http://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
+  - rpm --import /tmp/RPM-GPG-KEY-HTCondor
+  - wget -P /etc/yum.repos.d https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
+  - yum -y install condor
+  - mkdir /etc/condor/passwords.d
+  - chown 700 /etc/condor/passwords.d
+  - condor_store_cred add -cp {password}
+
+  # Start condor and enable it on start
   - systemctl enable condor
-  - systemctl start  condor
-  - condor_store_cred -p {password} -f /var/lock/condor/pool_password
-  - condor_reconfig
+  - systemctl start condor
+
