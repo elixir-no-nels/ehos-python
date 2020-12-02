@@ -277,18 +277,6 @@ openstack server create --flavor <FLAVOR> --image <IMAGE_ID> --nic net-id=<NETID
 
 ```
 
-
-#### Manual Installation:
-
-A minimal master compute can be setup using the provided
-**share/master.sh** shell script. Please note that this script has
-been created for centos 7, and might need some alterations if your
-system differ from this.
-
-As root (or sudo ) run this script and the necessary software and
-configuration files should be installed and configured.
-
-
 ### Starting the daemon
 
 A few steps is remaining before the system is up and running, you will
