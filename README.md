@@ -17,4 +17,5 @@ it will not be covered by this document (http://docs.uh-iaas.no/en/latest/).
 Read the [quick start ](docs/quick_start.md) to try ehos, or dive into
 the [full documentation](docs/index.md) for more details regarding
 architecture, installation, and running the system in a production
-environment.
+environment. There is now an ansible-playbook available as well: 
+[ansible-role-ehos](https://github.com/elixir-no-nels/ansible-role-ehos.git)
