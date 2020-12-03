@@ -13,6 +13,7 @@ import ehos.utils
 pp = pprint.PrettyPrinter(indent=4)
 import argparse
 import socket
+import ehos.log_utils as logger
 from munch import Munch
 
 # python3+ is broken on centos 7, so add the /usr/local/paths by hand
@@ -40,7 +41,6 @@ def main():
     logger.init(name='ehosd' )
     logger.set_log_level( 0 )
 
-
     config = ehos.utils.get_configurations(args.config_files)
     condor = ehos.htcondor.Condor()
     clouds = ehos.connect_to_clouds( config )
@@ -55,8 +55,8 @@ def main():
 
     hostname = get_hostname()
 
-    print("condor,host={} jobs_total={},jobs_idle={},jobs_running={},jobs_suspended={}".format( hostname, jobs.get('job_total', 0), jobs.get('job_idle',0), jobs.get('job_running'), 0), jobs.get('job_suspended'), 0))
-    print("ehos,host={} nodes_total={},nodes_idle={},nodes_busy={}".format( hostname, nodes.get('node_total', 0), nodes.get('node_idle',0), nodes.get('node_busy'), 0))
+    print(f"condor,host={hostname} jobs_total={jobs.get('job_total', 0)},jobs_idle={jobs.get('job_idle',0)},jobs_running={jobs.get('job_running', 0)},jobs_suspended={jobs.get('job_suspended', 0)}")
+    print(f"ehos,host={hostname} nodes_total={nodes.get('node_total', 0)},nodes_idle={nodes.get('node_idle',0)},nodes_busy={nodes.get('node_busy', 0)}")
 
 if __name__ == '__main__':
     main()
