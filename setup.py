@@ -37,7 +37,7 @@ setup(name='ehos',
                'bin/ehos_create_config.py',
                'bin/ehos_cloud_setup.py',
                'bin/condor_run_jobs.py',
-               'bin/ehosd_config.py'
+               'bin/ehosd_config.py',
                'bin/ehos_status.py'
            ],
       # install our config files into an ehos share.
