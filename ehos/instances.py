@@ -153,16 +153,16 @@ class Instances(object):
         if (cloud not in self._clouds):
             raise RuntimeError
 
-        if (id in self._nodes):
+        if id in self._nodes:
             raise RuntimeError
 
-        if (name in self._name_to_id):
+        if name in self._name_to_id:
             raise RuntimeError
 
-        if (self.valid_vm_state(vm_state) == False):
+        if self.valid_vm_state(vm_state) == False:
             raise RuntimeError("Illegal vm_state '{}'".format(vm_state))
 
-        if (self.valid_node_state(node_state) == False):
+        if self.valid_node_state(node_state) == False:
             raise RuntimeError("Illegal node_state '{}'".format(node_state))
 
         self._nodes[id] = {'id': id,
