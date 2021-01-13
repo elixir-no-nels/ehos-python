@@ -12,6 +12,16 @@
 
 final_message: "The EHOS vm is up after $UPTIME seconds"
 
+
+users:
+  - default
+  - name: ehos
+    primary-group: ehos
+    groups: wheel
+    #ssh-authorized-keys:
+
+
+
 # Create custom condor configuration file to create an execute node
 write_files:
 -   content: |
