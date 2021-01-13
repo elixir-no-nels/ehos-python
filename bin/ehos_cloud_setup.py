@@ -13,6 +13,8 @@ import tempfile
 
 import pprint
 
+sys.path.append(".")
+
 import ehos.utils
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -69,6 +71,22 @@ def upload_ssh_key(config, keypath:str, name:str='ehos'):
         cloud.upload_key( public_key=keypath, name=name)
             
 
+def patch( filename:str, patch_match:str, patch_replace:str) -> str:
+
+
+    content = ehos.utils.readin_whole_file(filename)
+    content = re.sub(patch_match, patch_replace, content)
+    # create a tmpfile/handle
+    
+    tmp_fh, tmpfile = tempfile.mkstemp(suffix=".yaml", dir="/tmp/", text=True)
+    os.write( tmp_fh, str.encode( content ))
+    os.close( tmp_fh )
+
+    return tmpfile
+
+
+
+        
 def write_config( config:Munch, config_file:str):
 
     print("Overwriting config file with new information")
@@ -106,8 +124,9 @@ def main():
     parser.add_argument('-B', '--base-yaml', help="yaml config file to create base image from", default=ehos.utils.find_config_file('base.yaml'))
     parser.add_argument('-c', '--create-images', action='store_true',     help="Create images, one in each cloud in the configuration file")
 
-    parser.add_argument('-s', '--ssh-key',     help="ssh-key to upload")
+    parser.add_argument('-s', '--ssh-key',          help="ssh-key to upload")
     parser.add_argument('-S', '--ssh-key-name',     help="Name of ssh key",   default="ehos_key")
+    parser.add_argument('-k', '--ssh-authorized-key', help="location  of public ssh key")
     
     parser.add_argument('-e', '--external-cloud', default=False, action='store_true',   help="Configure firewall rules for an external setup (open to the world)")
     parser.add_argument('-f', '--firewall-name',     help="Name of firewall (security-group)", default='ehos_firewall')
@@ -119,6 +138,15 @@ def main():
     
     args = parser.parse_args()
     print( args)
+
+    if args.ssh_authorized_key:
+        # patch in the ssh-key into a tmp base-config file
+        key = ehos.utils.readin_whole_file(args.ssh_authorized_key)
+        print(key)
+        tmp_config_file = patch(args.base_yaml, "#ssh-authorized-keys:", f"ssh-authorized-keys\n      - {key}")
+        args.base_yaml = tmp_config_file
+        print( tmp_config_file)
+        sys.exit();
 
     
     # set the leve of what to print.
@@ -160,6 +188,7 @@ def main():
         config.condor.password = ehos.utils.random_string(25)
         config_changed = True
 
+        
     if ( args.create_images):
         print("Creating image(s)")
         images = ehos.create_images( instances, config, args.base_yaml, delete_original=True)
