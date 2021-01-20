@@ -65,15 +65,13 @@ def setup_db_backend( config ):
     if 'database' in config.daemon:
         ehos.instances.connect(config.daemon.database)
 
-
 def open_node_logfile( config ):
     if 'node_log' in config.daemon:
         global log_fh
         log_fh = open(config.daemon.node_log, 'a')
 
 
-
-def run_daemon( config_files:[]=["/usr/local/etc/ehos.yaml"] ):
+def run_daemon( config_files:[]=["/usr/local/etc/ehos.yaml"], cloud_init:str=None, ansible_playbook:str=None ) -> None:
     """ Creates the ehos daemon loop that creates and destroys nodes etc.
                
     The confirguration file is continously read so it is possible to tweak the behaviour of the system
@@ -140,7 +138,7 @@ def run_daemon( config_files:[]=["/usr/local/etc/ehos.yaml"] ):
         if ( nodes.node_total < config.daemon.nodes_min ):
             logger.info("We are below the min number of nodes, creating {} nodes".format( config.daemon.nodes_min - nodes.node_total))
 
-            node_names = ehos.create_execute_nodes(instances, config, nr=config.daemon.nodes_min - nodes.node_total)
+            node_names = ehos.create_execute_nodes(instances, config, nr=config.daemon.nodes_min - nodes.node_total, execute_config_file=cloud_init)
             log_nodes( node_names )
             new_nodes += node_names
 
@@ -161,7 +159,7 @@ def run_daemon( config_files:[]=["/usr/local/etc/ehos.yaml"] ):
             
             logger.info("We got stuff to do, creating some additional nodes...")
 
-            node_names = ehos.create_execute_nodes(instances, config, config.daemon.nodes_max - nodes.node_total )
+            node_names = ehos.create_execute_nodes(instances, config, config.daemon.nodes_max - nodes.node_total, execute_config_file=cloud_init )
             log_nodes( node_names )
 
 
@@ -198,7 +196,8 @@ def run_daemon( config_files:[]=["/usr/local/etc/ehos.yaml"] ):
 def main():
 
     parser = argparse.ArgumentParser(description='ehosd: the ehos daemon to be run on the master node ')
-
+    parser.add_argument('-c', '--cloud-init', help="cloud-init file to run when creating the VM")
+    parser.add_argument('-a', '--ansible-playbook', help="ansible-playbook to run on newly created VMs")
     parser.add_argument('-l', '--logfile', default=None, help="Logfile to write to, default is stdout")
     parser.add_argument('-v', '--verbose', default=4, action="count",  help="Increase the verbosity of logging output")
     parser.add_argument('config_files', metavar='config-files', nargs='+', help="yaml formatted config files", default=ehos.utils.find_config_file('ehos.yaml'))
@@ -209,7 +208,7 @@ def main():
     logger.set_log_level( args.verbose )
 
     logger.info("Running with config file: {}".format( args.config_files    ))
-    run_daemon( args.config_files )
+    run_daemon( args.config_files, cloud_init=args.cloud_init, ansible_playbook=args.ansible_playbook )
 
 
 if __name__ == '__main__':
